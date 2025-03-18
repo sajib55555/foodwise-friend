@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-c
 import { Button } from "@/components/ui/button-custom";
 import { User, Settings, Bell, Shield, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import { staggerContainer, staggerItem } from "@/utils/transitions";
 
 const Profile = () => {
   // Placeholder data - in a real app, this would come from user context/state
@@ -25,21 +26,6 @@ const Profile = () => {
     { id: "notifications", icon: Bell, label: "Notifications", path: "/profile/notifications" },
     { id: "privacy", icon: Shield, label: "Privacy & Security", path: "/profile/privacy" }
   ];
-
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const item = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0 }
-  };
 
   return (
     <>
@@ -91,22 +77,22 @@ const Profile = () => {
             </Card>
 
             <motion.div
-              variants={container}
+              variants={staggerContainer}
               initial="hidden"
               animate="show"
               className="space-y-2"
             >
-              {menuItems.map((item) => {
-                const Icon = item.icon;
+              {menuItems.map((menuItem) => {
+                const Icon = menuItem.icon;
                 return (
-                  <motion.div key={item.id} variants={item}>
+                  <motion.div key={menuItem.id} variants={staggerItem}>
                     <Card variant="glass-sm" className="cursor-pointer">
                       <CardContent className="p-4">
                         <div className="flex items-center">
                           <div className="w-8 h-8 mr-3 rounded-full bg-muted/70 flex items-center justify-center">
                             <Icon className="h-4 w-4" />
                           </div>
-                          <span className="font-medium">{item.label}</span>
+                          <span className="font-medium">{menuItem.label}</span>
                         </div>
                       </CardContent>
                     </Card>

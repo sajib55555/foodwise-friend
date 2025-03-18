@@ -2,33 +2,52 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { Check, X, AlertTriangle, Utensils, Activity } from "lucide-react";
+import { Check, X, AlertTriangle, Utensils, Activity, Barcode } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface ScanResultProps {
   imageUrl: string;
+  barcode?: string | null;
   onReset: () => void;
 }
 
-const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, onReset }) => {
+const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) => {
   // This would be replaced with actual AI analysis results
-  const mockResults = {
-    name: "Chicken Salad with Mixed Vegetables",
-    calories: 320,
-    protein: 28,
-    carbs: 12,
-    fat: 18,
-    ingredients: [
-      { name: "Chicken Breast", healthy: true },
-      { name: "Lettuce", healthy: true },
-      { name: "Tomatoes", healthy: true },
-      { name: "Olive Oil", healthy: true },
-      { name: "Salt", healthy: true, warning: "In moderation" }
-    ],
-    healthScore: 8.5,
-    warnings: ["Contains moderate sodium"],
-    recommendations: ["Great choice for protein intake", "Rich in vitamins A and C"]
-  };
+  const mockResults = barcode 
+    ? {
+        name: "Organic Greek Yogurt",
+        brand: "Nature's Best",
+        barcode: barcode,
+        calories: 120,
+        protein: 15,
+        carbs: 8,
+        fat: 5,
+        ingredients: [
+          { name: "Organic Milk", healthy: true },
+          { name: "Live Cultures", healthy: true },
+          { name: "Vitamin D", healthy: true },
+        ],
+        healthScore: 9.2,
+        warnings: [],
+        recommendations: ["Excellent source of protein", "Contains probiotics for gut health"]
+      }
+    : {
+        name: "Chicken Salad with Mixed Vegetables",
+        calories: 320,
+        protein: 28,
+        carbs: 12,
+        fat: 18,
+        ingredients: [
+          { name: "Chicken Breast", healthy: true },
+          { name: "Lettuce", healthy: true },
+          { name: "Tomatoes", healthy: true },
+          { name: "Olive Oil", healthy: true },
+          { name: "Salt", healthy: true, warning: "In moderation" }
+        ],
+        healthScore: 8.5,
+        warnings: ["Contains moderate sodium"],
+        recommendations: ["Great choice for protein intake", "Rich in vitamins A and C"]
+      };
 
   return (
     <motion.div
@@ -38,13 +57,23 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, onReset }) => {
       className="space-y-6"
     >
       <div className="relative">
-        <div className="h-48 rounded-2xl overflow-hidden">
-          <img
-            src={imageUrl}
-            alt="Food scan"
-            className="w-full h-full object-cover"
-          />
-        </div>
+        {imageUrl ? (
+          <div className="h-48 rounded-2xl overflow-hidden">
+            <img
+              src={imageUrl}
+              alt="Food scan"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : barcode ? (
+          <div className="h-48 rounded-2xl flex items-center justify-center bg-purple-50 overflow-hidden">
+            <div className="text-center p-4">
+              <Barcode className="h-16 w-16 mx-auto mb-2 text-purple-600" />
+              <p className="text-lg font-semibold text-purple-700">{barcode}</p>
+              <p className="text-sm text-purple-600">{(mockResults as any).brand}</p>
+            </div>
+          </div>
+        ) : null}
         <Button
           variant="outline"
           size="sm"
@@ -154,7 +183,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, onReset }) => {
               <Button variant="outline" size="sm" className="flex-1">
                 Save to Journal
               </Button>
-              <Button variant="default" size="sm" className="flex-1">
+              <Button variant="purple" size="sm" className="flex-1">
                 Log This Meal
               </Button>
             </div>

@@ -1,4 +1,3 @@
-
 import React from "react";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
@@ -8,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart } from "recharts";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { motion } from "framer-motion";
+import NutritionCharts from "@/components/nutrition/NutritionCharts";
 
 const Nutrition = () => {
   // Mock data for charts - in a real app, this would come from API/state
@@ -53,47 +53,7 @@ const Nutrition = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                <Card variant="glass">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Weekly Calories</CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-60">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={caloriesData}
-                        margin={{ top: 5, right: 5, left: -20, bottom: 5 }}
-                      >
-                        <defs>
-                          <linearGradient id="colorCalories" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.1} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                        <XAxis 
-                          dataKey="name" 
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <YAxis 
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 12 }}
-                          domain={[1000, 2500]}
-                        />
-                        <Tooltip />
-                        <Area 
-                          type="monotone" 
-                          dataKey="calories" 
-                          stroke="#0ea5e9" 
-                          fillOpacity={1} 
-                          fill="url(#colorCalories)" 
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </CardContent>
-                </Card>
+                <NutritionCharts />
               </motion.div>
 
               <motion.div 

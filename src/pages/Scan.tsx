@@ -1,91 +1,100 @@
 
 import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Camera, Barcode, ImageIcon } from "lucide-react";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
-import { Card } from "@/components/ui/card-custom";
-import CameraComponent from "@/components/scan/Camera";
+import { Button } from "@/components/ui/button-custom";
+import Camera as CameraComponent from "@/components/scan/Camera";
+import BarcodeScanner from "@/components/scan/BarcodeScanner";
 import ScanResult from "@/components/scan/ScanResult";
-import { AnimatePresence } from "framer-motion";
 
 const Scan = () => {
-  const [cameraActive, setCameraActive] = useState(false);
+  const [scanMode, setScanMode] = useState<"camera" | "barcode">("camera");
+  const [scanComplete, setScanComplete] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
 
-  const handleCapture = (image: string) => {
-    setCapturedImage(image);
-    setCameraActive(false);
+  const handlePhotoCapture = (imageSrc: string) => {
+    setCapturedImage(imageSrc);
+    setScanComplete(true);
+  };
+
+  const handleBarcodeDetected = (barcode: string) => {
+    setDetectedBarcode(barcode);
+    setScanComplete(true);
   };
 
   const handleReset = () => {
     setCapturedImage(null);
-  };
-
-  const activateCamera = () => {
-    setCameraActive(true);
-  };
-
-  const closeCamera = () => {
-    setCameraActive(false);
+    setDetectedBarcode(null);
+    setScanComplete(false);
   };
 
   return (
-    <>
-      <Header title="Food Scanner" showBackButton={cameraActive || !!capturedImage} />
-      <PageTransition>
-        <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
-          <AnimatePresence mode="wait">
-            {cameraActive ? (
-              <div className="h-[calc(100vh-8rem)]">
-                <CameraComponent onCapture={handleCapture} onClose={closeCamera} />
-              </div>
-            ) : capturedImage ? (
-              <ScanResult imageUrl={capturedImage} onReset={handleReset} />
-            ) : (
-              <div className="space-y-6">
-                <Card 
-                  variant="glass"
-                  className="p-6 flex flex-col items-center text-center"
-                >
-                  <div className="mb-4">
-                    <img 
-                      src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=300&auto=format&fit=crop" 
-                      alt="Food" 
-                      className="w-full h-40 object-cover rounded-xl"
-                    />
-                  </div>
-                  <h2 className="text-xl font-semibold mb-2">Analyze Your Food</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Take a photo of your meal or scan a food label to get nutritional information
-                  </p>
-                  <button
-                    onClick={activateCamera}
-                    className="w-full py-3 px-4 bg-primary text-white rounded-xl font-medium hover:brightness-105 transition-all active:scale-[0.98]"
-                  >
-                    Start Scanning
-                  </button>
-                </Card>
-
-                <div>
-                  <h3 className="text-lg font-medium mb-3">Recent Scans</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[1, 2, 3].map((item) => (
-                      <div 
-                        key={item} 
-                        className="aspect-square rounded-xl overflow-hidden bg-muted/50"
-                      >
-                        <div className="w-full h-full bg-slate-200 animate-pulse"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </AnimatePresence>
-        </main>
-      </PageTransition>
-      {!cameraActive && <MobileNavbar />}
-    </>
+    <PageTransition>
+      <Header title="Food Scanner" showBackButton />
+      <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
+        {!scanComplete ? (
+          <>
+            <Tabs defaultValue="camera" className="w-full mb-6" onValueChange={(value) => setScanMode(value as "camera" | "barcode")}>
+              <TabsList className="w-full">
+                <TabsTrigger value="camera" className="flex-1">
+                  <Camera className="h-4 w-4 mr-2" />
+                  Camera
+                </TabsTrigger>
+                <TabsTrigger value="barcode" className="flex-1">
+                  <Barcode className="h-4 w-4 mr-2" />
+                  Barcode
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="camera" className="mt-6">
+                <CameraComponent onCapture={handlePhotoCapture} />
+              </TabsContent>
+              
+              <TabsContent value="barcode" className="mt-6">
+                <BarcodeScanner onDetected={handleBarcodeDetected} onReset={handleReset} />
+              </TabsContent>
+            </Tabs>
+            
+            <div className="text-center mt-4">
+              <p className="text-sm text-muted-foreground mb-2">
+                {scanMode === "camera" 
+                  ? "Take a photo of your food to get nutritional information"
+                  : "Scan a barcode to get product information"
+                }
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setScanMode(scanMode === "camera" ? "barcode" : "camera")}
+              >
+                {scanMode === "camera" ? (
+                  <>
+                    <Barcode className="h-4 w-4 mr-2" />
+                    Switch to Barcode Scanner
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-4 w-4 mr-2" />
+                    Switch to Camera
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <ScanResult 
+            imageUrl={capturedImage || ""}
+            barcode={detectedBarcode}
+            onReset={handleReset} 
+          />
+        )}
+      </main>
+      <MobileNavbar />
+    </PageTransition>
   );
 };
 

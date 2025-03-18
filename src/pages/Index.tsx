@@ -9,6 +9,7 @@ import ActionButtons from "@/components/home/ActionButtons";
 import WaterTracker from "@/components/home/WaterTracker";
 import ExerciseTracker from "@/components/home/ExerciseTracker";
 import ReminderSystem from "@/components/home/ReminderSystem";
+import MealRecommendations from "@/components/home/MealRecommendations";
 
 const Index = () => {
   return (
@@ -30,6 +31,8 @@ const Index = () => {
             <WaterTracker />
             <ExerciseTracker />
           </div>
+          
+          <MealRecommendations />
           
           <ReminderSystem />
         </div>

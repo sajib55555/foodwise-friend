@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface Meal {
   name: string;
@@ -39,6 +40,14 @@ const MealRecommendations: React.FC = () => {
     { id: "lowCarb", label: "Low Carb", description: "Meals with reduced carbohydrates and more healthy fats" },
     { id: "plantBased", label: "Plant-Based", description: "Nutritious meals made exclusively from plant sources" }
   ];
+
+  // Map of dietary preferences to color classes
+  const tabColors = {
+    balanced: "data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-300",
+    protein: "data-[state=active]:bg-red-100 data-[state=active]:text-red-700 dark:data-[state=active]:bg-red-900/30 dark:data-[state=active]:text-red-300",
+    lowCarb: "data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300",
+    plantBased: "data-[state=active]:bg-green-100 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900/30 dark:data-[state=active]:text-green-300",
+  };
 
   const fetchRecommendations = async (preference: string) => {
     setLoading(true);
@@ -101,6 +110,10 @@ const MealRecommendations: React.FC = () => {
                     key={pref.id} 
                     value={pref.id}
                     disabled={loading}
+                    className={cn(
+                      "transition-all",
+                      tabColors[pref.id as keyof typeof tabColors]
+                    )}
                   >
                     {pref.label}
                   </TabsTrigger>

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { ArrowRight, ChefHat, Clock, ScrollText } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,7 @@ const MealRecommendations: React.FC = () => {
   const [recommendations, setRecommendations] = useState<Meal[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentPreferences, setCurrentPreferences] = useState("Balanced");
+  const [activeTab, setActiveTab] = useState("balanced");
   
   const dietaryPreferences = [
     { id: "balanced", label: "Balanced", description: "Well-rounded meals with a good mix of macronutrients" },
@@ -69,6 +70,15 @@ const MealRecommendations: React.FC = () => {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Find the corresponding preference label
+    const preference = dietaryPreferences.find(pref => pref.id === value);
+    if (preference) {
+      fetchRecommendations(preference.label);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -84,13 +94,12 @@ const MealRecommendations: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="balanced" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="grid grid-cols-4 mb-4">
                 {dietaryPreferences.map(pref => (
                   <TabsTrigger 
                     key={pref.id} 
                     value={pref.id}
-                    onClick={() => fetchRecommendations(pref.label)}
                     disabled={loading}
                   >
                     {pref.label}
@@ -103,7 +112,7 @@ const MealRecommendations: React.FC = () => {
                   <p className="text-sm text-muted-foreground">{pref.description}</p>
                   
                   <Button 
-                    variant="outline"
+                    variant="amber-gradient"
                     className="w-full"
                     onClick={() => fetchRecommendations(pref.label)}
                     disabled={loading}
@@ -159,11 +168,11 @@ const MealRecommendations: React.FC = () => {
                   </div>
                   
                   <div className="flex justify-end gap-2 mt-2">
-                    <Button size="sm" variant="ghost" className="gap-1">
+                    <Button size="sm" variant="amber-gradient" className="gap-1">
                       <Clock className="h-3.5 w-3.5" />
                       Save for Later
                     </Button>
-                    <Button size="sm" variant="purple" className="gap-1">
+                    <Button size="sm" variant="amber-gradient" className="gap-1">
                       <ScrollText className="h-3.5 w-3.5" />
                       Log Meal
                     </Button>

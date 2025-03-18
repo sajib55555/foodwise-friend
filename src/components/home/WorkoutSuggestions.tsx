@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { Dumbbell, ArrowRight, Clock } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +38,7 @@ const WorkoutSuggestions: React.FC = () => {
   const [suggestions, setSuggestions] = useState<WorkoutSuggestion[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentFitnessLevel, setCurrentFitnessLevel] = useState("Beginner");
+  const [activeTab, setActiveTab] = useState("beginner");
   
   const fitnessLevels = [
     { id: "beginner", label: "Beginner", description: "New to working out or returning after a long break" },
@@ -75,6 +76,15 @@ const WorkoutSuggestions: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Find the corresponding fitness level label
+    const level = fitnessLevels.find(level => level.id === value);
+    if (level) {
+      fetchSuggestions(level.label);
     }
   };
 
@@ -124,13 +134,12 @@ const WorkoutSuggestions: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="beginner" className="w-full">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="grid grid-cols-4 mb-4">
                 {fitnessLevels.map(level => (
                   <TabsTrigger 
                     key={level.id} 
                     value={level.id}
-                    onClick={() => fetchSuggestions(level.label)}
                     disabled={loading}
                   >
                     {level.label}
@@ -143,7 +152,7 @@ const WorkoutSuggestions: React.FC = () => {
                   <p className="text-sm text-muted-foreground">{level.description}</p>
                   
                   <Button 
-                    variant="outline"
+                    variant="purple-gradient"
                     className="w-full"
                     onClick={() => fetchSuggestions(level.label)}
                     disabled={loading}
@@ -201,7 +210,7 @@ const WorkoutSuggestions: React.FC = () => {
                   <div className="flex justify-end gap-2 mt-2">
                     <Button 
                       size="sm" 
-                      variant="purple" 
+                      variant="purple-gradient" 
                       className="gap-1"
                       onClick={() => trackWorkout(workout)}
                     >

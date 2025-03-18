@@ -26,9 +26,10 @@ const Index = () => {
           
           <NutritionSummary />
           
-          <WaterTracker />
-          
-          <ExerciseTracker />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <WaterTracker />
+            <ExerciseTracker />
+          </div>
           
           <ReminderSystem />
         </div>

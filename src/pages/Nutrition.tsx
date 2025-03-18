@@ -1,118 +1,89 @@
-import React from "react";
+
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PageTransition from "@/components/layout/PageTransition";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
-import PageTransition from "@/components/layout/PageTransition";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart } from "recharts";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { motion } from "framer-motion";
 import NutritionCharts from "@/components/nutrition/NutritionCharts";
+import NutritionInsights from "@/components/nutrition/NutritionInsights";
+import DetailedNutritionAnalysis from "@/components/nutrition/DetailedNutritionAnalysis";
+
+// Mock nutrition data for demo purposes
+const mockNutritionData = {
+  name: "Mixed Berry Smoothie",
+  servingSize: "16 oz (473ml)",
+  calories: 320,
+  protein: 8,
+  carbs: 62,
+  fat: 5,
+  ingredients: [
+    { name: "Mixed Berries", healthy: true },
+    { name: "Banana", healthy: true },
+    { name: "Greek Yogurt", healthy: true },
+    { name: "Honey", healthy: true, warning: "Natural sugars" },
+    { name: "Almond Milk", healthy: true }
+  ],
+  healthScore: 8.5,
+  warnings: ["Contains natural sugars from honey and fruits"],
+  recommendations: [
+    "Excellent source of antioxidants from berries",
+    "Good post-workout option",
+    "Could add protein powder to increase protein content"
+  ],
+  vitamins: [
+    { name: "Vitamin C", amount: "45% DV" },
+    { name: "Vitamin A", amount: "12% DV" },
+    { name: "Vitamin D", amount: "15% DV" },
+    { name: "Vitamin B12", amount: "20% DV" }
+  ],
+  minerals: [
+    { name: "Potassium", amount: "520mg" },
+    { name: "Calcium", amount: "200mg" },
+    { name: "Iron", amount: "2mg" },
+    { name: "Zinc", amount: "1.2mg" }
+  ],
+  dietary: {
+    vegan: false,
+    vegetarian: true,
+    glutenFree: true,
+    dairyFree: false
+  }
+};
 
 const Nutrition = () => {
-  // Mock data for charts - in a real app, this would come from API/state
-  const caloriesData = [
-    { name: "Mon", calories: 1850 },
-    { name: "Tue", calories: 1650 },
-    { name: "Wed", calories: 1720 },
-    { name: "Thu", calories: 1950 },
-    { name: "Fri", calories: 1820 },
-    { name: "Sat", calories: 2100 },
-    { name: "Sun", calories: 1950 }
-  ];
-  
-  const nutritionBreakdown = [
-    { name: "Proteins", value: 28, color: "#3b82f6" },
-    { name: "Carbs", value: 45, color: "#22c55e" },
-    { name: "Fats", value: 27, color: "#f59e0b" }
-  ];
-
-  // Mock meal data
-  const todayMeals = [
-    { name: "Breakfast", calories: 450, time: "8:30 AM", protein: 18, carbs: 45, fat: 15 },
-    { name: "Lunch", calories: 680, time: "12:45 PM", protein: 32, carbs: 65, fat: 22 },
-    { name: "Snack", calories: 220, time: "3:30 PM", protein: 8, carbs: 25, fat: 10 },
-    { name: "Dinner", calories: 520, time: "7:15 PM", protein: 28, carbs: 48, fat: 18 }
-  ];
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
-    <>
-      <Header title="Nutrition" showBackButton />
-      <PageTransition>
-        <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full mb-6">
-              <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
-              <TabsTrigger value="breakdown" className="flex-1">Breakdown</TabsTrigger>
-              <TabsTrigger value="history" className="flex-1">History</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview" className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <NutritionCharts />
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-              >
-                <Card variant="glass">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Today's Meals</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-3">
-                      {todayMeals.map((meal, index) => (
-                        <li key={index} className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium">{meal.name}</p>
-                            <p className="text-xs text-muted-foreground">{meal.time}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">{meal.calories} kcal</p>
-                            <p className="text-xs text-muted-foreground">
-                              P: {meal.protein}g • C: {meal.carbs}g • F: {meal.fat}g
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </TabsContent>
-            
-            <TabsContent value="breakdown">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Nutrition Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Detailed nutrition breakdown content goes here</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="history">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Meal History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p>Historical meal tracking data goes here</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </main>
-      </PageTransition>
+    <PageTransition>
+      <Header title="Nutrition" />
+      <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
+        <Tabs 
+          defaultValue="dashboard" 
+          className="space-y-4" 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+        >
+          <TabsList className="grid grid-cols-3 w-full">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="space-y-6">
+            <NutritionCharts />
+          </TabsContent>
+          
+          <TabsContent value="insights" className="space-y-6">
+            <NutritionInsights />
+          </TabsContent>
+          
+          <TabsContent value="analysis" className="space-y-6">
+            <DetailedNutritionAnalysis nutritionData={mockNutritionData} />
+          </TabsContent>
+        </Tabs>
+      </main>
       <MobileNavbar />
-    </>
+    </PageTransition>
   );
 };
 

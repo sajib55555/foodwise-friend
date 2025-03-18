@@ -40,7 +40,24 @@ serve(async (req) => {
               { name: "Ingredient 3", healthy: false, warning: "High in sodium" },
             ],
             warnings: ["Contains moderate sodium"],
-            recommendations: ["Good source of protein", "Contains essential nutrients"]
+            recommendations: ["Good source of protein", "Contains essential nutrients"],
+            servingSize: "100g",
+            vitamins: [
+              { name: "Vitamin A", amount: "10% DV" },
+              { name: "Vitamin C", amount: "15% DV" },
+              { name: "Calcium", amount: "8% DV" },
+              { name: "Iron", amount: "12% DV" }
+            ],
+            minerals: [
+              { name: "Potassium", amount: "320mg" },
+              { name: "Magnesium", amount: "56mg" }
+            ],
+            dietary: {
+              vegan: false,
+              vegetarian: true,
+              glutenFree: true,
+              dairyFree: false
+            }
           }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -79,9 +96,13 @@ serve(async (req) => {
             When calculating the health score, consider balanced macronutrients, presence of whole foods vs processed foods,
             nutrient density, and overall dietary value.
             
+            Also analyze for vitamins, minerals, and dietary properties (vegan, vegetarian, gluten-free, dairy-free).
+            
             Format the response as a JSON object with these fields:
-            name, calories, protein, carbs, fat, ingredients (array of objects with name, healthy, and optional warning), healthScore, 
-            warnings (array of strings), and recommendations (array of strings).`
+            name, servingSize, calories, protein, carbs, fat, ingredients (array of objects with name, healthy, and optional warning), 
+            healthScore, warnings (array of strings), recommendations (array of strings),
+            vitamins (array of objects with name and amount), minerals (array of objects with name and amount),
+            and dietary (object with vegan, vegetarian, glutenFree, dairyFree as booleans).`
           },
           {
             role: 'user',
@@ -99,7 +120,7 @@ serve(async (req) => {
             ]
           }
         ],
-        max_tokens: 1000,
+        max_tokens: 1500,
       }),
     })
 
@@ -111,19 +132,26 @@ serve(async (req) => {
       analysisResult = JSON.parse(data.choices[0].message.content)
       
       // Ensure all fields are present in the response
-      const requiredFields = ['name', 'calories', 'protein', 'carbs', 'fat', 'ingredients', 'healthScore', 'warnings', 'recommendations'];
+      const requiredFields = ['name', 'calories', 'protein', 'carbs', 'fat', 'ingredients', 'healthScore', 'warnings', 'recommendations', 'servingSize', 'vitamins', 'minerals', 'dietary'];
       const missingFields = requiredFields.filter(field => !analysisResult[field]);
       
       if (missingFields.length > 0) {
         console.log('Missing fields in analysis:', missingFields);
         // Set default values for missing fields
         missingFields.forEach(field => {
-          if (field === 'ingredients') {
-            analysisResult[field] = [];
-          } else if (field === 'warnings' || field === 'recommendations') {
+          if (['ingredients', 'warnings', 'recommendations', 'vitamins', 'minerals'].includes(field)) {
             analysisResult[field] = [];
           } else if (field === 'healthScore') {
             analysisResult[field] = 5;
+          } else if (field === 'dietary') {
+            analysisResult[field] = {
+              vegan: false,
+              vegetarian: false,
+              glutenFree: false,
+              dairyFree: false
+            };
+          } else if (field === 'servingSize') {
+            analysisResult[field] = '100g';
           } else if (['calories', 'protein', 'carbs', 'fat'].includes(field)) {
             analysisResult[field] = 0;
           } else {
@@ -145,7 +173,16 @@ serve(async (req) => {
             healthScore: 5,
             ingredients: [],
             warnings: ["Unable to analyze image properly"],
-            recommendations: ["Try taking a clearer picture of the food"]
+            recommendations: ["Try taking a clearer picture of the food"],
+            servingSize: "100g",
+            vitamins: [],
+            minerals: [],
+            dietary: {
+              vegan: false,
+              vegetarian: false,
+              glutenFree: false,
+              dairyFree: false
+            }
           },
           rawAnalysis: data.choices[0].message.content
         }),

@@ -5,6 +5,7 @@ import { ArrowLeft, User, Bell } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 interface HeaderProps {
   title?: string;
@@ -19,7 +20,16 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { toast } = useToast();
   const isHomePage = location.pathname === "/";
+
+  const handleNotificationClick = () => {
+    navigate('/profile/notifications');
+    toast({
+      title: "Notifications",
+      description: "You're viewing your notification settings",
+    });
+  };
 
   return (
     <motion.header
@@ -60,7 +70,7 @@ const Header: React.FC<HeaderProps> = ({
             variant="ghost" 
             size="icon-sm" 
             className="text-purple-600 hover:bg-purple-50/50 hover:text-purple-700"
-            onClick={() => navigate('/notifications')}
+            onClick={handleNotificationClick}
           >
             <Bell className="h-5 w-5" />
           </Button>

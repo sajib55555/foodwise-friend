@@ -13,6 +13,8 @@ import Nutrition from "./pages/Nutrition";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
+import LogMeal from "./pages/LogMeal";
+import MealPlans from "./pages/MealPlans";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,16 @@ const AppRoutes = () => {
         <Route path="/nutrition" element={
           <ProtectedRoute>
             <Nutrition />
+          </ProtectedRoute>
+        } />
+        <Route path="/log-meal" element={
+          <ProtectedRoute>
+            <LogMeal />
+          </ProtectedRoute>
+        } />
+        <Route path="/plans" element={
+          <ProtectedRoute>
+            <MealPlans />
           </ProtectedRoute>
         } />
 

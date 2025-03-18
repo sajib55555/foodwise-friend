@@ -7,7 +7,12 @@ import { motion } from "framer-motion";
 
 const MobileNavbar: React.FC = () => {
   const location = useLocation();
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    // Consider paths like /log-meal to match with their parent actions
+    if (path === "/plans" && location.pathname === "/plans") return true;
+    if (path === "/scan" && location.pathname === "/log-meal") return true;
+    return location.pathname === path;
+  };
 
   const navItems = [
     { path: "/", icon: Home, label: "Home" },

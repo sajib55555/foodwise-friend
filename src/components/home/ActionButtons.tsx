@@ -35,11 +35,11 @@ const ActionButtons: React.FC = () => {
         <Button 
           onClick={() => navigate('/scan')}
           variant="glass"
-          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2"
+          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2 glass-purple"
           hover="lift"
         >
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <Camera className="h-6 w-6 text-primary" />
+          <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center">
+            <Camera className="h-6 w-6 text-purple-600" />
           </div>
           <div className="text-center">
             <p className="font-medium">Scan Food</p>
@@ -52,7 +52,7 @@ const ActionButtons: React.FC = () => {
         <Button
           onClick={() => navigate('/nutrition')}
           variant="glass"
-          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2"
+          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2 glass-purple"
           hover="lift"
         >
           <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
@@ -69,11 +69,11 @@ const ActionButtons: React.FC = () => {
         <Button
           onClick={() => navigate('/plans')}
           variant="glass"
-          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2"
+          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2 glass-purple"
           hover="lift"
         >
-          <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-            <FileText className="h-6 w-6 text-blue-500" />
+          <div className="w-12 h-12 rounded-full bg-purple-400/10 flex items-center justify-center">
+            <FileText className="h-6 w-6 text-purple-400" />
           </div>
           <div className="text-center">
             <p className="font-medium">Meal Plans</p>
@@ -86,11 +86,11 @@ const ActionButtons: React.FC = () => {
         <Button
           onClick={() => navigate('/log-meal')}
           variant="glass"
-          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2"
+          className="w-full h-auto flex flex-col items-center justify-center p-4 space-y-2 glass-purple"
           hover="lift"
         >
-          <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center">
-            <Plus className="h-6 w-6 text-amber-500" />
+          <div className="w-12 h-12 rounded-full bg-purple-300/10 flex items-center justify-center">
+            <Plus className="h-6 w-6 text-purple-500" />
           </div>
           <div className="text-center">
             <p className="font-medium">Log Meal</p>

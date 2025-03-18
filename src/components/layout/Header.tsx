@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({
             <Button 
               variant="ghost" 
               size="icon-sm"
-              className="mr-2" 
+              className="mr-2 text-purple-600 hover:bg-purple-50/50 hover:text-purple-700" 
               onClick={() => navigate(-1)}
             >
               <ArrowLeft className="h-5 w-5" />
@@ -48,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({
           )}
           {!title && !showBackButton && isHomePage && (
             <div className="flex items-center">
-              <span className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-health-600 to-health-500">
+              <span className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-purple-400">
                 FoodWise
               </span>
             </div>
@@ -56,10 +56,20 @@ const Header: React.FC<HeaderProps> = ({
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="icon-sm" onClick={() => navigate('/notifications')}>
+          <Button 
+            variant="ghost" 
+            size="icon-sm" 
+            className="text-purple-600 hover:bg-purple-50/50 hover:text-purple-700"
+            onClick={() => navigate('/notifications')}
+          >
             <Bell className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon-sm" onClick={() => navigate('/profile')}>
+          <Button 
+            variant="ghost" 
+            size="icon-sm"
+            className="text-purple-600 hover:bg-purple-50/50 hover:text-purple-700"
+            onClick={() => navigate('/profile')}
+          >
             <User className="h-5 w-5" />
           </Button>
         </div>

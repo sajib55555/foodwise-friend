@@ -54,7 +54,7 @@ const NavItem: React.FC<NavItemProps> = ({ path, Icon, label, isActive }) => {
       className={cn(
         "flex flex-col items-center justify-center py-2 px-4 text-xs transition-colors duration-200",
         isActive 
-          ? "text-primary" 
+          ? "text-purple-600" 
           : "text-muted-foreground hover:text-foreground"
       )}
     >
@@ -63,7 +63,7 @@ const NavItem: React.FC<NavItemProps> = ({ path, Icon, label, isActive }) => {
         {isActive && (
           <motion.div
             layoutId="navIndicator"
-            className="absolute -bottom-1.5 left-0 right-0 mx-auto w-1 h-1 bg-primary rounded-full"
+            className="absolute -bottom-1.5 left-0 right-0 mx-auto w-1 h-1 bg-purple-600 rounded-full"
             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
           />
         )}

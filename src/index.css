@@ -14,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 210 40% 12%;
 
-    --primary: 201 94% 47%;
+    --primary: 265 89% 70%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 20% 96%;
@@ -23,15 +23,15 @@
     --muted: 210 20% 96%;
     --muted-foreground: 215 25% 50%;
 
-    --accent: 210 20% 96%;
-    --accent-foreground: 210 40% 12%;
+    --accent: 265 89% 90%;
+    --accent-foreground: 265 89% 30%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 210 20% 90%;
     --input: 210 20% 90%;
-    --ring: 201 94% 47%;
+    --ring: 265 89% 70%;
 
     --radius: 1rem;
 
@@ -55,7 +55,7 @@
     --popover: 210 40% 8%;
     --popover-foreground: 210 20% 98%;
 
-    --primary: 201 94% 47%;
+    --primary: 265 89% 70%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 12%;
@@ -64,15 +64,15 @@
     --muted: 210 40% 12%;
     --muted-foreground: 215 25% 65%;
 
-    --accent: 210 40% 12%;
-    --accent-foreground: 210 20% 98%;
+    --accent: 265 89% 20%;
+    --accent-foreground: 265 89% 90%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 210 20% 98%;
 
     --border: 210 40% 16%;
     --input: 210 40% 16%;
-    --ring: 201 94% 47%;
+    --ring: 265 89% 70%;
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -121,6 +121,20 @@
     @apply bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-white/10 dark:border-slate-800/10 shadow-glass-sm;
   }
 
+  .glass-purple {
+    @apply bg-purple-50/70 dark:bg-purple-900/30 backdrop-blur-lg border border-purple-200/30 dark:border-purple-800/20 shadow-purple;
+  }
+
+  /* Gradient text */
+  .text-gradient-purple {
+    @apply bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent;
+  }
+
+  /* Premium button */
+  .btn-premium {
+    @apply bg-gradient-premium text-white shadow-purple transition-all hover:shadow-purple-lg;
+  }
+
   /* Grid background effect */
   .grid-bg {
     background-image: linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
@@ -131,6 +145,20 @@
   .dark .grid-bg {
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
                       linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+
+  /* Purple grid background */
+  .grid-bg-purple {
+    background-color: rgba(124, 58, 237, 0.03);
+    background-image: linear-gradient(to right, rgba(124, 58, 237, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(124, 58, 237, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .dark .grid-bg-purple {
+    background-color: rgba(124, 58, 237, 0.02);
+    background-image: linear-gradient(to right, rgba(124, 58, 237, 0.07) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(124, 58, 237, 0.07) 1px, transparent 1px);
   }
 }
 

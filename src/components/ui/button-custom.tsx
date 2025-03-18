@@ -17,6 +17,12 @@ const buttonVariants = cva(
         glass: "glass text-foreground shadow-sm hover:shadow-md",
         "glass-primary": "glass bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md",
         "glass-sm": "glass text-foreground shadow-sm hover:shadow-md p-0",
+        "purple": "bg-purple-600 text-white shadow-purple hover:bg-purple-700 hover:shadow-purple-lg",
+        "purple-light": "bg-purple-100 text-purple-800 hover:bg-purple-200",
+        "purple-outline": "border border-purple-300 text-purple-700 hover:bg-purple-50",
+        "purple-ghost": "text-purple-700 hover:bg-purple-50/50",
+        "purple-gradient": "bg-gradient-purple text-white shadow-purple hover:shadow-purple-lg",
+        "premium": "bg-gradient-premium text-white shadow-purple hover:shadow-purple-lg",
         icon: "rounded-full h-10 w-10 p-0 shadow-sm",
       },
       size: {

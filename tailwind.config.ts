@@ -38,6 +38,19 @@ export default {
                     900: '#0c4a6e',
                     950: '#082f49',
                 },
+                purple: {
+                    50: '#f5f3ff',
+                    100: '#ede9fe',
+                    200: '#ddd6fe',
+                    300: '#c4b5fd',
+                    400: '#a78bfa',
+                    500: '#8b5cf6',
+                    600: '#7c3aed',
+                    700: '#6d28d9',
+                    800: '#5b21b6',
+                    900: '#4c1d95',
+                    950: '#2e1065',
+                },
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
@@ -141,6 +154,13 @@ export default {
             boxShadow: {
                 'glass': '0 4px 30px rgba(0, 0, 0, 0.1)',
                 'glass-sm': '0 2px 10px rgba(0, 0, 0, 0.05)',
+                'purple': '0 4px 14px rgba(124, 58, 237, 0.25)',
+                'purple-lg': '0 10px 25px -5px rgba(124, 58, 237, 0.3)',
+            },
+            backgroundImage: {
+                'gradient-purple': 'linear-gradient(135deg, #9b87f5 0%, #7c3aed 100%)',
+                'gradient-purple-soft': 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%)',
+                'gradient-premium': 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
             }
 		}
 	},

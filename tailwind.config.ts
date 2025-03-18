@@ -156,6 +156,17 @@ export default {
                 'glass-sm': '0 2px 10px rgba(0, 0, 0, 0.05)',
                 'purple': '0 4px 14px rgba(124, 58, 237, 0.25)',
                 'purple-lg': '0 10px 25px -5px rgba(124, 58, 237, 0.3)',
+                // Adding missing shadow classes
+                'blue': '0 4px 14px rgba(59, 130, 246, 0.25)',
+                'blue-lg': '0 10px 25px -5px rgba(59, 130, 246, 0.3)',
+                'green': '0 4px 14px rgba(34, 197, 94, 0.25)',
+                'green-lg': '0 10px 25px -5px rgba(34, 197, 94, 0.3)',
+                'amber': '0 4px 14px rgba(245, 158, 11, 0.25)',
+                'amber-lg': '0 10px 25px -5px rgba(245, 158, 11, 0.3)',
+                'pink': '0 4px 14px rgba(236, 72, 153, 0.25)',
+                'pink-lg': '0 10px 25px -5px rgba(236, 72, 153, 0.3)',
+                'primary': '0 4px 14px rgba(124, 58, 237, 0.25)',
+                'primary-lg': '0 10px 25px -5px rgba(124, 58, 237, 0.3)',
             },
             backgroundImage: {
                 'gradient-purple': 'linear-gradient(135deg, #9b87f5 0%, #7c3aed 100%)',

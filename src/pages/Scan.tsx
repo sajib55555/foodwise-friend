@@ -6,7 +6,7 @@ import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button-custom";
-import Camera as CameraComponent from "@/components/scan/Camera";
+import CameraComponent from "@/components/scan/Camera";
 import BarcodeScanner from "@/components/scan/BarcodeScanner";
 import ScanResult from "@/components/scan/ScanResult";
 

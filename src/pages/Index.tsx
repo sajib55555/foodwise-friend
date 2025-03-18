@@ -11,7 +11,7 @@ import WaterTracker from "@/components/home/WaterTracker";
 import ExerciseTracker from "@/components/home/ExerciseTracker";
 import ReminderSystem from "@/components/home/ReminderSystem";
 import MealRecommendations from "@/components/home/MealRecommendations";
-import WorkoutSuggestions from "@/components/home/WorkoutSuggestions";
+import WorkoutSuggestions from "@/components/home/workout-suggestions";
 import SleepTracker from "@/components/home/SleepTracker";
 import GoalTracker from "@/components/home/GoalTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";

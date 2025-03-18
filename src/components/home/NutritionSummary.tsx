@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Progress } from "@/components/ui/progress";
@@ -57,8 +56,7 @@ const NutritionSummary: React.FC = () => {
                   </div>
                   <Progress
                     value={(nutrient.value / nutrient.target) * 100}
-                    className="h-2"
-                    indicatorClassName={nutrient.color}
+                    className={cn("h-2", nutrient.color)}
                   />
                 </div>
               </CardContent>

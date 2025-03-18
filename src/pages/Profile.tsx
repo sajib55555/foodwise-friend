@@ -20,10 +20,10 @@ const Profile = () => {
   };
 
   const menuItems = [
-    { icon: User, label: "Personal Information", path: "/profile/personal" },
-    { icon: Settings, label: "Preferences", path: "/profile/preferences" },
-    { icon: Bell, label: "Notifications", path: "/profile/notifications" },
-    { icon: Shield, label: "Privacy & Security", path: "/profile/privacy" }
+    { id: "personal", icon: User, label: "Personal Information", path: "/profile/personal" },
+    { id: "preferences", icon: Settings, label: "Preferences", path: "/profile/preferences" },
+    { id: "notifications", icon: Bell, label: "Notifications", path: "/profile/notifications" },
+    { id: "privacy", icon: Shield, label: "Privacy & Security", path: "/profile/privacy" }
   ];
 
   const container = {
@@ -96,20 +96,23 @@ const Profile = () => {
               animate="show"
               className="space-y-2"
             >
-              {menuItems.map((item) => (
-                <motion.div key={item.label} variants={item}>
-                  <Card variant="glass-sm" hover="lift" className="cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 mr-3 rounded-full bg-muted/70 flex items-center justify-center">
-                          <item.icon className="h-4 w-4" />
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <motion.div key={item.id} variants={item}>
+                    <Card variant="glass-sm" className="cursor-pointer">
+                      <CardContent className="p-4">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 mr-3 rounded-full bg-muted/70 flex items-center justify-center">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <span className="font-medium">{item.label}</span>
                         </div>
-                        <span className="font-medium">{item.label}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </motion.div>
 
             <Button 

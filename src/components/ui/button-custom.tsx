@@ -16,6 +16,7 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         glass: "glass text-foreground shadow-sm hover:shadow-md",
         "glass-primary": "glass bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md",
+        "glass-sm": "glass text-foreground shadow-sm hover:shadow-md p-0",
         icon: "rounded-full h-10 w-10 p-0 shadow-sm",
       },
       size: {
@@ -30,10 +31,16 @@ const buttonVariants = cva(
         "pill-sm": "h-9 px-5 rounded-full text-xs",
         "pill-lg": "h-12 px-8 rounded-full text-base",
       },
+      hover: {
+        none: "",
+        lift: "transition-transform hover:-translate-y-1",
+        scale: "transition-transform hover:scale-105",
+      }
     },
     defaultVariants: {
       variant: "default",
       size: "default",
+      hover: "none",
     },
   }
 );
@@ -45,10 +52,10 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, hover, asChild = false, ...props }, ref) => {
     return (
       <button
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size, hover, className }))}
         ref={ref}
         {...props}
       />

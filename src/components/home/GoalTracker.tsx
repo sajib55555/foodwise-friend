@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -9,7 +10,8 @@ import {
   DialogHeader, 
   DialogTitle,
   DialogFooter,
-  DialogTrigger
+  DialogTrigger,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +21,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 interface Goal {
   id: string;
@@ -32,21 +38,36 @@ interface Goal {
   status: string;
 }
 
+// Create a schema for goal validation
+const goalSchema = z.object({
+  title: z.string().min(1, { message: "Title is required" }),
+  description: z.string().optional(),
+  target_value: z.number().min(0.1, { message: "Target value must be greater than 0" }),
+  unit: z.string().min(1, { message: "Unit is required" }),
+  category: z.string().min(1, { message: "Category is required" }),
+  target_date: z.string().optional()
+});
+
 const GoalTracker = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logActivity } = useActivityLog();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newGoal, setNewGoal] = useState({
-    title: "",
-    description: "",
-    target_value: 0,
-    unit: "",
-    category: "fitness",
-    target_date: ""
-  });
   const [open, setOpen] = useState(false);
+
+  // Initialize the form
+  const form = useForm<z.infer<typeof goalSchema>>({
+    resolver: zodResolver(goalSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      target_value: 0,
+      unit: "",
+      category: "fitness",
+      target_date: ""
+    }
+  });
 
   const fetchGoals = async () => {
     if (!user) return;
@@ -56,6 +77,7 @@ const GoalTracker = () => {
       const { data, error } = await supabase
         .from("user_goals")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
         
@@ -74,31 +96,22 @@ const GoalTracker = () => {
     }
   };
 
-  const handleCreateGoal = async () => {
+  const handleCreateGoal = async (values: z.infer<typeof goalSchema>) => {
     if (!user) return;
     
     try {
-      if (!newGoal.title || !newGoal.target_value || !newGoal.unit) {
-        toast({
-          variant: "destructive",
-          title: "Missing fields",
-          description: "Please fill out all required fields.",
-        });
-        return;
-      }
-      
       const { data, error } = await supabase
         .from("user_goals")
         .insert([
           {
             user_id: user.id,
-            title: newGoal.title,
-            description: newGoal.description || null,
-            target_value: newGoal.target_value,
+            title: values.title,
+            description: values.description || null,
+            target_value: values.target_value,
             current_value: 0,
-            unit: newGoal.unit,
-            category: newGoal.category,
-            target_date: newGoal.target_date || null,
+            unit: values.unit,
+            category: values.category,
+            target_date: values.target_date || null,
             status: "in_progress"
           },
         ])
@@ -106,13 +119,11 @@ const GoalTracker = () => {
         
       if (error) throw error;
       
-      setGoals([...(data || []), ...goals]);
-      
-      logActivity('goal_created', `Created new goal: ${newGoal.title}`, {
-        goal_title: newGoal.title,
-        target_value: newGoal.target_value,
-        unit: newGoal.unit,
-        category: newGoal.category
+      logActivity('goal_created', `Created new goal: ${values.title}`, {
+        goal_title: values.title,
+        target_value: values.target_value,
+        unit: values.unit,
+        category: values.category
       });
       
       toast({
@@ -120,7 +131,7 @@ const GoalTracker = () => {
         description: "Your new goal has been created successfully.",
       });
       
-      setNewGoal({
+      form.reset({
         title: "",
         description: "",
         target_value: 0,
@@ -128,6 +139,7 @@ const GoalTracker = () => {
         category: "fitness",
         target_date: ""
       });
+      
       setOpen(false);
       fetchGoals();
     } catch (error: any) {
@@ -261,87 +273,125 @@ const GoalTracker = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Goal</DialogTitle>
+              <DialogDescription>
+                Set a new goal to track your progress.
+              </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Goal Title</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., Run 100km this month"
-                  value={newGoal.title}
-                  onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleCreateGoal)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Goal Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Run 100km this month" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter any details about your goal"
-                  value={newGoal.description}
-                  onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Enter any details about your goal" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="target_value">Target Value</Label>
-                  <Input
-                    id="target_value"
-                    type="number"
-                    placeholder="100"
-                    value={newGoal.target_value || ""}
-                    onChange={(e) => setNewGoal({ ...newGoal, target_value: Number(e.target.value) })}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="target_value"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Target Value</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number" 
+                            placeholder="100" 
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="unit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unit</FormLabel>
+                        <FormControl>
+                          <Input placeholder="km, kg, cups, etc." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
                 
-                <div className="grid gap-2">
-                  <Label htmlFor="unit">Unit</Label>
-                  <Input
-                    id="unit"
-                    placeholder="km, kg, cups, etc."
-                    value={newGoal.unit}
-                    onChange={(e) => setNewGoal({ ...newGoal, unit: e.target.value })}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <FormControl>
+                          <select
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            {...field}
+                          >
+                            {categories.map((category) => (
+                              <option key={category.value} value={category.value}>
+                                {category.label}
+                              </option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="category">Category</Label>
-                  <select
-                    id="category"
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    value={newGoal.category}
-                    onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
-                  >
-                    {categories.map((category) => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
-                      </option>
-                    ))}
-                  </select>
+                  
+                  <FormField
+                    control={form.control}
+                    name="target_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Target Date (Optional)</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 
-                <div className="grid gap-2">
-                  <Label htmlFor="target_date">Target Date (Optional)</Label>
-                  <Input
-                    id="target_date"
-                    type="date"
-                    value={newGoal.target_date}
-                    onChange={(e) => setNewGoal({ ...newGoal, target_date: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreateGoal}>
-                Create Goal
-              </Button>
-            </DialogFooter>
+                <DialogFooter className="pt-4">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    Create Goal
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </CardHeader>

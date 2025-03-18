@@ -130,6 +130,22 @@
     @apply bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent;
   }
 
+  .text-gradient-blue {
+    @apply bg-gradient-to-r from-blue-600 to-sky-400 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-amber {
+    @apply bg-gradient-to-r from-amber-500 to-orange-400 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-green {
+    @apply bg-gradient-to-r from-green-500 to-emerald-400 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-pink {
+    @apply bg-gradient-to-r from-pink-600 to-purple-400 bg-clip-text text-transparent;
+  }
+
   /* Premium button */
   .btn-premium {
     @apply bg-gradient-premium text-white shadow-purple transition-all hover:shadow-purple-lg;
@@ -159,6 +175,48 @@
     background-color: rgba(124, 58, 237, 0.02);
     background-image: linear-gradient(to right, rgba(124, 58, 237, 0.07) 1px, transparent 1px),
                       linear-gradient(to bottom, rgba(124, 58, 237, 0.07) 1px, transparent 1px);
+  }
+
+  /* Card accent colors */
+  .card-accent-purple {
+    @apply bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-300/30 dark:border-purple-900/30;
+  }
+
+  .card-accent-blue {
+    @apply bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-300/30 dark:border-blue-900/30;
+  }
+
+  .card-accent-green {
+    @apply bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-300/30 dark:border-green-900/30;
+  }
+
+  .card-accent-amber {
+    @apply bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-300/30 dark:border-amber-900/30;
+  }
+
+  .card-accent-pink {
+    @apply bg-gradient-to-br from-pink-500/10 to-pink-500/5 border-pink-300/30 dark:border-pink-900/30;
+  }
+
+  /* Glow effects */
+  .glow-purple {
+    box-shadow: 0 0 15px 2px rgba(124, 58, 237, 0.15);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 15px 2px rgba(59, 130, 246, 0.15);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 15px 2px rgba(34, 197, 94, 0.15);
+  }
+
+  .glow-amber {
+    box-shadow: 0 0 15px 2px rgba(245, 158, 11, 0.15);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 15px 2px rgba(236, 72, 153, 0.15);
   }
 }
 
@@ -206,3 +264,45 @@
 
 /* Import Inter font */
 @import url('https://rsms.me/inter/inter.css');
+
+/* Card rainbow border effect */
+.rainbow-border {
+  position: relative;
+  z-index: 0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.rainbow-border::before {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  left: -50%;
+  top: -50%;
+  width: 200%;
+  height: 200%;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-size: 50% 50%, 50% 50%;
+  background-position: 0 0, 100% 0, 100% 100%, 0 100%;
+  background-image: linear-gradient(#ff79c6, #ff79c6), linear-gradient(#8be9fd, #8be9fd), linear-gradient(#50fa7b, #50fa7b), linear-gradient(#bd93f9, #bd93f9);
+  animation: rotate 4s linear infinite;
+}
+
+.rainbow-border::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 2px;
+  top: 2px;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  background: inherit;
+  border-radius: 14px;
+}
+
+@keyframes rotate {
+  100% {
+    transform: rotate(1turn);
+  }
+}

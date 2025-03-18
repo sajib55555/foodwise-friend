@@ -32,6 +32,13 @@ const Scan = () => {
     setScanComplete(false);
   };
 
+  // Add a handler for the onClose prop
+  const handleCameraClose = () => {
+    // This function will be called when the camera component is closed
+    // We can simply reset the state if needed, or do nothing
+    handleReset();
+  };
+
   return (
     <PageTransition>
       <Header title="Food Scanner" showBackButton />
@@ -51,7 +58,7 @@ const Scan = () => {
               </TabsList>
               
               <TabsContent value="camera" className="mt-6">
-                <CameraComponent onCapture={handlePhotoCapture} />
+                <CameraComponent onCapture={handlePhotoCapture} onClose={handleCameraClose} />
               </TabsContent>
               
               <TabsContent value="barcode" className="mt-6">

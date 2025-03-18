@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button-custom";
 import { Workout } from "@/pages/WorkoutTracker";
-import { Calendar, Clock, Flame, Dumbbell, Trash2 } from "lucide-react";
+import { Calendar, Clock, Flame, Dumbbell, Trash2, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 

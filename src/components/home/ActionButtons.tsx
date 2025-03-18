@@ -33,13 +33,19 @@ const ActionButtons = () => {
       label: "Weight", 
       onClick: () => navigate("/weight"),
       color: "bg-gradient-to-br from-amber-400 to-amber-600"
+    },
+    { 
+      icon: <Dumbbell className="h-5 w-5" />, 
+      label: "Workouts", 
+      onClick: () => navigate("/workout"),
+      color: "bg-gradient-to-br from-pink-400 to-pink-600"
     }
   ];
 
   return (
     <Card variant="glass">
       <CardContent className="p-4">
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           {actions.map((action, index) => (
             <motion.div
               key={action.label}

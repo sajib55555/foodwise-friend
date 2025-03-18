@@ -28,7 +28,12 @@ const ExerciseTracker = () => {
               <Activity className="h-5 w-5 text-purple-500" />
               Exercise Activity
             </CardTitle>
-            <Button variant="ghost" size="sm" className="h-8 px-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 px-2"
+              onClick={() => navigate("/workout")}
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -64,6 +69,7 @@ const ExerciseTracker = () => {
             variant="purple" 
             className="w-full mt-4"
             size="sm"
+            onClick={() => navigate("/workout")}
           >
             Track New Workout
           </Button>

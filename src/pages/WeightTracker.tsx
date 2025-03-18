@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
@@ -21,12 +20,14 @@ import PageTransition from "@/components/layout/PageTransition";
 import WeightHistoryList from "@/components/weight/WeightHistoryList";
 import WeightChart from "@/components/weight/WeightChart";
 import WeightStatsCards from "@/components/weight/WeightStatsCards";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
 const WeightTracker = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [weight, setWeight] = useState("");
   
-  // In a real app, this would be stored in the database
+  const { logActivity } = useActivityLog();
+
   const [weightEntries, setWeightEntries] = useState<{
     id: string;
     weight: number;
@@ -68,6 +69,11 @@ const WeightTracker = () => {
     setWeight("");
     setAddDialogOpen(false);
     
+    logActivity('weight_logged', `Logged weight: ${weightValue} kg`, {
+      weight_value: weightValue,
+      date: dateStr
+    });
+    
     toast({
       title: "Weight Added",
       description: "Your weight has been successfully recorded.",
@@ -75,7 +81,16 @@ const WeightTracker = () => {
   };
 
   const handleDeleteEntry = (id: string) => {
+    const entryToDelete = weightEntries.find(entry => entry.id === id);
     setWeightEntries(weightEntries.filter(entry => entry.id !== id));
+    
+    if (entryToDelete) {
+      logActivity('weight_deleted', `Deleted weight entry: ${entryToDelete.weight} kg`, {
+        weight_value: entryToDelete.weight,
+        date: entryToDelete.date
+      });
+    }
+    
     toast({
       title: "Entry Deleted",
       description: "Weight entry has been removed from your history.",

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/layout/Header";
@@ -11,8 +10,8 @@ import WorkoutForm from "@/components/workout/WorkoutForm";
 import WorkoutHistoryList from "@/components/workout/WorkoutHistoryList";
 import WorkoutStatsCards from "@/components/workout/WorkoutStatsCards";
 import { motion } from "framer-motion";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
-// Workout type definition
 export interface Workout {
   id: string;
   name: string;
@@ -25,6 +24,7 @@ export interface Workout {
 
 const WorkoutTracker = () => {
   const { toast } = useToast();
+  const { logActivity } = useActivityLog();
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>([
     {
@@ -47,7 +47,6 @@ const WorkoutTracker = () => {
     }
   ]);
 
-  // Check for pending workouts when component mounts
   useEffect(() => {
     const pendingWorkoutString = localStorage.getItem('pendingWorkout');
     
@@ -55,7 +54,6 @@ const WorkoutTracker = () => {
       try {
         const pendingWorkout = JSON.parse(pendingWorkoutString) as Omit<Workout, "id">;
         addWorkout(pendingWorkout);
-        // Clear the pending workout from localStorage
         localStorage.removeItem('pendingWorkout');
       } catch (error) {
         console.error("Error processing pending workout:", error);
@@ -66,10 +64,18 @@ const WorkoutTracker = () => {
   const addWorkout = (workout: Omit<Workout, "id">) => {
     const newWorkout = {
       ...workout,
-      id: Math.random().toString(36).substring(2, 9) // Generate a random ID
+      id: Math.random().toString(36).substring(2, 9)
     };
     setWorkouts([newWorkout, ...workouts]);
     setShowWorkoutForm(false);
+    
+    logActivity('workout_logged', `Logged a workout: ${workout.name}`, {
+      workout_name: workout.name,
+      workout_type: workout.type,
+      duration: workout.duration,
+      calories: workout.calories
+    });
+    
     toast({
       title: "Workout added",
       description: `${workout.name} has been added to your history.`,
@@ -77,14 +83,22 @@ const WorkoutTracker = () => {
   };
 
   const deleteWorkout = (id: string) => {
+    const workoutToDelete = workouts.find(w => w.id === id);
     setWorkouts(workouts.filter(workout => workout.id !== id));
+    
+    if (workoutToDelete) {
+      logActivity('workout_deleted', `Deleted workout: ${workoutToDelete.name}`, {
+        workout_name: workoutToDelete.name,
+        workout_type: workoutToDelete.type
+      });
+    }
+    
     toast({
       title: "Workout deleted",
       description: "The workout has been removed from your history.",
     });
   };
 
-  // Workout statistics
   const totalCalories = workouts.reduce((sum, workout) => sum + workout.calories, 0);
   const totalDuration = workouts.reduce((sum, workout) => sum + workout.duration, 0);
   const totalWorkouts = workouts.length;

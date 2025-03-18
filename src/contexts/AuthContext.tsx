@@ -32,6 +32,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Log activity function (simplified, will be replaced by ActivityLogContext)
+  const logAuthActivity = async (
+    activityType: string, 
+    description: string, 
+    metadata: Record<string, any> = {}
+  ) => {
+    try {
+      if (!user) return;
+      
+      await supabase
+        .from('user_activity_logs')
+        .insert({
+          user_id: user.id,
+          activity_type: activityType,
+          description,
+          metadata
+        });
+    } catch (error: any) {
+      console.error('Error logging auth activity:', error.message);
+    }
+  };
+
   useEffect(() => {
     const setupAuth = async () => {
       const { data } = await supabase.auth.getSession();
@@ -49,6 +71,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (session?.user) {
             await getProfile();
             await getSubscription();
+            
+            // Log login event if applicable
+            if (event === 'SIGNED_IN') {
+              await supabase
+                .from('user_activity_logs')
+                .insert({
+                  user_id: session.user.id,
+                  activity_type: 'login',
+                  description: 'User signed in',
+                  metadata: { provider: session.user.app_metadata.provider || 'email' }
+                });
+            }
           }
         }
       );
@@ -159,8 +193,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       toast({
         title: "Account created",
-        description: "Welcome to NutriTrack! Your 14-day trial has started.",
+        description: "Welcome to FoodWise! Your 14-day trial has started.",
       });
+      
+      // We don't need to log signup here as it will be captured by the onAuthStateChange
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -176,6 +212,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       setIsLoading(true);
+      
+      // Log logout before actually signing out
+      if (user) {
+        await supabase
+          .from('user_activity_logs')
+          .insert({
+            user_id: user.id,
+            activity_type: 'logout',
+            description: 'User signed out'
+          });
+      }
+      
       await supabase.auth.signOut();
       setProfile(null);
       setSubscription(null);

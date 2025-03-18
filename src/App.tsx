@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -23,6 +22,7 @@ import MealPlans from "./pages/MealPlans";
 import WeightTracker from "./pages/WeightTracker";
 import WorkoutTracker from "./pages/WorkoutTracker";
 import WeeklyMealPlanner from "./pages/WeeklyMealPlanner";
+import { ActivityLogProvider } from "@/contexts/ActivityLogContext";
 
 const queryClient = new QueryClient();
 
@@ -135,18 +135,22 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <ActivityLogProvider>
+              <AppRoutes />
+            </ActivityLogProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -11,6 +10,7 @@ import { User, Settings, Bell, Shield, LogOut, Calendar, Crown, BadgeCheck, Chev
 import { staggerContainer, staggerItem } from "@/utils/transitions";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import ActivityHistory from '@/components/profile/ActivityHistory';
 
 const Profile = () => {
   const { user, profile, subscription, signOut } = useAuth();
@@ -39,7 +39,6 @@ const Profile = () => {
     return subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1);
   };
 
-  // Placeholder data when profile isn't loaded yet
   const userData = {
     name: profile?.full_name || user?.email?.split('@')[0] || "User",
     email: user?.email || "loading@example.com",
@@ -53,11 +52,7 @@ const Profile = () => {
     <>
       <Header title="Profile" showBackButton />
       <PageTransition>
-        <main className="flex-1 container mx-auto px-4 pb-24 pt-6 relative">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-pink-400/5 rounded-full filter blur-3xl -z-10"></div>
-          <div className="absolute bottom-20 left-20 w-80 h-80 bg-purple-400/5 rounded-full filter blur-3xl -z-10"></div>
-          
+        <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
           <div className="space-y-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -177,6 +172,14 @@ const Profile = () => {
                 <LogOut className="h-4 w-4" />
                 Log Out
               </Button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+            >
+              <ActivityHistory />
             </motion.div>
           </div>
         </main>

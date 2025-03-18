@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -11,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, Clock, Plus, Search, Camera } from "lucide-react";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
 const LogMeal = () => {
   const navigate = useNavigate();
@@ -19,8 +19,8 @@ const LogMeal = () => {
   const [foodItems, setFoodItems] = useState<string[]>([]);
   const [customFood, setCustomFood] = useState("");
   const [scannedFoodInfo, setScannedFoodInfo] = useState<any>(null);
+  const { logActivity } = useActivityLog();
 
-  // Sample food items for demonstration
   const sampleFoods = {
     breakfast: ["Oatmeal", "Eggs", "Toast", "Banana", "Yogurt"],
     lunch: ["Sandwich", "Salad", "Soup", "Wrap", "Rice Bowl"],
@@ -28,7 +28,6 @@ const LogMeal = () => {
     snack: ["Apple", "Nuts", "Granola Bar", "Protein Shake", "Popcorn"]
   };
 
-  // Check for scanned food in session storage on load
   useEffect(() => {
     const scannedFood = sessionStorage.getItem('scannedFood');
     if (scannedFood) {
@@ -56,7 +55,14 @@ const LogMeal = () => {
   };
 
   const handleSaveMeal = () => {
-    // In a real app, you would save this to a database
+    if (foodItems.length === 0) return;
+    
+    logActivity('meal_logged', `Logged a ${mealType} meal`, { 
+      meal_type: mealType, 
+      food_items: foodItems,
+      scanned_food: scannedFoodInfo
+    });
+    
     toast({
       title: "Meal Logged",
       description: "Your meal has been successfully logged.",

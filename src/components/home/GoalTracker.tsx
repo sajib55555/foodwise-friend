@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -19,8 +18,8 @@ import { Target, Plus, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
-// Define types for goals
 interface Goal {
   id: string;
   title: string;
@@ -36,6 +35,7 @@ interface Goal {
 const GoalTracker = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { logActivity } = useActivityLog();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [newGoal, setNewGoal] = useState({
@@ -48,7 +48,6 @@ const GoalTracker = () => {
   });
   const [open, setOpen] = useState(false);
 
-  // Fetch user goals from Supabase
   const fetchGoals = async () => {
     if (!user) return;
     
@@ -75,7 +74,6 @@ const GoalTracker = () => {
     }
   };
 
-  // Create a new goal
   const handleCreateGoal = async () => {
     if (!user) return;
     
@@ -109,12 +107,19 @@ const GoalTracker = () => {
       if (error) throw error;
       
       setGoals([...(data || []), ...goals]);
+      
+      logActivity('goal_created', `Created new goal: ${newGoal.title}`, {
+        goal_title: newGoal.title,
+        target_value: newGoal.target_value,
+        unit: newGoal.unit,
+        category: newGoal.category
+      });
+      
       toast({
         title: "Goal created",
         description: "Your new goal has been created successfully.",
       });
       
-      // Reset form and close dialog
       setNewGoal({
         title: "",
         description: "",
@@ -135,7 +140,6 @@ const GoalTracker = () => {
     }
   };
 
-  // Update goal progress
   const handleUpdateProgress = async (id: string, value: number) => {
     if (!user) return;
     
@@ -145,6 +149,7 @@ const GoalTracker = () => {
       
       const newValue = goalToUpdate.current_value + value;
       const status = newValue >= goalToUpdate.target_value ? "completed" : "in_progress";
+      const wasCompleted = goalToUpdate.status !== "completed" && status === "completed";
       
       const { error } = await supabase
         .from("user_goals")
@@ -157,7 +162,6 @@ const GoalTracker = () => {
         
       if (error) throw error;
       
-      // Also log the progress in the goal_progress table
       const { error: progressError } = await supabase
         .from("goal_progress")
         .insert([{
@@ -168,7 +172,6 @@ const GoalTracker = () => {
         
       if (progressError) throw progressError;
       
-      // Update local state
       setGoals(goals.map(goal => {
         if (goal.id === id) {
           return {
@@ -180,9 +183,26 @@ const GoalTracker = () => {
         return goal;
       }));
       
+      if (wasCompleted) {
+        logActivity('goal_completed', `Completed goal: ${goalToUpdate.title}`, {
+          goal_id: id,
+          goal_title: goalToUpdate.title
+        });
+      } else {
+        logActivity('goal_updated', `Updated progress on goal: ${goalToUpdate.title}`, {
+          goal_id: id,
+          goal_title: goalToUpdate.title,
+          progress_value: value,
+          current_value: newValue,
+          target_value: goalToUpdate.target_value
+        });
+      }
+      
       toast({
-        title: "Progress updated",
-        description: `Added ${value} ${goalToUpdate.unit} to your goal.`,
+        title: wasCompleted ? "Goal completed!" : "Progress updated",
+        description: wasCompleted 
+          ? `Congratulations on completing your goal: ${goalToUpdate.title}!` 
+          : `Added ${value} ${goalToUpdate.unit} to your goal.`,
       });
     } catch (error: any) {
       console.error("Error updating goal progress:", error.message);
@@ -198,12 +218,10 @@ const GoalTracker = () => {
     fetchGoals();
   }, [user]);
 
-  // Function to calculate and format progress percentage
   const calculateProgress = (current: number, target: number) => {
     return Math.min(Math.round((current / target) * 100), 100);
   };
 
-  // Function to determine badge color based on status
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
@@ -215,7 +233,6 @@ const GoalTracker = () => {
     }
   };
   
-  // Categories for goals
   const categories = [
     { value: "fitness", label: "Fitness" },
     { value: "nutrition", label: "Nutrition" },

@@ -35,6 +35,8 @@ serve(async (req) => {
             content: `You are a certified fitness trainer specializing in creating personalized workout plans.
             Generate a workout routine based on user preferences, fitness level, goals, available equipment, and any physical limitations.
             For each workout, include the name, description, list of exercises, estimated calories burned, and difficulty level.
+            For duration, use the format "X minutes" where X is the number.
+            For difficulty, use one of: "Beginner", "Moderate", "Advanced", or "Expert".
             Format your response as a JSON array of workout objects.`
           },
           {
@@ -82,7 +84,7 @@ serve(async (req) => {
             description: "An equipment-free cardio workout to get your heart rate up",
             exercises: ["High knees", "Burpees", "Jumping lunges", "Mountain climbers", "Squat jumps"],
             caloriesBurned: 350,
-            difficulty: "Challenging",
+            difficulty: "Advanced",
             duration: "25 minutes"
           }
         ]

@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button-custom";
 import { Dumbbell, ArrowRight, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { Workout } from "@/pages/WorkoutTracker";
 
 interface Exercise {
   name: string;
@@ -16,7 +18,7 @@ interface Exercise {
   duration?: string;
 }
 
-interface Workout {
+interface WorkoutSuggestion {
   name: string;
   description: string;
   exercises: string[] | Exercise[];
@@ -26,13 +28,14 @@ interface Workout {
 }
 
 interface WorkoutSuggestionsResponse {
-  workouts: Workout[];
+  workouts: WorkoutSuggestion[];
 }
 
 const WorkoutSuggestions: React.FC = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<Workout[]>([]);
+  const [suggestions, setSuggestions] = useState<WorkoutSuggestion[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentFitnessLevel, setCurrentFitnessLevel] = useState("Beginner");
   
@@ -73,6 +76,37 @@ const WorkoutSuggestions: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const trackWorkout = (workout: WorkoutSuggestion) => {
+    // Convert duration string to minutes (assuming format like "30 minutes")
+    const durationMatch = workout.duration.match(/(\d+)/);
+    const durationMinutes = durationMatch ? parseInt(durationMatch[1]) : 30;
+    
+    // Create a new workout object in the format expected by the tracker
+    const newWorkout: Omit<Workout, "id"> = {
+      name: workout.name,
+      type: workout.difficulty === "Beginner" ? "Flexibility" : 
+            workout.difficulty === "Moderate" ? "Cardio" : "Strength",
+      duration: durationMinutes,
+      calories: workout.caloriesBurned,
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toTimeString().slice(0, 5)
+    };
+    
+    // Save workout to localStorage for transfer to the workout tracker
+    localStorage.setItem('pendingWorkout', JSON.stringify(newWorkout));
+    
+    // Close the dialog
+    setDialogOpen(false);
+    
+    // Show toast and navigate to workout tracker
+    toast({
+      title: "Workout Added to Tracker",
+      description: `${workout.name} has been added to your workout tracker.`,
+    });
+    
+    navigate('/workout');
   };
 
   return (
@@ -165,7 +199,12 @@ const WorkoutSuggestions: React.FC = () => {
                   </div>
                   
                   <div className="flex justify-end gap-2 mt-2">
-                    <Button size="sm" variant="purple" className="gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="purple" 
+                      className="gap-1"
+                      onClick={() => trackWorkout(workout)}
+                    >
                       <Dumbbell className="h-3.5 w-3.5" />
                       Track Workout
                     </Button>

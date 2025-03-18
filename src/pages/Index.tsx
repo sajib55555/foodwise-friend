@@ -13,7 +13,7 @@ import ReminderSystem from "@/components/home/ReminderSystem";
 import MealRecommendations from "@/components/home/MealRecommendations";
 import WorkoutSuggestions from "@/components/home/WorkoutSuggestions";
 import { Button } from "@/components/ui/button-custom";
-import { Calendar } from "lucide-react";
+import { Calendar, Dumbbell } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ const Index = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="flex justify-end"
+            className="flex flex-wrap gap-2 justify-end"
           >
             <Button
               onClick={() => navigate('/weekly-meal-planner')}
@@ -44,6 +44,15 @@ const Index = () => {
             >
               <Calendar className="h-4 w-4" />
               Weekly Meal Planner
+            </Button>
+            
+            <Button
+              onClick={() => navigate('/workout')}
+              variant="purple-outline"
+              className="gap-2"
+            >
+              <Dumbbell className="h-4 w-4" />
+              Workout Tracker
             </Button>
           </motion.div>
           

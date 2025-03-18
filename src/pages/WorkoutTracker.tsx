@@ -1,12 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { Plus, Activity, Calendar, Clock, Flame } from "lucide-react";
+import { Plus, Activity } from "lucide-react";
 import WorkoutForm from "@/components/workout/WorkoutForm";
 import WorkoutHistoryList from "@/components/workout/WorkoutHistoryList";
 import WorkoutStatsCards from "@/components/workout/WorkoutStatsCards";
@@ -46,6 +46,22 @@ const WorkoutTracker = () => {
       time: "18:15"
     }
   ]);
+
+  // Check for pending workouts when component mounts
+  useEffect(() => {
+    const pendingWorkoutString = localStorage.getItem('pendingWorkout');
+    
+    if (pendingWorkoutString) {
+      try {
+        const pendingWorkout = JSON.parse(pendingWorkoutString) as Omit<Workout, "id">;
+        addWorkout(pendingWorkout);
+        // Clear the pending workout from localStorage
+        localStorage.removeItem('pendingWorkout');
+      } catch (error) {
+        console.error("Error processing pending workout:", error);
+      }
+    }
+  }, []);
 
   const addWorkout = (workout: Omit<Workout, "id">) => {
     const newWorkout = {

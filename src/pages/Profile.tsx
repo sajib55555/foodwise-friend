@@ -117,7 +117,7 @@ const Profile = () => {
                   <Button 
                     variant="purple-gradient" 
                     className="w-full mt-4 gap-2"
-                    onClick={() => navigate("/profile/edit")}
+                    onClick={() => navigate("/profile/personal")}
                   >
                     <Sparkles className="h-4 w-4" />
                     Edit Profile

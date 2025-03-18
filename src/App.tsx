@@ -9,6 +9,11 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Index from "./pages/Index";
 import Scan from "./pages/Scan";
 import Profile from "./pages/Profile";
+import PersonalInfo from "./pages/profile/PersonalInfo";
+import Preferences from "./pages/profile/Preferences";
+import Notifications from "./pages/profile/Notifications";
+import Privacy from "./pages/profile/Privacy";
+import Subscription from "./pages/profile/Subscription";
 import Nutrition from "./pages/Nutrition";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -60,6 +65,31 @@ const AppRoutes = () => {
         <Route path="/profile" element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/personal" element={
+          <ProtectedRoute>
+            <PersonalInfo />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/preferences" element={
+          <ProtectedRoute>
+            <Preferences />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/notifications" element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/privacy" element={
+          <ProtectedRoute>
+            <Privacy />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/subscription" element={
+          <ProtectedRoute>
+            <Subscription />
           </ProtectedRoute>
         } />
         <Route path="/nutrition" element={

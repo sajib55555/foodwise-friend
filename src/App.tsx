@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import LogMeal from "./pages/LogMeal";
 import MealPlans from "./pages/MealPlans";
+import WeightTracker from "./pages/WeightTracker";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,11 @@ const AppRoutes = () => {
         <Route path="/plans" element={
           <ProtectedRoute>
             <MealPlans />
+          </ProtectedRoute>
+        } />
+        <Route path="/weight" element={
+          <ProtectedRoute>
+            <WeightTracker />
           </ProtectedRoute>
         } />
 

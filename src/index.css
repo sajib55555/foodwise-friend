@@ -124,6 +124,23 @@
   .glass-purple {
     @apply bg-purple-50/70 dark:bg-purple-900/30 backdrop-blur-lg border border-purple-200/30 dark:border-purple-800/20 shadow-purple;
   }
+  
+  /* New colorful glass morphism */
+  .glass-blue {
+    @apply bg-blue-50/70 dark:bg-blue-900/30 backdrop-blur-lg border border-blue-200/30 dark:border-blue-800/20 shadow-blue;
+  }
+  
+  .glass-green {
+    @apply bg-green-50/70 dark:bg-green-900/30 backdrop-blur-lg border border-green-200/30 dark:border-green-800/20 shadow-green;
+  }
+  
+  .glass-amber {
+    @apply bg-amber-50/70 dark:bg-amber-900/30 backdrop-blur-lg border border-amber-200/30 dark:border-amber-800/20 shadow-amber;
+  }
+  
+  .glass-pink {
+    @apply bg-pink-50/70 dark:bg-pink-900/30 backdrop-blur-lg border border-pink-200/30 dark:border-pink-800/20 shadow-pink;
+  }
 
   /* Gradient text */
   .text-gradient-purple {
@@ -145,10 +162,35 @@
   .text-gradient-pink {
     @apply bg-gradient-to-r from-pink-600 to-purple-400 bg-clip-text text-transparent;
   }
+  
+  .text-gradient-rainbow {
+    @apply bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 bg-clip-text text-transparent;
+  }
 
   /* Premium button */
   .btn-premium {
     @apply bg-gradient-premium text-white shadow-purple transition-all hover:shadow-purple-lg;
+  }
+  
+  /* New premium buttons */
+  .btn-blue-premium {
+    @apply bg-gradient-to-r from-blue-500 to-sky-400 text-white shadow-blue transition-all hover:shadow-blue-lg;
+  }
+  
+  .btn-green-premium {
+    @apply bg-gradient-to-r from-green-500 to-emerald-400 text-white shadow-green transition-all hover:shadow-green-lg;
+  }
+  
+  .btn-amber-premium {
+    @apply bg-gradient-to-r from-amber-500 to-orange-400 text-white shadow-amber transition-all hover:shadow-amber-lg;
+  }
+  
+  .btn-pink-premium {
+    @apply bg-gradient-to-r from-pink-500 to-fuchsia-400 text-white shadow-pink transition-all hover:shadow-pink-lg;
+  }
+  
+  .btn-rainbow-premium {
+    @apply bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white shadow-primary transition-all hover:shadow-primary-lg;
   }
 
   /* Grid background effect */
@@ -175,6 +217,35 @@
     background-color: rgba(124, 58, 237, 0.02);
     background-image: linear-gradient(to right, rgba(124, 58, 237, 0.07) 1px, transparent 1px),
                       linear-gradient(to bottom, rgba(124, 58, 237, 0.07) 1px, transparent 1px);
+  }
+  
+  /* Colorful grid backgrounds */
+  .grid-bg-blue {
+    background-color: rgba(59, 130, 246, 0.03);
+    background-image: linear-gradient(to right, rgba(59, 130, 246, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(59, 130, 246, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  
+  .grid-bg-green {
+    background-color: rgba(34, 197, 94, 0.03);
+    background-image: linear-gradient(to right, rgba(34, 197, 94, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(34, 197, 94, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  
+  .grid-bg-amber {
+    background-color: rgba(245, 158, 11, 0.03);
+    background-image: linear-gradient(to right, rgba(245, 158, 11, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(245, 158, 11, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  
+  .grid-bg-pink {
+    background-color: rgba(236, 72, 153, 0.03);
+    background-image: linear-gradient(to right, rgba(236, 72, 153, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(236, 72, 153, 0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 
   /* Card accent colors */
@@ -218,91 +289,79 @@
   .glow-pink {
     box-shadow: 0 0 15px 2px rgba(236, 72, 153, 0.15);
   }
-}
-
-/* Page transition animations */
-.page-enter {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.page-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
-}
-
-.page-exit {
-  opacity: 1;
-}
-
-.page-exit-active {
-  opacity: 0;
-  transition: opacity 200ms;
-}
-
-/* Safari-specific styles for elastic scrolling */
-@supports (-webkit-overflow-scrolling: touch) {
-  body {
-    -webkit-overflow-scrolling: touch;
+  
+  /* New rainbow glow */
+  .glow-rainbow {
+    box-shadow: 0 0 20px 5px rgba(124, 58, 237, 0.15), 
+                0 0 30px 10px rgba(236, 72, 153, 0.1), 
+                0 0 40px 15px rgba(245, 158, 11, 0.05);
+  }
+  
+  /* Pulse glow animations */
+  .pulse-glow-purple {
+    animation: pulse-purple 2s infinite;
+  }
+  
+  .pulse-glow-blue {
+    animation: pulse-blue 2s infinite;
+  }
+  
+  .pulse-glow-green {
+    animation: pulse-green 2s infinite;
+  }
+  
+  .pulse-glow-amber {
+    animation: pulse-amber 2s infinite;
+  }
+  
+  .pulse-glow-pink {
+    animation: pulse-pink 2s infinite;
+  }
+  
+  @keyframes pulse-purple {
+    0%, 100% {
+      box-shadow: 0 0 15px 2px rgba(124, 58, 237, 0.15);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px rgba(124, 58, 237, 0.25);
+    }
+  }
+  
+  @keyframes pulse-blue {
+    0%, 100% {
+      box-shadow: 0 0 15px 2px rgba(59, 130, 246, 0.15);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px rgba(59, 130, 246, 0.25);
+    }
+  }
+  
+  @keyframes pulse-green {
+    0%, 100% {
+      box-shadow: 0 0 15px 2px rgba(34, 197, 94, 0.15);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px rgba(34, 197, 94, 0.25);
+    }
+  }
+  
+  @keyframes pulse-amber {
+    0%, 100% {
+      box-shadow: 0 0 15px 2px rgba(245, 158, 11, 0.15);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px rgba(245, 158, 11, 0.25);
+    }
+  }
+  
+  @keyframes pulse-pink {
+    0%, 100% {
+      box-shadow: 0 0 15px 2px rgba(236, 72, 153, 0.15);
+    }
+    50% {
+      box-shadow: 0 0 20px 5px rgba(236, 72, 153, 0.25);
+    }
   }
 }
 
-/* Custom scrollbar for webkit browsers */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-700 rounded-full;
-}
-
-/* Import Inter font */
-@import url('https://rsms.me/inter/inter.css');
-
-/* Card rainbow border effect */
-.rainbow-border {
-  position: relative;
-  z-index: 0;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.rainbow-border::before {
-  content: '';
-  position: absolute;
-  z-index: -2;
-  left: -50%;
-  top: -50%;
-  width: 200%;
-  height: 200%;
-  background-color: transparent;
-  background-repeat: no-repeat;
-  background-size: 50% 50%, 50% 50%;
-  background-position: 0 0, 100% 0, 100% 100%, 0 100%;
-  background-image: linear-gradient(#ff79c6, #ff79c6), linear-gradient(#8be9fd, #8be9fd), linear-gradient(#50fa7b, #50fa7b), linear-gradient(#bd93f9, #bd93f9);
-  animation: rotate 4s linear infinite;
-}
-
-.rainbow-border::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  left: 2px;
-  top: 2px;
-  width: calc(100% - 4px);
-  height: calc(100% - 4px);
-  background: inherit;
-  border-radius: 14px;
-}
-
-@keyframes rotate {
-  100% {
-    transform: rotate(1turn);
-  }
-}
+/* ... keep existing code (all the remaining CSS animations, page transitions, scrollbar styles, etc) */

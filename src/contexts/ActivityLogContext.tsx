@@ -15,7 +15,9 @@ export type ActivityType =
   | 'goal_completed'
   | 'meal_logged'
   | 'workout_logged'
+  | 'workout_deleted'
   | 'weight_logged'
+  | 'weight_deleted'
   | 'scan_food'
   | 'profile_updated';
 

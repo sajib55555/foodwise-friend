@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/layout/Header";
@@ -26,28 +27,39 @@ const WorkoutTracker = () => {
   const { toast } = useToast();
   const { logActivity } = useActivityLog();
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
-  const [workouts, setWorkouts] = useState<Workout[]>([
-    {
-      id: "1",
-      name: "Morning Run",
-      type: "Cardio",
-      duration: 30,
-      calories: 320,
-      date: new Date().toISOString().split('T')[0],
-      time: "08:30"
-    },
-    {
-      id: "2",
-      name: "Strength Training",
-      type: "Strength",
-      duration: 45,
-      calories: 210,
-      date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
-      time: "18:15"
-    }
-  ]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
 
+  // Load workouts from localStorage on component mount
   useEffect(() => {
+    const savedWorkouts = localStorage.getItem('workouts');
+    if (savedWorkouts) {
+      setWorkouts(JSON.parse(savedWorkouts));
+    } else {
+      // Initial mock data if nothing in localStorage
+      const initialWorkouts = [
+        {
+          id: "1",
+          name: "Morning Run",
+          type: "Cardio",
+          duration: 30,
+          calories: 320,
+          date: new Date().toISOString().split('T')[0],
+          time: "08:30"
+        },
+        {
+          id: "2",
+          name: "Strength Training",
+          type: "Strength",
+          duration: 45,
+          calories: 210,
+          date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
+          time: "18:15"
+        }
+      ];
+      setWorkouts(initialWorkouts);
+      localStorage.setItem('workouts', JSON.stringify(initialWorkouts));
+    }
+    
     const pendingWorkoutString = localStorage.getItem('pendingWorkout');
     
     if (pendingWorkoutString) {
@@ -60,6 +72,15 @@ const WorkoutTracker = () => {
       }
     }
   }, []);
+
+  // Save workouts to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('workouts', JSON.stringify(workouts));
+    // Notify ExerciseTracker component about updates
+    localStorage.setItem('exerciseTrackerUpdated', 'true');
+    // Dispatch a storage event to trigger the listener in ExerciseTracker
+    window.dispatchEvent(new Event('storage'));
+  }, [workouts]);
 
   const addWorkout = (workout: Omit<Workout, "id">) => {
     const newWorkout = {

@@ -1,10 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { Plus, Minus, Droplets } from "lucide-react";
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
 
 interface WaterTrackerProps {
   initialAmount?: number;
@@ -17,19 +18,65 @@ const WaterTracker: React.FC<WaterTrackerProps> = ({
   dailyGoal = 2000, // 2 liters in ml
   onUpdate,
 }) => {
+  const { toast } = useToast();
   const [waterAmount, setWaterAmount] = useState(initialAmount);
   const glassSize = 250; // ml per glass
+
+  // Load water amount from localStorage on component mount
+  useEffect(() => {
+    const savedAmount = localStorage.getItem('waterAmount');
+    if (savedAmount) {
+      setWaterAmount(parseInt(savedAmount));
+    }
+  }, []);
+
+  // Save water amount to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('waterAmount', waterAmount.toString());
+  }, [waterAmount]);
+
+  // Reset water amount at midnight
+  useEffect(() => {
+    const checkForNewDay = () => {
+      const lastTrackedDay = localStorage.getItem('lastWaterTrackedDay');
+      const today = new Date().toDateString();
+      
+      if (lastTrackedDay && lastTrackedDay !== today) {
+        setWaterAmount(0);
+      }
+      
+      localStorage.setItem('lastWaterTrackedDay', today);
+    };
+    
+    checkForNewDay();
+    
+    // Set up interval to check for day change (every hour)
+    const interval = setInterval(checkForNewDay, 3600000);
+    return () => clearInterval(interval);
+  }, []);
 
   const addWater = () => {
     const newAmount = waterAmount + glassSize;
     setWaterAmount(newAmount);
     if (onUpdate) onUpdate(newAmount);
+    
+    toast({
+      title: "Water added",
+      description: `Added ${glassSize}ml of water. Total: ${newAmount}ml`,
+    });
   };
 
   const removeWater = () => {
     const newAmount = Math.max(0, waterAmount - glassSize);
     setWaterAmount(newAmount);
     if (onUpdate) onUpdate(newAmount);
+    
+    if (waterAmount > 0) {
+      toast({
+        title: "Water removed",
+        description: `Removed ${glassSize}ml of water. Total: ${newAmount}ml`,
+      });
+    }
   };
 
   const percentageFilled = Math.min(100, (waterAmount / dailyGoal) * 100);

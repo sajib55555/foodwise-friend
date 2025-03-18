@@ -1,19 +1,74 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Activity, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button-custom";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
+interface Exercise {
+  id: number | string;
+  name: string;
+  duration: number;
+  calories: number;
+  date: string;
+}
+
 const ExerciseTracker = () => {
   const navigate = useNavigate();
+  const [recentExercises, setRecentExercises] = useState<Exercise[]>([]);
   
-  // Mock data for recent exercises
-  const recentExercises = [
-    { id: 1, name: "Morning Run", duration: 25, calories: 320, date: "Today, 7:30 AM" },
-    { id: 2, name: "Strength Training", duration: 45, calories: 210, date: "Yesterday, 6:15 PM" },
-  ];
+  // Load exercises from localStorage on component mount
+  useEffect(() => {
+    const savedExercises = localStorage.getItem('recentExercises');
+    if (savedExercises) {
+      setRecentExercises(JSON.parse(savedExercises));
+    } else {
+      // Initial mock data if nothing in localStorage
+      const mockExercises = [
+        { id: 1, name: "Morning Run", duration: 25, calories: 320, date: "Today, 7:30 AM" },
+        { id: 2, name: "Strength Training", duration: 45, calories: 210, date: "Yesterday, 6:15 PM" },
+      ];
+      setRecentExercises(mockExercises);
+      localStorage.setItem('recentExercises', JSON.stringify(mockExercises));
+    }
+  }, []);
+
+  // Update localStorage whenever workouts change in WorkoutTracker page
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const pendingUpdates = localStorage.getItem('exerciseTrackerUpdated');
+      if (pendingUpdates === 'true') {
+        // Fetch the updated exercises from WorkoutTracker
+        const updatedWorkouts = localStorage.getItem('workouts');
+        if (updatedWorkouts) {
+          const workouts = JSON.parse(updatedWorkouts);
+          // Take the 2 most recent workouts for the dashboard view
+          const recentWorkouts = workouts.slice(0, 2).map((workout: any) => ({
+            id: workout.id,
+            name: workout.name,
+            duration: workout.duration,
+            calories: workout.calories,
+            date: workout.date && workout.time ? 
+              new Date(workout.date).toDateString() === new Date().toDateString() ? 
+              `Today, ${workout.time}` : `${workout.date}, ${workout.time}` 
+              : "Unknown"
+          }));
+          
+          setRecentExercises(recentWorkouts);
+          localStorage.setItem('recentExercises', JSON.stringify(recentWorkouts));
+        }
+        localStorage.setItem('exerciseTrackerUpdated', 'false');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    handleStorageChange(); // Check on mount too
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   return (
     <motion.div

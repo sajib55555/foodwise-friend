@@ -1,17 +1,16 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button-custom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Clock, Plus, Search } from "lucide-react";
+import { ArrowLeft, Clock, Plus, Search, Camera } from "lucide-react";
 
 const LogMeal = () => {
   const navigate = useNavigate();
@@ -19,6 +18,7 @@ const LogMeal = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [foodItems, setFoodItems] = useState<string[]>([]);
   const [customFood, setCustomFood] = useState("");
+  const [scannedFoodInfo, setScannedFoodInfo] = useState<any>(null);
 
   // Sample food items for demonstration
   const sampleFoods = {
@@ -27,6 +27,22 @@ const LogMeal = () => {
     dinner: ["Grilled Chicken", "Pasta", "Salmon", "Stir Fry", "Pizza"],
     snack: ["Apple", "Nuts", "Granola Bar", "Protein Shake", "Popcorn"]
   };
+
+  // Check for scanned food in session storage on load
+  useEffect(() => {
+    const scannedFood = sessionStorage.getItem('scannedFood');
+    if (scannedFood) {
+      const foodData = JSON.parse(scannedFood);
+      setScannedFoodInfo(foodData);
+      setFoodItems(prev => [...prev, foodData.name]);
+      sessionStorage.removeItem('scannedFood'); // Clear after using
+      
+      toast({
+        title: "Food Added",
+        description: `${foodData.name} has been added from your scan.`,
+      });
+    }
+  }, []);
 
   const handleAddFood = () => {
     if (customFood.trim()) {
@@ -46,6 +62,10 @@ const LogMeal = () => {
       description: "Your meal has been successfully logged.",
     });
     navigate("/nutrition");
+  };
+
+  const handleScanFood = () => {
+    navigate("/scan");
   };
 
   const filteredFoods = sampleFoods[mealType as keyof typeof sampleFoods].filter(
@@ -97,6 +117,14 @@ const LogMeal = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              <Button
+                size="icon"
+                variant="outline"
+                className="bg-background/50 text-purple-500"
+                onClick={handleScanFood}
+              >
+                <Camera className="h-5 w-5" />
+              </Button>
             </div>
 
             <div className="mt-4 space-y-2">
@@ -168,7 +196,14 @@ const LogMeal = () => {
                     transition={{ delay: index * 0.05 }}
                     className="p-3 bg-background/30 rounded-lg border border-purple-100/30"
                   >
-                    {item}
+                    <div className="flex justify-between items-center">
+                      <span>{item}</span>
+                      {scannedFoodInfo && item === scannedFoodInfo.name && (
+                        <div className="text-xs text-purple-600">
+                          {scannedFoodInfo.calories} cal • {scannedFoodInfo.protein}g protein
+                        </div>
+                      )}
+                    </div>
                   </motion.li>
                 ))}
               </ul>

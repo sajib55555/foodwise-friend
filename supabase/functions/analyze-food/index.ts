@@ -68,8 +68,18 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a nutrition expert analyzing food images. Identify the food, estimate nutritional content (calories, protein, carbs, fat), 
-            list ingredients, provide a health score from 1-10, and give diet recommendations. Format the response as a JSON object with these fields:
+            content: `You are a nutrition expert analyzing food images. 
+            
+            Identify the food, estimate nutritional content (calories, protein, carbs, fat), 
+            list ingredients, provide a health score from 1-10, and give diet recommendations. 
+            
+            Be precise with your nutritional estimates if possible, based on standard serving sizes.
+            For each ingredient, determine if it's healthy or not, and provide warnings for unhealthy ingredients.
+            
+            When calculating the health score, consider balanced macronutrients, presence of whole foods vs processed foods,
+            nutrient density, and overall dietary value.
+            
+            Format the response as a JSON object with these fields:
             name, calories, protein, carbs, fat, ingredients (array of objects with name, healthy, and optional warning), healthScore, 
             warnings (array of strings), and recommendations (array of strings).`
           },
@@ -84,12 +94,12 @@ serve(async (req) => {
               },
               {
                 type: 'text',
-                text: 'Analyze this food image and provide nutritional information.'
+                text: 'Analyze this food image and provide detailed nutritional information.'
               }
             ]
           }
         ],
-        max_tokens: 800,
+        max_tokens: 1000,
       }),
     })
 
@@ -99,7 +109,30 @@ serve(async (req) => {
     let analysisResult
     try {
       analysisResult = JSON.parse(data.choices[0].message.content)
+      
+      // Ensure all fields are present in the response
+      const requiredFields = ['name', 'calories', 'protein', 'carbs', 'fat', 'ingredients', 'healthScore', 'warnings', 'recommendations'];
+      const missingFields = requiredFields.filter(field => !analysisResult[field]);
+      
+      if (missingFields.length > 0) {
+        console.log('Missing fields in analysis:', missingFields);
+        // Set default values for missing fields
+        missingFields.forEach(field => {
+          if (field === 'ingredients') {
+            analysisResult[field] = [];
+          } else if (field === 'warnings' || field === 'recommendations') {
+            analysisResult[field] = [];
+          } else if (field === 'healthScore') {
+            analysisResult[field] = 5;
+          } else if (['calories', 'protein', 'carbs', 'fat'].includes(field)) {
+            analysisResult[field] = 0;
+          } else {
+            analysisResult[field] = 'Unknown';
+          }
+        });
+      }
     } catch (e) {
+      console.error('Error parsing OpenAI response:', e);
       // If parsing fails, use the raw text
       return new Response(
         JSON.stringify({

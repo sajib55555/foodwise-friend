@@ -6,6 +6,7 @@ import { Check, X, AlertTriangle, Utensils, Activity, Barcode, Loader2 } from "l
 import { motion } from "framer-motion";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface Ingredient {
   name: string;
@@ -38,6 +39,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const analyzeFoodImage = async () => {
@@ -75,6 +77,28 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
       analyzeFoodImage();
     }
   }, [imageUrl, barcode, toast]);
+
+  // Handle logging the food to meal journal
+  const handleLogFood = () => {
+    if (analysis) {
+      // Store the analyzed food in session storage to retrieve in LogMeal
+      sessionStorage.setItem('scannedFood', JSON.stringify({
+        name: analysis.name,
+        calories: analysis.calories,
+        protein: analysis.protein,
+        carbs: analysis.carbs,
+        fat: analysis.fat
+      }));
+      
+      // Navigate to the log meal page
+      navigate('/log-meal');
+      
+      toast({
+        title: "Food Ready to Log",
+        description: `${analysis.name} has been added to your meal form.`,
+      });
+    }
+  };
 
   // Fallback if analysis fails
   const fallbackAnalysis: FoodAnalysis = {
@@ -253,10 +277,25 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
                 </ul>
                 
                 <div className="mt-4 flex space-x-3">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => {
+                      toast({
+                        title: "Saved to Journal",
+                        description: "Food information has been saved to your journal",
+                      });
+                    }}
+                  >
                     Save to Journal
                   </Button>
-                  <Button variant="purple" size="sm" className="flex-1">
+                  <Button 
+                    variant="purple" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={handleLogFood}
+                  >
                     Log This Meal
                   </Button>
                 </div>

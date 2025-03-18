@@ -27,10 +27,8 @@ const Subscription = () => {
       return format(new Date(subscription.trial_ends_at), "MMM d, yyyy");
     }
     
-    if (subscription.ends_at) {
-      return format(new Date(subscription.ends_at), "MMM d, yyyy");
-    }
-    
+    // For non-trial subscriptions, we don't have an ends_at property,
+    // so we'll only display the trial_ends_at date for trial subscriptions
     return null;
   };
   

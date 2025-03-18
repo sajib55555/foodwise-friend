@@ -11,6 +11,7 @@ import WaterTracker from "@/components/home/WaterTracker";
 import ExerciseTracker from "@/components/home/ExerciseTracker";
 import ReminderSystem from "@/components/home/ReminderSystem";
 import MealRecommendations from "@/components/home/MealRecommendations";
+import WorkoutSuggestions from "@/components/home/WorkoutSuggestions";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar } from "lucide-react";
 
@@ -53,7 +54,10 @@ const Index = () => {
             <ExerciseTracker />
           </div>
           
-          <MealRecommendations />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <MealRecommendations />
+            <WorkoutSuggestions />
+          </div>
           
           <ReminderSystem />
         </div>

@@ -14,6 +14,7 @@ import MealRecommendations from "@/components/home/MealRecommendations";
 import WorkoutSuggestions from "@/components/home/WorkoutSuggestions";
 import SleepTracker from "@/components/home/SleepTracker";
 import GoalTracker from "@/components/home/GoalTracker";
+import AIHealthAssistant from "@/components/home/AIHealthAssistant";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar, Dumbbell } from "lucide-react";
 
@@ -71,11 +72,14 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <WorkoutSuggestions />
+            <AIHealthAssistant />
             <MealRecommendations />
           </div>
           
-          <ReminderSystem />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <WorkoutSuggestions />
+            <ReminderSystem />
+          </div>
         </div>
       </main>
       <MobileNavbar />

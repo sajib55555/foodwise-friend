@@ -13,6 +13,7 @@ import ReminderSystem from "@/components/home/ReminderSystem";
 import MealRecommendations from "@/components/home/MealRecommendations";
 import WorkoutSuggestions from "@/components/home/WorkoutSuggestions";
 import SleepTracker from "@/components/home/SleepTracker";
+import GoalTracker from "@/components/home/GoalTracker";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar, Dumbbell } from "lucide-react";
 
@@ -66,13 +67,15 @@ const Index = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <SleepTracker />
-            <MealRecommendations />
+            <GoalTracker />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <WorkoutSuggestions />
-            <ReminderSystem />
+            <MealRecommendations />
           </div>
+          
+          <ReminderSystem />
         </div>
       </main>
       <MobileNavbar />

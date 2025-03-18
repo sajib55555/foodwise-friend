@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      goal_progress: {
+        Row: {
+          created_at: string
+          goal_id: string
+          id: string
+          notes: string | null
+          recorded_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          goal_id: string
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          goal_id?: string
+          id?: string
+          notes?: string | null
+          recorded_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_progress_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "user_goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -59,6 +94,54 @@ export type Database = {
           status?: string
           trial_ends_at?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_goals: {
+        Row: {
+          category: string
+          created_at: string
+          current_value: number
+          description: string | null
+          id: string
+          start_date: string
+          status: string
+          target_date: string | null
+          target_value: number
+          title: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          start_date?: string
+          status?: string
+          target_date?: string | null
+          target_value: number
+          title: string
+          unit: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          current_value?: number
+          description?: string | null
+          id?: string
+          start_date?: string
+          status?: string
+          target_date?: string | null
+          target_value?: number
+          title?: string
+          unit?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

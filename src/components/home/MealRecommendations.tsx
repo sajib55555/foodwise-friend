@@ -64,8 +64,27 @@ const MealRecommendations: React.FC = () => {
       
       if (error) throw error;
       
+      // Make sure we have valid data before setting it
       const response = data as MealRecommendationsResponse;
-      setRecommendations(response.meals);
+      
+      if (!response || !response.meals || !Array.isArray(response.meals)) {
+        throw new Error("Invalid response format from meal recommendations");
+      }
+      
+      // Validate meal data to ensure it has the required properties
+      const validatedMeals = response.meals.map(meal => ({
+        name: meal.name || "Unnamed Meal",
+        description: meal.description || "No description available",
+        ingredients: Array.isArray(meal.ingredients) ? meal.ingredients : [],
+        calories: typeof meal.calories === 'number' ? meal.calories : 0,
+        macros: {
+          protein: meal.macros?.protein || "0g",
+          carbs: meal.macros?.carbs || "0g",
+          fat: meal.macros?.fat || "0g"
+        }
+      }));
+      
+      setRecommendations(validatedMeals);
       setDialogOpen(true);
     } catch (error) {
       console.error("Error fetching meal recommendations:", error);
@@ -84,6 +103,7 @@ const MealRecommendations: React.FC = () => {
     // Find the corresponding preference label
     const preference = dietaryPreferences.find(pref => pref.id === value);
     if (preference) {
+      setCurrentPreferences(preference.label);
       fetchRecommendations(preference.label);
     }
   };

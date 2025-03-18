@@ -38,8 +38,24 @@ const WorkoutSuggestions: React.FC = () => {
       
       if (error) throw error;
       
+      // Make sure we have valid data before setting it
       const response = data as WorkoutSuggestionsResponse;
-      setSuggestions(response.workouts);
+      
+      if (!response || !response.workouts || !Array.isArray(response.workouts)) {
+        throw new Error("Invalid response format from workout suggestions");
+      }
+      
+      // Validate workout data to ensure it has the required properties
+      const validatedWorkouts = response.workouts.map(workout => ({
+        name: workout.name || "Unnamed Workout",
+        description: workout.description || "No description available",
+        exercises: Array.isArray(workout.exercises) ? workout.exercises : [],
+        caloriesBurned: typeof workout.caloriesBurned === 'number' ? workout.caloriesBurned : 0,
+        difficulty: workout.difficulty || "Beginner",
+        duration: workout.duration || "30 minutes"
+      }));
+      
+      setSuggestions(validatedWorkouts);
       setDialogOpen(true);
     } catch (error) {
       console.error("Error fetching workout suggestions:", error);
@@ -58,6 +74,7 @@ const WorkoutSuggestions: React.FC = () => {
     // Find the corresponding fitness level label
     const level = fitnessLevels.find(level => level.id === value);
     if (level) {
+      setCurrentFitnessLevel(level.label);
       fetchSuggestions(level.label);
     }
   };

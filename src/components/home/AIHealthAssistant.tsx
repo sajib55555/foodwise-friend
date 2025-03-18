@@ -76,14 +76,14 @@ const AIHealthAssistant = () => {
           .order("created_at", { ascending: false })
       };
 
-      // 6. Fetch user profile
+      // Fetch user profile
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      // 7. Call the Edge Function to analyze the data and generate voice response
+      // Call the Edge Function to analyze the data and generate voice response
       const healthData = {
         nutrition: mockHealthData.nutrition || [],
         exercise: mockHealthData.exercise || [],

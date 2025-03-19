@@ -27,10 +27,10 @@ export const setupVideoStream = (
       videoElement.srcObject = null;
     }
     
-    // Set critical styles first to ensure visibility
-    videoElement.style.display = 'block !important';
-    videoElement.style.visibility = 'visible !important';
-    videoElement.style.opacity = '1 !important';
+    // Apply critical styles directly to the element
+    videoElement.style.display = 'block';
+    videoElement.style.visibility = 'visible';
+    videoElement.style.opacity = '1';
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.objectFit = 'cover';
@@ -42,30 +42,33 @@ export const setupVideoStream = (
     videoElement.muted = true;
     videoElement.playsInline = true;
     
+    // Force layout recalculation to make sure styles are applied
+    void videoElement.offsetHeight;
+    
     // Force play to start immediately
     const playVideo = () => {
-      // Ensure video is visible - important!
-      videoElement.style.display = 'block !important';
-      videoElement.style.visibility = 'visible !important';
-      videoElement.style.opacity = '1 !important';
-      
-      // Force layout recalculation
-      void videoElement.offsetHeight;
-      
       console.log("Attempting to play video");
+      
+      // Make absolutely sure styles are applied before playing
+      videoElement.style.display = 'block';
+      videoElement.style.visibility = 'visible';
+      videoElement.style.opacity = '1';
+      
+      // Force layout recalculation again
+      void videoElement.offsetHeight;
       
       videoElement.play()
         .then(() => {
           console.log("Camera started successfully");
-          // Ensure video is still visible after successful play
-          videoElement.style.display = 'block !important';
-          videoElement.style.visibility = 'visible !important';
-          videoElement.style.opacity = '1 !important';
+          // Ensure video remains visible after successful play
+          videoElement.style.display = 'block';
+          videoElement.style.visibility = 'visible';
+          videoElement.style.opacity = '1';
           
           // Force browser to recalculate layout
           void videoElement.offsetHeight;
           
-          // Add a small delay before calling success to ensure everything is ready
+          // Call success callback after a small delay to ensure everything is ready
           setTimeout(() => {
             onSuccess();
           }, 100);
@@ -73,12 +76,14 @@ export const setupVideoStream = (
         .catch(err => {
           console.error("Error playing video:", err);
           
-          // Try one more time after a short delay with more assertive styles
+          // Try once more after a short delay
           setTimeout(() => {
-            // Even more direct styling
-            videoElement.style.display = 'block !important';
-            videoElement.style.visibility = 'visible !important';
-            videoElement.style.opacity = '1 !important';
+            console.log("Retrying video play after delay");
+            
+            // Apply styles again before retry
+            videoElement.style.display = 'block';
+            videoElement.style.visibility = 'visible';
+            videoElement.style.opacity = '1';
             
             // Force layout recalculation
             void videoElement.offsetHeight;
@@ -86,11 +91,9 @@ export const setupVideoStream = (
             videoElement.play()
               .then(() => {
                 console.log("Camera started successfully on retry");
-                // Ensure video is visible
-                videoElement.style.display = 'block !important';
-                videoElement.style.visibility = 'visible !important';
-                videoElement.style.opacity = '1 !important';
-                
+                videoElement.style.display = 'block';
+                videoElement.style.visibility = 'visible';
+                videoElement.style.opacity = '1';
                 onSuccess();
               })
               .catch(retryErr => {
@@ -101,7 +104,7 @@ export const setupVideoStream = (
         });
     };
     
-    // Set up all possible event listeners to debug
+    // Set up all possible event listeners for reliability
     videoElement.onloadedmetadata = () => {
       console.log("Video metadata loaded");
       playVideo();
@@ -109,10 +112,10 @@ export const setupVideoStream = (
     
     videoElement.onplaying = () => {
       console.log("Video is now playing, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
-      // Make absolutely sure video is visible
-      videoElement.style.display = 'block !important';
-      videoElement.style.visibility = 'visible !important';
-      videoElement.style.opacity = '1 !important';
+      // Ensure video remains visible
+      videoElement.style.display = 'block';
+      videoElement.style.visibility = 'visible';
+      videoElement.style.opacity = '1';
       
       // Force layout recalculation
       void videoElement.offsetHeight;

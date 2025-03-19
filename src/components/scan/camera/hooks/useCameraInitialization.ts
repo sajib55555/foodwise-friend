@@ -53,10 +53,8 @@ export const useCameraInitialization = ({
     
     if (activeCamera && !capturedImage) {
       console.log("Camera activated, setting up...");
-      // We'll add a short delay to ensure DOM is ready
-      setupTimer = window.setTimeout(() => {
-        setupCamera();
-      }, 300);
+      // Immediate setup - no delay
+      setupCamera();
     } else if (!activeCamera && streamRef.current) {
       console.log("Camera deactivated, stopping tracks");
       stopAllTracks();
@@ -90,9 +88,6 @@ export const useCameraInitialization = ({
       // Stop any existing tracks before requesting new ones
       stopAllTracks();
       
-      // Add a small delay to ensure previous tracks are fully stopped
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       // Request camera access with current facing mode
       const stream = await requestCameraAccess(facingMode);
       
@@ -107,6 +102,20 @@ export const useCameraInitialization = ({
         // Apply browser-specific fixes
         applyVideoElementFixes(videoRef.current);
         
+        // Make sure video element is visible in DOM before setting up stream
+        if (videoRef.current.offsetParent === null) {
+          console.warn("Video element may not be visible in DOM");
+        }
+        
+        // Apply critical styles directly
+        videoRef.current.style.display = 'block';
+        videoRef.current.style.visibility = 'visible';
+        videoRef.current.style.opacity = '1';
+        
+        // Force layout recalculation
+        void videoRef.current.offsetHeight;
+        
+        // Setup the video stream
         setupVideoStream(
           videoRef.current,
           stream,
@@ -160,6 +169,9 @@ export const useCameraInitialization = ({
     // Set new facing mode and reset setup flags to force re-initialization
     setFacingMode(newMode);
     setupAttemptedRef.current = false;
+    
+    // Stop current stream before switching camera
+    stopAllTracks();
     
     // Re-setup camera with new facing mode (effect will trigger due to facingMode change)
   };

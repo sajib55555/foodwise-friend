@@ -30,7 +30,9 @@ const CameraView: React.FC<CameraViewProps> = ({
         console.log("Video can play event fired");
         // Ensure video is visible
         if (video) {
-          applyVideoElementFixes(video);
+          video.style.display = 'block';
+          video.style.visibility = 'visible';
+          video.style.opacity = '1';
           // Force layout recalculation
           void video.offsetHeight;
         }
@@ -41,7 +43,9 @@ const CameraView: React.FC<CameraViewProps> = ({
         console.log("Video is now playing with dimensions:", video.videoWidth, "x", video.videoHeight);
         // Make video visible when playing starts
         if (video) {
-          applyVideoElementFixes(video);
+          video.style.display = 'block';
+          video.style.visibility = 'visible';
+          video.style.opacity = '1';
           // Force layout recalculation
           void video.offsetHeight;
         }

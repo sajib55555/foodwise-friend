@@ -44,15 +44,15 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     }
   });
 
-  // Automatically activate camera when component mounts - with no delay
+  // Automatically activate camera when component mounts - with minimal delay
   useEffect(() => {
     console.log("Camera component mounted, opening camera immediately");
     
-    // Give browser a moment to render the component, then open camera
+    // Open camera with a minimal delay to ensure component is fully mounted
     const timer = setTimeout(() => {
       console.log("Initial render complete, now opening camera");
       openCamera();
-    }, 100);
+    }, 50);
     
     // Ensure camera is properly cleaned up when component unmounts
     return () => {

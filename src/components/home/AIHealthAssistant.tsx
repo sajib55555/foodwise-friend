@@ -68,30 +68,45 @@ const AIHealthAssistant = () => {
         sleep: [
           { duration: 7.5, quality: "good" }
         ],
-        goals: await supabase
-          .from("user_goals")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
+        goals: []
       };
 
+      // Fetch user goals
+      const { data: goalsData, error: goalsError } = await supabase
+        .from("user_goals")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (goalsError) {
+        console.error("Error fetching goals:", goalsError);
+      } else {
+        mockHealthData.goals = goalsData || [];
+      }
+
       // Fetch user profile
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+
       // Call the Edge Function to analyze the data and generate voice response
       const healthData = {
-        nutrition: mockHealthData.nutrition || [],
-        exercise: mockHealthData.exercise || [],
-        water: mockHealthData.water || [],
-        sleep: mockHealthData.sleep || [],
-        goals: mockHealthData.goals?.data || [],
+        nutrition: mockHealthData.nutrition,
+        exercise: mockHealthData.exercise,
+        water: mockHealthData.water,
+        sleep: mockHealthData.sleep,
+        goals: mockHealthData.goals,
         voicePreference: selectedVoice
       };
 
+      console.log("Sending health data to edge function:", JSON.stringify(healthData));
+      
       const { data, error } = await supabase.functions.invoke('analyze-health-data', {
         body: { 
           healthData, 
@@ -100,8 +115,11 @@ const AIHealthAssistant = () => {
       });
 
       if (error) {
-        throw error;
+        console.error("Edge function error:", error);
+        throw new Error(error.message || 'Failed to analyze health data');
       }
+
+      console.log("Received response from edge function:", data);
 
       // Handle the response
       if (data.audioContent && data.textAnalysis) {
@@ -121,6 +139,10 @@ const AIHealthAssistant = () => {
             setPlaying(false);
           };
         }
+      } else if (data.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('Invalid response from server');
       }
     } catch (error: any) {
       console.error("Error fetching data or analyzing:", error);

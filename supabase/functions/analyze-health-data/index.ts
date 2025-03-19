@@ -24,8 +24,11 @@ serve(async (req) => {
       apiKey: OPENAI_API_KEY,
     });
 
-    const { healthData, userName } = await req.json();
+    const requestData = await req.json();
+    const { healthData, userName } = requestData;
+    
     console.log("Received health data:", JSON.stringify(healthData));
+    console.log("Received user name:", userName);
 
     // Generate personalized health analysis
     const analysisPrompt = generateAnalysisPrompt(healthData, userName);
@@ -46,6 +49,9 @@ serve(async (req) => {
     const analysis = completion.choices[0].message.content;
     console.log("Generated analysis:", analysis);
 
+    const voicePreference = healthData.voicePreference || 'nova';
+    console.log("Voice preference:", voicePreference);
+
     // Generate speech from the analysis
     const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
@@ -56,14 +62,15 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'tts-1',
         input: analysis,
-        voice: healthData.voicePreference || 'nova', // Default to 'nova' if not specified
+        voice: voicePreference,
         response_format: 'mp3',
       }),
     });
 
     if (!speechResponse.ok) {
-      const error = await speechResponse.json();
-      throw new Error(error.error?.message || 'Failed to generate speech');
+      const errorData = await speechResponse.json();
+      console.error("OpenAI speech API error:", errorData);
+      throw new Error(errorData.error?.message || 'Failed to generate speech');
     }
 
     // Convert audio buffer to base64
@@ -82,7 +89,7 @@ serve(async (req) => {
       },
     );
   } catch (error) {
-    console.error("Error:", error.message);
+    console.error("Error:", error.message, error.stack);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
@@ -94,14 +101,20 @@ serve(async (req) => {
 });
 
 function generateAnalysisPrompt(healthData: any, userName: string): string {
+  const nutrition = healthData.nutrition || [];
+  const exercise = healthData.exercise || [];
+  const water = healthData.water || [];
+  const sleep = healthData.sleep || [];
+  const goals = healthData.goals || [];
+
   return `
     Analyze the following health data for ${userName || 'the user'} and provide personalized health advice and recommendations:
     
-    Nutrition data: ${JSON.stringify(healthData.nutrition || {})}
-    Exercise data: ${JSON.stringify(healthData.exercise || {})}
-    Water intake: ${JSON.stringify(healthData.water || {})}
-    Sleep data: ${JSON.stringify(healthData.sleep || {})}
-    Goals: ${JSON.stringify(healthData.goals || {})}
+    Nutrition data: ${JSON.stringify(nutrition)}
+    Exercise data: ${JSON.stringify(exercise)}
+    Water intake: ${JSON.stringify(water)}
+    Sleep data: ${JSON.stringify(sleep)}
+    Goals: ${JSON.stringify(goals)}
     
     Provide a concise, personalized health update that:
     1. Addresses the user by name if available

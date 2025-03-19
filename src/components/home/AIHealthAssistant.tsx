@@ -110,17 +110,16 @@ const AIHealthAssistant = () => {
 
       console.log("Sending health data to edge function:", JSON.stringify(healthData));
       
-      const { data, error } = await supabase.functions.invoke('analyze-health-data', {
+      const { data, error: functionError } = await supabase.functions.invoke('analyze-health-data', {
         body: { 
           healthData, 
           userName: profileData?.full_name || user.email?.split('@')[0] || 'there'
         }
       });
 
-      if (error) {
-        console.error("Edge function error:", error);
-        setError(`Failed to analyze health data: ${error.message}`);
-        setAnalysis(data?.textAnalysis || null);
+      if (functionError) {
+        console.error("Edge function error:", functionError);
+        setError(`Failed to analyze health data: ${functionError.message}`);
         return;
       }
 
@@ -131,18 +130,23 @@ const AIHealthAssistant = () => {
 
       console.log("Received response from edge function:", data);
 
-      // Handle errors returned in the response body
-      if (data.error) {
-        console.error("API error:", data.error);
-        setError(data.error);
-      }
-
       // Handle the text analysis
       if (data.textAnalysis) {
         setAnalysis(data.textAnalysis);
       } else {
         setError("No analysis was generated");
         return;
+      }
+
+      // Handle errors returned in the response body
+      if (data.error) {
+        console.error("API error:", data.error);
+        setError(data.error);
+        toast({
+          title: "Voice synthesis unavailable",
+          description: "Only text analysis is available due to a technical issue.",
+          variant: "default",
+        });
       }
 
       // Handle the audio if available

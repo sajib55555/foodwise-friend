@@ -19,9 +19,9 @@ serve(async (req) => {
     if (!OPENAI_API_KEY) {
       console.error('OPENAI_API_KEY is not set');
       return new Response(
-        JSON.stringify({ error: "OPENAI_API_KEY is not set" }),
+        JSON.stringify({ error: "OPENAI_API_KEY is not set", textAnalysis: "I couldn't analyze your health data. The OpenAI API key is missing." }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -38,9 +38,9 @@ serve(async (req) => {
     } catch (error) {
       console.error("Error parsing request JSON:", error);
       return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body" }),
+        JSON.stringify({ error: "Invalid JSON in request body", textAnalysis: "I couldn't process your request due to invalid data format." }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -51,9 +51,9 @@ serve(async (req) => {
     if (!healthData) {
       console.error("Health data is missing");
       return new Response(
-        JSON.stringify({ error: "Health data is required" }),
+        JSON.stringify({ error: "Health data is required", textAnalysis: "I need your health data to provide an analysis." }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -114,8 +114,13 @@ serve(async (req) => {
     const voicePreference = healthData.voicePreference || 'nova';
     console.log("Voice preference:", voicePreference);
 
-    // Generate speech from the analysis
+    // Generate speech from the analysis - with improved error handling
     try {
+      // Limit the text length to prevent potential buffer issues
+      const truncatedAnalysis = analysis.slice(0, 4000); // Limit to 4000 characters to prevent potential issues
+      
+      console.log("Sending text to OpenAI TTS API, length:", truncatedAnalysis.length);
+      
       const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
@@ -124,7 +129,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: 'tts-1',
-          input: analysis,
+          input: truncatedAnalysis,
           voice: voicePreference,
           response_format: 'mp3',
         }),
@@ -157,11 +162,23 @@ serve(async (req) => {
         );
       }
 
-      // Convert audio buffer to base64
+      // Get the audio as an array buffer
       const arrayBuffer = await speechResponse.arrayBuffer();
-      const base64Audio = btoa(
-        String.fromCharCode(...new Uint8Array(arrayBuffer))
-      );
+      
+      // Use a safer method to encode the audio to base64
+      // Instead of using string operations which can cause call stack issues
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const chunks = [];
+      const chunkSize = 32768; // Process in smaller chunks to avoid call stack issues
+      
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.slice(i, i + chunkSize);
+        chunks.push(String.fromCharCode.apply(null, chunk));
+      }
+      
+      const base64Audio = btoa(chunks.join(''));
+      
+      console.log("Successfully generated audio, length:", base64Audio.length);
 
       return new Response(
         JSON.stringify({ 

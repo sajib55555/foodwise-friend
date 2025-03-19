@@ -17,16 +17,18 @@ import GoalTracker from "@/components/home/GoalTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar, Dumbbell, Sparkles } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.1
+        staggerChildren: 0.07
       }
     }
   };
@@ -35,11 +37,20 @@ const Index = () => {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
+
+  // Background colors for card sections
+  const sectionColors = [
+    "from-purple-500/10 to-purple-500/5", // Purple
+    "from-blue-500/10 to-blue-500/5",     // Blue
+    "from-green-500/10 to-green-500/5",   // Green
+    "from-amber-500/10 to-amber-500/5",   // Amber
+    "from-pink-500/10 to-pink-500/5"      // Pink
+  ];
   
   return (
     <PageTransition>
-      <Header title="Dashboard" />
-      <main className="flex-1 container mx-auto px-4 pb-24 pt-6 relative">
+      <Header title="" transparent={true} />
+      <main className="flex-1 container mx-auto px-4 pb-24 pt-2 relative">
         {/* Decorative background elements */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-400/5 rounded-full filter blur-3xl -z-10"></div>
         <div className="absolute bottom-20 left-20 w-80 h-80 bg-blue-400/5 rounded-full filter blur-3xl -z-10"></div>
@@ -50,6 +61,17 @@ const Index = () => {
           initial="hidden"
           animate="visible"
         >
+          {/* App Logo and Tagline */}
+          <motion.div 
+            variants={itemVariants}
+            className="text-center my-4"
+          >
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-blue-600 to-purple-600">
+              NutriTrack
+            </h1>
+            <p className="text-muted-foreground text-sm">Your personal health companion</p>
+          </motion.div>
+          
           <motion.div variants={itemVariants}>
             <ActionButtons />
           </motion.div>
@@ -81,46 +103,65 @@ const Index = () => {
             <NutritionSummary />
           </motion.div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div variants={itemVariants}>
+          {/* AI Health Assistant positioned higher on the page */}
+          <motion.div variants={itemVariants}>
+            <AIHealthAssistant />
+          </motion.div>
+          
+          {/* Responsive grid layout */}
+          <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
+            <motion.div 
+              variants={itemVariants} 
+              className={`card-accent-blue ${!isMobile ? 'col-span-1' : ''}`}
+            >
               <WaterTracker />
             </motion.div>
-            <motion.div variants={itemVariants}>
+            <motion.div 
+              variants={itemVariants}
+              className={`card-accent-green ${!isMobile ? 'col-span-1' : ''}`}
+            >
               <ExerciseTracker />
             </motion.div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div variants={itemVariants}>
+          <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
+            <motion.div 
+              variants={itemVariants}
+              className={`card-accent-purple ${!isMobile ? 'col-span-1' : ''}`}
+            >
               <SleepTracker />
             </motion.div>
-            <motion.div variants={itemVariants}>
+            <motion.div 
+              variants={itemVariants}
+              className={`card-accent-amber ${!isMobile ? 'col-span-1' : ''}`}
+            >
               <GoalTracker />
             </motion.div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div variants={itemVariants}>
-              <AIHealthAssistant />
-            </motion.div>
-            <motion.div variants={itemVariants}>
+          <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
+            <motion.div 
+              variants={itemVariants}
+              className={`card-accent-pink ${!isMobile ? 'col-span-1' : ''}`}
+            >
               <MealRecommendations />
+            </motion.div>
+            <motion.div 
+              variants={itemVariants}
+              className={`card-accent-blue ${!isMobile ? 'col-span-1' : ''}`}
+            >
+              <WorkoutSuggestions />
             </motion.div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <motion.div variants={itemVariants}>
-              <WorkoutSuggestions />
-            </motion.div>
-            <motion.div variants={itemVariants}>
-              <ReminderSystem />
-            </motion.div>
-          </div>
+          <motion.div variants={itemVariants} className="card-accent-green">
+            <ReminderSystem />
+          </motion.div>
           
           {/* Premium feature banner */}
           <motion.div
             variants={itemVariants}
-            className="rounded-2xl overflow-hidden shadow-xl border border-purple-200/50 dark:border-purple-800/20"
+            className="rounded-2xl overflow-hidden shadow-xl border border-purple-200/50 dark:border-purple-800/20 hover:shadow-purple transition-all duration-300"
           >
             <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-6 relative overflow-hidden">
               <div className="absolute inset-0 opacity-10">

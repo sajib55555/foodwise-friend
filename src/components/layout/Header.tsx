@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button-custom";
-import { ArrowLeft, User, Bell } from "lucide-react";
+import { ArrowLeft, User, Bell, Menu } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -58,14 +58,14 @@ const Header: React.FC<HeaderProps> = ({
           )}
           {!title && !showBackButton && isHomePage && (
             <div className="flex items-center">
-              <span className="text-lg font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-blue-600 to-purple-600">
+              <span className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-blue-600 to-purple-600">
                 NutriTrack
               </span>
             </div>
           )}
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-1">
           <Button 
             variant="ghost" 
             size="icon-sm" 

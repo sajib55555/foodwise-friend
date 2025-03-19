@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Camera, Barcode, Sparkles, Zap } from "lucide-react";
+import { Camera, Barcode, Sparkles, Zap, Upload } from "lucide-react";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
@@ -12,6 +12,7 @@ import CameraComponent from "@/components/scan/Camera";
 import BarcodeScanner from "@/components/scan/BarcodeScanner";
 import ScanResult from "@/components/scan/ScanResult";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 const Scan = () => {
   const [scanMode, setScanMode] = useState<"camera" | "barcode">("camera");
@@ -20,6 +21,7 @@ const Scan = () => {
   const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(true);
   const { toast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Reset camera visibility when changing scan mode
   useEffect(() => {
@@ -60,6 +62,31 @@ const Scan = () => {
 
   const handleCameraClose = () => {
     handleReset();
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const imageUrl = reader.result as string;
+        handlePhotoCapture(imageUrl);
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Upload Failed",
+          description: "Unable to load image. Please try a different file.",
+          variant: "destructive",
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
   return (
@@ -132,6 +159,25 @@ const Scan = () => {
                         <Sparkles className="h-4 w-4 mr-2 text-emerald-500" />
                         Take a photo of your food to get nutritional information
                       </p>
+                    </div>
+
+                    {/* Upload from device button - always visible in camera tab */}
+                    <div className="mt-4 flex justify-center">
+                      <Button 
+                        variant="outline"
+                        className="w-full sm:w-auto border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-900/20"
+                        onClick={triggerFileUpload}
+                      >
+                        <Upload className="h-4 w-4 mr-2 text-emerald-600 dark:text-emerald-400" />
+                        Upload from Device
+                      </Button>
+                      <Input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
                     </div>
                   </TabsContent>
                   

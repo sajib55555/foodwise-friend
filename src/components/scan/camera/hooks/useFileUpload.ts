@@ -26,7 +26,7 @@ export const useFileUpload = ({ onImageLoaded }: UseFileUploadProps) => {
         setUploading(false);
         toast({
           title: "Image Loaded",
-          description: "Your food image has been loaded.",
+          description: "Your food image has been loaded successfully.",
         });
       };
       reader.onerror = () => {
@@ -42,7 +42,7 @@ export const useFileUpload = ({ onImageLoaded }: UseFileUploadProps) => {
   };
   
   /**
-   * Triggers the file input click event
+   * Opens the device file picker to select an image
    */
   const uploadImage = () => {
     if (fileInputRef.current) {

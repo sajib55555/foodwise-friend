@@ -1,6 +1,4 @@
 
-import { Workout } from "@/pages/WorkoutTracker";
-
 export interface Exercise {
   name: string;
   reps?: string;
@@ -21,13 +19,26 @@ export interface WorkoutSuggestionsResponse {
   workouts: WorkoutSuggestion[];
 }
 
-export interface FitnessLevel {
+export type FitnessLevel = "beginner" | "intermediate" | "advanced" | "expert";
+
+export interface Workout {
   id: string;
+  name: string;
+  description: string;
+  level: FitnessLevel;
+  category: string;
+  duration: string;
+  caloriesBurned: number;
+  exercises: Exercise[];
+}
+
+export interface FitnessLevelInfo {
+  id: FitnessLevel;
   label: string;
   description: string;
 }
 
-export const fitnessLevels: FitnessLevel[] = [
+export const fitnessLevels: FitnessLevelInfo[] = [
   { id: "beginner", label: "Beginner", description: "New to working out or returning after a long break" },
   { id: "intermediate", label: "Intermediate", description: "Regular workout routine for at least 3 months" },
   { id: "advanced", label: "Advanced", description: "Consistently working out for over a year" },

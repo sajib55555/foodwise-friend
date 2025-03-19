@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-c
 import { Button } from "@/components/ui/button-custom";
 import { Dumbbell, ChevronRight, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
-import WorkoutCard from "./WorkoutCard";
-import SuggestionsDialog from "./SuggestionsDialog";
-import { FitnessLevel, Workout } from "./types";
+import { WorkoutCard } from "./WorkoutCard";
+import { SuggestionsDialog } from "./SuggestionsDialog";
+import { FitnessLevel, Workout, fitnessLevels } from "./types";
 import { suggestedWorkouts } from "./utils";
 
 const WorkoutSuggestions = () => {
@@ -17,6 +17,11 @@ const WorkoutSuggestions = () => {
       workout.level === "beginner" || workout.level === "intermediate"
     ).slice(0, 2)
   );
+
+  const handleTrackWorkout = (workout: Workout) => {
+    console.log("Tracking workout:", workout);
+    // Here you would implement the logic to add this workout to the user's tracker
+  };
 
   return (
     <motion.div
@@ -39,11 +44,12 @@ const WorkoutSuggestions = () => {
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="space-y-3">
-            {recommendations.map((workout) => (
+            {recommendations.map((workout, index) => (
               <WorkoutCard 
                 key={workout.id} 
-                workout={workout} 
-                className="bg-gradient-to-r from-blue-100/60 to-indigo-100/40 dark:from-blue-900/20 dark:to-indigo-900/10 border border-blue-100/40 hover:shadow-md"
+                workout={workout}
+                index={index}
+                onTrackWorkout={handleTrackWorkout}
               />
             ))}
             
@@ -60,13 +66,13 @@ const WorkoutSuggestions = () => {
         </CardContent>
       </Card>
       
-      <SuggestionsDialog 
-        open={showDialog} 
-        setOpen={setShowDialog} 
-        fitnessLevel={fitnessLevel}
-        setFitnessLevel={setFitnessLevel}
-        setRecommendations={setRecommendations}
-      />
+      {showDialog && (
+        <SuggestionsDialog 
+          suggestions={suggestedWorkouts.filter(workout => workout.level === fitnessLevel)}
+          currentFitnessLevel={fitnessLevels.find(level => level.id === fitnessLevel)?.label || ""}
+          onTrackWorkout={handleTrackWorkout}
+        />
+      )}
     </motion.div>
   );
 };

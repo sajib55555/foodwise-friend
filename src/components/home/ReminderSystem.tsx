@@ -90,7 +90,7 @@ const ReminderSystem = () => {
                   
                   <div className="flex justify-end space-x-2 pt-2">
                     <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                    <Button variant="amber" onClick={() => setDialogOpen(false)}>Add Reminder</Button>
+                    <Button variant="amber-gradient" onClick={() => setDialogOpen(false)}>Add Reminder</Button>
                   </div>
                 </div>
               </DialogContent>

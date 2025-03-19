@@ -28,6 +28,7 @@ const CameraControls: React.FC<CameraControlsProps> = ({
   return (
     <div className="p-4 space-y-4">
       <div className="flex justify-center space-x-4">
+        {/* If camera is not active and no image captured, show Open Camera button */}
         {!activeCamera && !capturedImage && (
           <Button
             variant="blue-gradient"
@@ -39,10 +40,11 @@ const CameraControls: React.FC<CameraControlsProps> = ({
           </Button>
         )}
         
+        {/* If camera is active, show large capture button */}
         {activeCamera && (
           <Button
             variant="blue-gradient"
-            className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
+            className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
             onClick={onCapture}
             aria-label="Capture photo"
           >
@@ -50,6 +52,7 @@ const CameraControls: React.FC<CameraControlsProps> = ({
           </Button>
         )}
         
+        {/* If image is captured, show retake and analyze buttons */}
         {capturedImage && (
           <>
             <Button
@@ -70,6 +73,7 @@ const CameraControls: React.FC<CameraControlsProps> = ({
           </>
         )}
         
+        {/* Always show upload button when camera is not active */}
         {!activeCamera && (
           <Button
             variant={capturedImage ? "outline" : "purple-gradient"}

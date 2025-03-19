@@ -17,23 +17,28 @@ const CameraView: React.FC<CameraViewProps> = ({
   useEffect(() => {
     if (videoRef.current) {
       const video = videoRef.current;
+      
+      // Force repaint when video can play
       const handleCanPlay = () => {
         console.log("Video can play event fired");
-        // Sometimes forcing a repaint can help display the video
-        if (video.style.display === 'none') {
-          video.style.display = 'block';
-        } else {
-          video.style.display = 'none';
-          setTimeout(() => { 
-            if (video) video.style.display = 'block';
-          }, 10);
-        }
+        // Force video element to repaint
+        video.style.opacity = '0';
+        setTimeout(() => {
+          if (video) video.style.opacity = '1';
+        }, 50);
+      };
+      
+      // Add debug events
+      const handlePlaying = () => {
+        console.log("Video is now playing");
       };
       
       video.addEventListener('canplay', handleCanPlay);
+      video.addEventListener('playing', handlePlaying);
       
       return () => {
         video.removeEventListener('canplay', handleCanPlay);
+        video.removeEventListener('playing', handlePlaying);
       };
     }
   }, [videoRef]);

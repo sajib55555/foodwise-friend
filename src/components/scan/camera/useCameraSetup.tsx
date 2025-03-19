@@ -4,6 +4,7 @@ import { requestCameraAccess, stopStreamTracks, setupVideoStream } from "./utils
 import { useImageCapture } from "./hooks/useImageCapture";
 import { useFileUpload } from "./hooks/useFileUpload";
 import { useCameraState } from "./hooks/useCameraState";
+import { useToast } from "@/hooks/use-toast";
 
 interface UseCameraSetupOptions {
   onCapture: (image: string) => void;
@@ -12,8 +13,9 @@ interface UseCameraSetupOptions {
 const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const { toast } = useToast();
   
-  // Use our new composable hooks
+  // Use our composable hooks
   const {
     activeCamera,
     setActiveCamera,
@@ -30,9 +32,14 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     capturedImage,
     setCapturedImage,
     canvasRef,
-    captureImage,
-    processImage
-  } = useImageCapture({ onCapture });
+    captureImage
+  } = useImageCapture({ 
+    onCapture: (imageUrl) => {
+      console.log("Image captured callback, processing image");
+      // Don't call onCapture directly here - it will be handled by handleSubmit
+      setCapturedImage(imageUrl);
+    } 
+  });
   
   const {
     uploading,
@@ -47,6 +54,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
 
   // Cleanup function to stop all tracks
   const stopAllTracks = () => {
+    console.log("Stopping all camera tracks");
     stopStreamTracks(streamRef.current);
     streamRef.current = null;
   };
@@ -57,9 +65,11 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       setupCamera();
     }
     
-    // Cleanup when component unmounts
+    // Cleanup when component unmounts or when activeCamera changes to false
     return () => {
-      stopAllTracks();
+      if (!activeCamera) {
+        stopAllTracks();
+      }
     };
   }, [activeCamera, capturedImage]);
 
@@ -68,6 +78,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
    */
   const setupCamera = async () => {
     try {
+      console.log("Setting up camera...");
       startCameraLoading();
       
       // Stop any existing tracks before requesting new ones
@@ -104,14 +115,32 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
    * Captures an image from the current video stream
    */
   const handleCaptureImage = () => {
-    if (videoRef.current) {
-      const imageUrl = captureImage(videoRef.current);
-      if (imageUrl) {
-        stopAllTracks();
-        setActiveCamera(false);
-      }
-    } else {
+    console.log("Attempting to capture image");
+    if (!videoRef.current || !streamRef.current) {
       setCameraError("Camera not initialized properly. Please refresh and try again.");
+      toast({
+        title: "Camera Error",
+        description: "Camera is not ready. Please make sure camera permissions are granted.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if video element is ready and playing
+    if (videoRef.current.readyState !== 4) {
+      toast({
+        title: "Camera Not Ready",
+        description: "Camera is still initializing. Please wait a moment.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Try to capture the image
+    const imageUrl = captureImage(videoRef.current);
+    if (imageUrl) {
+      stopAllTracks();
+      setActiveCamera(false);
     }
   };
 
@@ -131,6 +160,12 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     if (capturedImage) {
       console.log("Submitting captured image for analysis");
       onCapture(capturedImage);
+    } else {
+      toast({
+        title: "No Image",
+        description: "Please capture or upload an image first.",
+        variant: "destructive",
+      });
     }
   };
 

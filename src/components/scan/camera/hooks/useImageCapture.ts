@@ -39,11 +39,8 @@ export const useImageCapture = ({ onCapture }: UseImageCaptureProps) => {
     try {
       console.log("Capturing image...");
       
-      // Check if video is ready
-      const videoWidth = videoElement.videoWidth;
-      const videoHeight = videoElement.videoHeight;
-      
-      if (videoWidth === 0 || videoHeight === 0) {
+      // Make sure the video has loaded and has dimensions
+      if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
         toast({
           title: "Camera Not Ready",
           description: "Camera not ready yet. Please wait a moment and try again.",
@@ -53,13 +50,13 @@ export const useImageCapture = ({ onCapture }: UseImageCaptureProps) => {
       }
       
       // Set canvas dimensions to match video
-      canvas.width = videoWidth;
-      canvas.height = videoHeight;
+      canvas.width = videoElement.videoWidth;
+      canvas.height = videoElement.videoHeight;
       
       // Draw video frame to canvas
       context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
       
-      // Convert canvas to data URL
+      // Convert canvas to data URL - use JPEG format for better compatibility
       const imageDataUrl = canvas.toDataURL("image/jpeg", 0.9);
       setCapturedImage(imageDataUrl);
       
@@ -69,6 +66,8 @@ export const useImageCapture = ({ onCapture }: UseImageCaptureProps) => {
         description: "Food image captured successfully.",
       });
       
+      // Save to state and return the image URL
+      onCapture(imageDataUrl);
       return imageDataUrl;
     } catch (error) {
       console.error("Error creating image:", error);
@@ -80,21 +79,11 @@ export const useImageCapture = ({ onCapture }: UseImageCaptureProps) => {
       return null;
     }
   };
-
-  /**
-   * Processes a captured image and notifies parent component
-   */
-  const processImage = (imageUrl: string | null) => {
-    if (imageUrl) {
-      onCapture(imageUrl);
-    }
-  };
   
   return {
     capturedImage,
     setCapturedImage,
     canvasRef,
-    captureImage,
-    processImage
+    captureImage
   };
 };

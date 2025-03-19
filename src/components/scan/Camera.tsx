@@ -10,6 +10,7 @@ import CameraPlaceholder from "./camera/CameraPlaceholder";
 import CameraError from "./camera/CameraError";
 import CameraControls from "./camera/CameraControls";
 import useCameraSetup from "./camera/useCameraSetup";
+import { useToast } from "@/hooks/use-toast";
 
 interface CameraComponentProps {
   onCapture: (image: string) => void;
@@ -17,6 +18,8 @@ interface CameraComponentProps {
 }
 
 const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose }) => {
+  const { toast } = useToast();
+  
   const {
     activeCamera,
     capturedImage,
@@ -32,16 +35,25 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     uploadImage,
     handleSubmit,
     openCamera
-  } = useCameraSetup({ onCapture });
+  } = useCameraSetup({ 
+    onCapture: (imageUrl) => {
+      console.log("Camera component received captured image");
+      onCapture(imageUrl);
+    }
+  });
 
   // Automatically activate camera when component mounts
   useEffect(() => {
+    console.log("Camera component mounted, opening camera");
     if (!capturedImage) {
-      openCamera();
+      setTimeout(() => {
+        openCamera();
+      }, 100); // Short delay to ensure component is fully mounted
     }
     
     // Ensure camera is properly cleaned up when component unmounts
     return () => {
+      console.log("Camera component unmounting, cleaning up");
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const tracks = stream.getTracks();

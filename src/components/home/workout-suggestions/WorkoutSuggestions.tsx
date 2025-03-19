@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { Dumbbell, ChevronRight, ExternalLink } from "lucide-react";
+import { Dumbbell, ChevronRight, ExternalLink, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { WorkoutCard } from "./WorkoutCard";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -76,9 +76,9 @@ const WorkoutSuggestions = () => {
           name: workout.name,
           description: workout.description,
           exercises: workout.exercises.map((ex: string) => ({ name: ex })),
-          caloriesBurned: workout.caloriesBurned,
-          difficulty: workout.difficulty,
-          duration: workout.duration
+          caloriesBurned: workout.caloriesBurned || 300,
+          difficulty: workout.difficulty || "Moderate",
+          duration: workout.duration || "30 minutes"
         }));
         setSuggestions(formattedSuggestions);
       }
@@ -156,6 +156,11 @@ const WorkoutSuggestions = () => {
                 />
               )}
             </Dialog>
+            
+            {/* Info text to guide users */}
+            <p className="text-xs text-muted-foreground text-center mt-2">
+              Tap "Get Personalized Suggestions" to see workouts tailored for you
+            </p>
           </div>
         </CardContent>
       </Card>

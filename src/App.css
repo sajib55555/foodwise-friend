@@ -24,6 +24,7 @@ html {
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -38,6 +39,12 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #4f46e5, #7e22ce);
+}
+
+/* Force horizontal scrollbars to display when needed */
+.overflow-x-auto {
+  overflow-x: auto !important;
+  scrollbar-width: thin;
 }
 
 /* Animation utilities */
@@ -89,6 +96,16 @@ html {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(249, 250, 251, 0.7));
   backdrop-filter: blur(10px);
   border: 1px solid rgba(229, 231, 235, 0.7);
+}
+
+/* Tabs scrolling fix */
+[data-radix-scroll-area-viewport] {
+  width: 100% !important;
+}
+
+.tabs-list-container {
+  display: inline-flex;
+  min-width: max-content;
 }
 
 /* Logo animation */

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
@@ -54,7 +53,6 @@ const WeeklyMealPlanner: React.FC = () => {
   const isMobile = useIsMobile();
   const [apiTimeout, setApiTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Clean up timeout on unmount
   useEffect(() => {
     return () => {
       if (apiTimeout) {
@@ -67,7 +65,6 @@ const WeeklyMealPlanner: React.FC = () => {
     setLoading(true);
     setError(null);
     
-    // Create a timeout that will automatically switch to fallback mode if the API takes too long
     const timeout = setTimeout(() => {
       if (loading) {
         setLoading(false);
@@ -78,7 +75,7 @@ const WeeklyMealPlanner: React.FC = () => {
           variant: "destructive",
         });
       }
-    }, 15000); // 15 seconds timeout
+    }, 15000);
     
     setApiTimeout(timeout);
     
@@ -92,7 +89,6 @@ const WeeklyMealPlanner: React.FC = () => {
         }
       });
       
-      // Clear the timeout since we got a response
       clearTimeout(timeout);
       setApiTimeout(null);
       
@@ -116,7 +112,6 @@ const WeeklyMealPlanner: React.FC = () => {
         description: `Your ${days}-day meal plan is ready!`,
       });
     } catch (error) {
-      // Clear the timeout since we got an error response
       clearTimeout(timeout);
       setApiTimeout(null);
       
@@ -132,14 +127,12 @@ const WeeklyMealPlanner: React.FC = () => {
   }, [preferences, restrictions, goals, days, toast, loading]);
 
   const saveMealPlan = () => {
-    // This would be implemented to save the meal plan to the user's profile
     toast({
       title: "Meal Plan Saved",
       description: "Your meal plan has been saved to your profile.",
     });
   };
 
-  // Get day name for display
   const getDayName = (index: number) => {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     return days[index % 7];
@@ -277,16 +270,15 @@ const WeeklyMealPlanner: React.FC = () => {
               </div>
               
               <Tabs value={activeDay} onValueChange={setActiveDay}>
-                {/* Improved tab display to show all days properly */}
-                <div className="relative mb-2">
-                  <ScrollArea className="w-full max-w-full">
-                    <div className="pb-0.5">
-                      <TabsList className="inline-flex h-auto py-1 w-auto min-w-full">
+                <div className="relative mb-3">
+                  <ScrollArea className="w-full max-w-full overflow-x-auto">
+                    <div className="min-w-max pb-1"> 
+                      <TabsList className="flex min-w-max h-auto py-1 px-1">
                         {Object.keys(mealPlan.days).map((day, index) => (
                           <TabsTrigger 
                             key={day} 
                             value={day} 
-                            className="px-4 py-2 whitespace-nowrap text-sm flex-shrink-0"
+                            className="px-5 py-2 mx-0.5 whitespace-nowrap text-sm flex-shrink-0"
                           >
                             <span className="flex flex-col items-center gap-1">
                               <span className="font-medium">{getDayName(index)}</span>

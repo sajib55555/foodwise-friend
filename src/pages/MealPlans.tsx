@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
@@ -7,6 +6,7 @@ import MobileNavbar from "@/components/layout/MobileNavbar";
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { CalendarDays, Lock, Salad, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +38,51 @@ const mealPlans = [
           { type: "Snack", foods: ["Carrot sticks", "Hummus"] }
         ]
       },
-      // More days would be added here
+      {
+        day: "Wednesday",
+        meals: [
+          { type: "Breakfast", foods: ["Greek yogurt parfait", "Granola", "Berries"] },
+          { type: "Lunch", foods: ["Quinoa bowl", "Roasted vegetables", "Chickpeas"] },
+          { type: "Dinner", foods: ["Grilled chicken", "Sweet potato", "Broccoli"] },
+          { type: "Snack", foods: ["Banana", "Peanut butter"] }
+        ]
+      },
+      {
+        day: "Thursday",
+        meals: [
+          { type: "Breakfast", foods: ["Smoothie bowl", "Chia seeds", "Sliced banana"] },
+          { type: "Lunch", foods: ["Mediterranean salad", "Feta cheese", "Olives"] },
+          { type: "Dinner", foods: ["Baked cod", "Roasted vegetables", "Brown rice"] },
+          { type: "Snack", foods: ["Trail mix", "Dried fruit"] }
+        ]
+      },
+      {
+        day: "Friday",
+        meals: [
+          { type: "Breakfast", foods: ["Overnight oats", "Sliced apple", "Cinnamon"] },
+          { type: "Lunch", foods: ["Lentil soup", "Whole grain roll", "Side salad"] },
+          { type: "Dinner", foods: ["Turkey meatballs", "Whole wheat pasta", "Tomato sauce"] },
+          { type: "Snack", foods: ["Cucumber slices", "Tzatziki dip"] }
+        ]
+      },
+      {
+        day: "Saturday",
+        meals: [
+          { type: "Breakfast", foods: ["Vegetable omelette", "Whole grain toast", "Avocado"] },
+          { type: "Lunch", foods: ["Tuna sandwich", "Lettuce", "Tomato"] },
+          { type: "Dinner", foods: ["Grilled steak (small portion)", "Roasted potatoes", "Asparagus"] },
+          { type: "Snack", foods: ["Greek yogurt", "Honey", "Mixed berries"] }
+        ]
+      },
+      {
+        day: "Sunday",
+        meals: [
+          { type: "Breakfast", foods: ["Whole grain pancakes", "Fresh fruit", "Maple syrup"] },
+          { type: "Lunch", foods: ["Buddha bowl", "Brown rice", "Mixed vegetables", "Tofu"] },
+          { type: "Dinner", foods: ["Baked chicken", "Quinoa", "Roasted Brussels sprouts"] },
+          { type: "Snack", foods: ["Dark chocolate square", "Orange slices"] }
+        ]
+      }
     ]
   },
   {
@@ -65,8 +109,7 @@ const mealPlans = [
           { type: "Dinner", foods: ["Grilled chicken breast", "Asparagus", "Sweet potato (small)"] },
           { type: "Snack", foods: ["Greek yogurt (0% fat)", "Berries"] }
         ]
-      },
-      // More days would be added here
+      }
     ]
   },
   {
@@ -93,8 +136,7 @@ const mealPlans = [
           { type: "Dinner", foods: ["Salmon", "Quinoa", "Roasted vegetables"] },
           { type: "Snack", foods: ["Cottage cheese", "Pineapple"] }
         ]
-      },
-      // More days would be added here
+      }
     ]
   }
 ];
@@ -175,18 +217,24 @@ const MealPlans = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue={plan.days[0].day.toLowerCase()} className="w-full">
-                <TabsList className="w-full mb-4 bg-background/50 rounded-lg p-1 overflow-x-auto flex justify-start gap-1">
-                  {plan.days.map((day, index) => (
-                    <TabsTrigger
-                      key={day.day}
-                      value={day.day.toLowerCase()}
-                      onClick={() => setSelectedDay(index)}
-                      className="data-[state=active]:bg-purple-100/50 data-[state=active]:text-purple-800 rounded-md whitespace-nowrap"
-                    >
-                      {day.day}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                <div className="relative mb-2">
+                  <ScrollArea className="w-full max-w-full pb-2">
+                    <div className="min-w-full inline-flex">
+                      <TabsList className="flex min-w-max bg-background/50 rounded-lg p-1">
+                        {plan.days.map((day, index) => (
+                          <TabsTrigger
+                            key={day.day}
+                            value={day.day.toLowerCase()}
+                            onClick={() => setSelectedDay(index)}
+                            className="data-[state=active]:bg-purple-100/50 data-[state=active]:text-purple-800 rounded-md whitespace-nowrap px-4 py-2 flex-shrink-0"
+                          >
+                            {day.day}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </div>
+                  </ScrollArea>
+                </div>
 
                 {plan.days.map((day, index) => (
                   <TabsContent 

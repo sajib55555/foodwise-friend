@@ -47,6 +47,10 @@ const CameraControls: React.FC<CameraControlsProps> = ({
             className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
             onClick={onCapture}
             aria-label="Capture photo"
+            style={{
+              background: "linear-gradient(to right, #3b82f6, #10b981)",
+              boxShadow: "0 0 15px rgba(59, 130, 246, 0.5)"
+            }}
           >
             <span className="block w-16 h-16 rounded-full border-4 border-white"></span>
           </Button>

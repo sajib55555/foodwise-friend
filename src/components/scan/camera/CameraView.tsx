@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { RotateCw } from "lucide-react";
 
 interface CameraViewProps {
@@ -13,6 +13,8 @@ const CameraView: React.FC<CameraViewProps> = ({
   cameraLoading,
   cameraError
 }) => {
+  const [videoVisible, setVideoVisible] = useState(true);
+  
   // Force repainting to improve camera initialization on some devices
   useEffect(() => {
     if (videoRef.current) {
@@ -22,10 +24,13 @@ const CameraView: React.FC<CameraViewProps> = ({
       const handleCanPlay = () => {
         console.log("Video can play event fired");
         // Force video element to repaint
-        video.style.display = 'none';
+        setVideoVisible(false);
+        
+        // Force repaint after a short delay
         setTimeout(() => {
-          if (video) video.style.display = 'block';
-        }, 50);
+          setVideoVisible(true);
+          console.log("Video visibility reset for repainting");
+        }, 100);
       };
       
       // Add debug events
@@ -50,6 +55,7 @@ const CameraView: React.FC<CameraViewProps> = ({
         autoPlay
         playsInline
         muted
+        style={{ display: videoVisible ? 'block' : 'none' }}
         className="absolute inset-0 h-full w-full object-cover bg-black"
       />
       {cameraLoading && (

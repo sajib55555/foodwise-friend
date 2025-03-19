@@ -45,16 +45,17 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
   // Automatically activate camera when component mounts with a delay
   useEffect(() => {
     console.log("Camera component mounted, opening camera");
-    if (!capturedImage) {
-      // Add a bit more delay to ensure component is fully mounted
-      setTimeout(() => {
+    const timer = setTimeout(() => {
+      if (!capturedImage) {
+        console.log("Delayed camera open triggered");
         openCamera();
-      }, 500);
-    }
+      }
+    }, 800);
     
     // Ensure camera is properly cleaned up when component unmounts
     return () => {
       console.log("Camera component unmounting, cleaning up");
+      clearTimeout(timer);
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const tracks = stream.getTracks();
@@ -96,7 +97,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         </Button>
       </div>
       
-      <canvas ref={canvasRef} className="hidden" />
+      <canvas ref={canvasRef} className="hidden" width="1280" height="720" />
       <input
         type="file"
         accept="image/*"

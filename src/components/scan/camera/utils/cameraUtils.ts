@@ -81,14 +81,31 @@ export const setupVideoStream = (
     
     console.log("Setting up video stream...");
     
+    // Reset srcObject in case it was previously set
+    if (videoElement.srcObject) {
+      videoElement.srcObject = null;
+    }
+    
     // Set srcObject
     videoElement.srcObject = stream;
     videoElement.muted = true;
     videoElement.playsInline = true;
     
+    // Force resetting
+    const forceReflow = () => {
+      videoElement.style.display = 'none';
+      // Force layout recalculation
+      void videoElement.offsetHeight;
+      videoElement.style.display = 'block';
+    };
+    
     // Add all possible event listeners to debug
     videoElement.onloadedmetadata = () => {
       console.log("Video metadata loaded");
+      
+      // Force reflow before playing
+      forceReflow();
+      
       // Introduce a small delay before playing to ensure everything is ready
       setTimeout(() => {
         videoElement.play()
@@ -96,7 +113,13 @@ export const setupVideoStream = (
             console.log("Camera started successfully");
             // Additional delay to ensure the video is truly playing
             setTimeout(() => {
-              onSuccess();
+              if (videoElement.videoWidth > 0) {
+                console.log("Video dimensions confirmed:", videoElement.videoWidth, "x", videoElement.videoHeight);
+                onSuccess();
+              } else {
+                console.error("Video has no dimensions after playing");
+                onError("Camera started but no video feed is available. Please try again.");
+              }
             }, 300);
           })
           .catch(err => {

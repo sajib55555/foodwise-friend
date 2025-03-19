@@ -56,21 +56,34 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       // Stop any existing tracks before requesting new ones
       stopAllTracks();
       
-      // Request camera access with proper constraints
-      const constraints = { 
-        video: { 
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      };
+      // First try environment camera (back camera)
+      let stream: MediaStream;
       
-      console.log("Requesting camera access...");
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      try {
+        console.log("Requesting camera access with environment facing mode...");
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+      } catch (err) {
+        // If environment camera fails, try any available camera
+        console.log("Environment camera failed, trying any available camera");
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true,
+          audio: false
+        });
+      }
+      
       streamRef.current = stream;
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // Wait for metadata to load before playing
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
             videoRef.current.play()
@@ -104,14 +117,23 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      const context = canvas.getContext("2d");
+      const context = canvas.getContext('2d');
       
       if (context) {
         try {
           console.log("Capturing image...");
+          
           // Set canvas dimensions to match video
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
+          const videoWidth = video.videoWidth;
+          const videoHeight = video.videoHeight;
+          
+          if (videoWidth === 0 || videoHeight === 0) {
+            setCameraError("Camera not ready yet. Please wait a moment and try again.");
+            return;
+          }
+          
+          canvas.width = videoWidth;
+          canvas.height = videoHeight;
           
           // Draw video frame to canvas
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -139,6 +161,8 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
           });
         }
       }
+    } else {
+      setCameraError("Camera is not initialized properly. Please try restarting the app.");
     }
   };
 

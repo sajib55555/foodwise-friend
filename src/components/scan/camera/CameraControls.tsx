@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Camera, Image, RotateCw } from "lucide-react";
+import { Camera, Image, RotateCw, SwitchCamera } from "lucide-react";
 import { Button } from "@/components/ui/button-custom";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,7 @@ const CameraControls: React.FC<CameraControlsProps> = ({
             variant="blue-gradient"
             className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg"
             onClick={onCapture}
+            aria-label="Capture photo"
           >
             <span className="block w-12 h-12 rounded-full border-4 border-white"></span>
           </Button>

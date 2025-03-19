@@ -34,10 +34,14 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     openCamera
   } = useCameraSetup({ onCapture });
 
-  // Effect for initial camera setup and proper cleanup
+  // Automatically activate camera when component mounts
   useEffect(() => {
+    if (!capturedImage) {
+      openCamera();
+    }
+    
+    // Ensure camera is properly cleaned up when component unmounts
     return () => {
-      // Ensure camera is properly cleaned up when component unmounts
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const tracks = stream.getTracks();
@@ -72,7 +76,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         <Button
           variant="glass"
           size="icon-sm"
-          className="absolute top-4 right-4 bg-black/20 text-white border-white/10"
+          className="absolute top-4 right-4 bg-black/20 text-white border-white/10 z-50"
           onClick={onClose}
         >
           <X className="h-5 w-5" />

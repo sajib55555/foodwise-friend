@@ -15,12 +15,16 @@ serve(async (req) => {
 
   try {
     const { preferences, restrictions, nutritionalGoals, numberOfDays } = await req.json()
+    console.log("Received request with:", { preferences, restrictions, nutritionalGoals, numberOfDays })
+    
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY')
 
     if (!openAIApiKey) {
+      console.error("OpenAI API key is missing")
       throw new Error('OpenAI API key is not configured')
     }
 
+    console.log("Sending request to OpenAI API")
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -36,7 +40,26 @@ serve(async (req) => {
             Generate a ${numberOfDays || 7}-day meal plan based on user preferences, dietary restrictions, and nutritional goals.
             For each day, include breakfast, lunch, dinner, and an optional snack.
             For each meal, include a name, brief description, list of ingredients, approximate calories, and key macronutrients (protein, carbs, fat).
-            Format your response as a JSON object with days as keys and meal objects for each day.`
+            Format your response as a JSON object with days as keys and meal objects for each day.
+            Example structure:
+            {
+              "days": {
+                "day1": {
+                  "breakfast": {
+                    "name": "Oatmeal with Berries",
+                    "description": "Hearty oatmeal topped with fresh berries",
+                    "ingredients": ["Oats", "Milk", "Berries", "Honey"],
+                    "calories": 350,
+                    "macros": { "protein": "8g", "carbs": "55g", "fat": "6g" }
+                  },
+                  "lunch": { ... },
+                  "dinner": { ... },
+                  "snack": { ... }
+                },
+                "day2": { ... },
+                ...
+              }
+            }`
           },
           {
             role: 'user',
@@ -51,11 +74,21 @@ serve(async (req) => {
       }),
     })
 
-    const data = await response.json()
-    let mealPlan
+    if (!response.ok) {
+      const errorData = await response.text()
+      console.error("OpenAI API Error:", response.status, errorData)
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
 
+    const data = await response.json()
+    console.log("Received response from OpenAI API")
+    
+    let mealPlan
     try {
-      mealPlan = JSON.parse(data.choices[0].message.content)
+      const content = data.choices[0].message.content
+      console.log("Parsing content:", content.substring(0, 100) + "...") // Log start of content for debugging
+      mealPlan = JSON.parse(content)
+      console.log("Successfully parsed meal plan data")
     } catch (e) {
       console.error('Error parsing OpenAI response:', e)
       // Fallback structure if parsing fails

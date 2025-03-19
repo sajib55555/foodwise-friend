@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MealItem {
   name: string;
@@ -48,6 +49,8 @@ const WeeklyMealPlanner: React.FC = () => {
   const [days, setDays] = useState("7");
   const [mealPlan, setMealPlan] = useState<MealPlan | null>(null);
   const [activeDay, setActiveDay] = useState("day1");
+  const [error, setError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const dietaryPreferences = [
     { value: "Balanced", label: "Balanced" },
@@ -76,6 +79,7 @@ const WeeklyMealPlanner: React.FC = () => {
 
   const generateMealPlan = async () => {
     setLoading(true);
+    setError(null);
     
     try {
       const { data, error } = await supabase.functions.invoke("generate-weekly-meal-plan", {
@@ -87,7 +91,17 @@ const WeeklyMealPlanner: React.FC = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase function error:", error);
+        setError("Failed to call meal plan generation function. Please try again.");
+        throw error;
+      }
+      
+      if (!data || !data.days) {
+        console.error("Invalid response format:", data);
+        setError("Received invalid meal plan data. Please try again.");
+        throw new Error("Invalid meal plan data");
+      }
       
       setMealPlan(data as MealPlan);
       setActiveDay("day1");
@@ -100,7 +114,7 @@ const WeeklyMealPlanner: React.FC = () => {
       console.error("Error generating meal plan:", error);
       toast({
         title: "Error",
-        description: "Failed to generate your meal plan. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate your meal plan. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -128,8 +142,8 @@ const WeeklyMealPlanner: React.FC = () => {
         >
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-primary" />
+              <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
+                <Calendar className="h-5 w-5 text-green-500" />
                 Weekly Meal Planner
               </CardTitle>
               <CardDescription>
@@ -201,13 +215,19 @@ const WeeklyMealPlanner: React.FC = () => {
                 </div>
               </div>
               
+              {error && (
+                <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md border border-red-200 text-sm">
+                  {error}
+                </div>
+              )}
+              
               <div className="mt-6">
                 <Button 
                   onClick={generateMealPlan} 
                   disabled={loading}
                   className="w-full"
                   size="lg"
-                  variant="purple"
+                  variant="green"
                 >
                   {loading ? (
                     <>
@@ -232,8 +252,8 @@ const WeeklyMealPlanner: React.FC = () => {
               transition={{ delay: 0.2 }}
               className="space-y-6"
             >
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Your {days}-Day Meal Plan</h2>
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <h2 className="text-lg md:text-xl font-semibold">Your {days}-Day Meal Plan</h2>
                 <Button onClick={saveMealPlan} variant="outline" size="sm">
                   <Download className="mr-2 h-4 w-4" />
                   Save Plan
@@ -241,13 +261,16 @@ const WeeklyMealPlanner: React.FC = () => {
               </div>
               
               <Tabs value={activeDay} onValueChange={setActiveDay}>
-                <TabsList className="grid grid-cols-7 mb-4 overflow-x-auto flex-nowrap">
-                  {Object.keys(mealPlan.days).map((day, index) => (
-                    <TabsTrigger key={day} value={day} className="whitespace-nowrap">
-                      Day {index + 1}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                {/* Make tabs scrollable on mobile */}
+                <div className="relative overflow-x-auto pb-1">
+                  <TabsList className={`grid ${isMobile ? 'grid-flow-col auto-cols-max' : `grid-cols-${Math.min(7, Object.keys(mealPlan.days).length)}`} mb-4 w-full md:w-auto`}>
+                    {Object.keys(mealPlan.days).map((day, index) => (
+                      <TabsTrigger key={day} value={day} className="whitespace-nowrap px-3 md:px-4">
+                        Day {index + 1}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
                 
                 {Object.entries(mealPlan.days).map(([day, meals]) => (
                   <TabsContent key={day} value={day} className="space-y-4">
@@ -257,15 +280,17 @@ const WeeklyMealPlanner: React.FC = () => {
                       
                       return (
                         <Card key={mealType} className="overflow-hidden">
-                          <CardHeader className="pb-2 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10">
-                            <div className="flex justify-between items-start">
+                          <CardHeader className="pb-2 bg-gradient-to-r from-green-50 to-teal-50 dark:from-green-950/20 dark:to-teal-900/10">
+                            <div className="flex justify-between items-start flex-wrap gap-2">
                               <div>
-                                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
+                                <div className="text-xs uppercase tracking-wide text-green-600 dark:text-green-400 mb-1">
                                   {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
                                 </div>
                                 <CardTitle className="text-lg">{meal.name}</CardTitle>
                               </div>
-                              <div className="text-sm font-medium">{meal.calories} kcal</div>
+                              <div className="text-sm font-medium bg-white/70 dark:bg-black/20 px-2 py-1 rounded-full text-green-700 dark:text-green-300">
+                                {meal.calories} kcal
+                              </div>
                             </div>
                           </CardHeader>
                           <CardContent className="p-4 space-y-3">
@@ -284,11 +309,11 @@ const WeeklyMealPlanner: React.FC = () => {
                             </div>
                             
                             <div className="mt-2">
-                              <h4 className="text-xs uppercase tracking-wider font-semibold mb-2 text-muted-foreground">Ingredients</h4>
-                              <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+                              <h4 className="text-xs uppercase tracking-wider font-semibold mb-2 text-green-600 dark:text-green-400">Ingredients</h4>
+                              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                 {meal.ingredients.map((ingredient, i) => (
                                   <li key={i} className="text-sm flex items-center gap-1">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                    <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
                                     {ingredient}
                                   </li>
                                 ))}

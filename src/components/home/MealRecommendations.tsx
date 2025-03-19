@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-c
 import { Utensils, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button-custom";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const MealRecommendations = () => {
+  const navigate = useNavigate();
   const recommendations = [
     {
       id: 1,
@@ -77,6 +79,7 @@ const MealRecommendations = () => {
               variant="outline" 
               className="w-full mt-2 border-green-300 bg-white/70 text-green-700 hover:bg-green-50 hover:text-green-800 transition-all shadow-sm"
               size="sm"
+              onClick={() => navigate("/weekly-meal-planner")}
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               View All Recommendations

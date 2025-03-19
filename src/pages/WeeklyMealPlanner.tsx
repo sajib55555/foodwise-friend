@@ -277,23 +277,25 @@ const WeeklyMealPlanner: React.FC = () => {
               </div>
               
               <Tabs value={activeDay} onValueChange={setActiveDay}>
-                {/* Improved scrollable tabs for all days */}
-                <div className="relative">
-                  <ScrollArea className="pb-1 w-full">
-                    <TabsList className="inline-flex h-auto py-1 w-full">
-                      {Object.keys(mealPlan.days).map((day, index) => (
-                        <TabsTrigger 
-                          key={day} 
-                          value={day} 
-                          className="px-3 py-2 whitespace-nowrap text-sm"
-                        >
-                          <span className="flex flex-col items-center gap-1">
-                            <span className="font-medium">{getDayName(index)}</span>
-                            <span className="text-xs text-muted-foreground">Day {index + 1}</span>
-                          </span>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
+                {/* Improved tab display to show all days properly */}
+                <div className="relative mb-2">
+                  <ScrollArea className="w-full max-w-full">
+                    <div className="pb-0.5">
+                      <TabsList className="inline-flex h-auto py-1 w-auto min-w-full">
+                        {Object.keys(mealPlan.days).map((day, index) => (
+                          <TabsTrigger 
+                            key={day} 
+                            value={day} 
+                            className="px-4 py-2 whitespace-nowrap text-sm flex-shrink-0"
+                          >
+                            <span className="flex flex-col items-center gap-1">
+                              <span className="font-medium">{getDayName(index)}</span>
+                              <span className="text-xs text-muted-foreground">Day {index + 1}</span>
+                            </span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </div>
                   </ScrollArea>
                 </div>
                 

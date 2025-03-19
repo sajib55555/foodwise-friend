@@ -15,7 +15,7 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
     throw new Error("Your browser does not support camera access. Please try a different browser.");
   }
   
-  // Try environment camera (back camera) first with lower quality for better compatibility
+  // Try environment camera (back camera) first with higher quality
   try {
     console.log("Requesting camera access with environment facing mode...");
     const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -81,21 +81,35 @@ export const setupVideoStream = (
     
     console.log("Setting up video stream...");
     
+    // Ensure readyState is reset
+    videoElement.pause();
+    
     // Reset srcObject in case it was previously set
     if (videoElement.srcObject) {
       videoElement.srcObject = null;
     }
     
-    // Set srcObject
+    // Set stream and properties
     videoElement.srcObject = stream;
     videoElement.muted = true;
     videoElement.playsInline = true;
     
+    // Adjust style to ensure visibility
+    videoElement.style.display = 'block';
+    videoElement.style.width = '100%';
+    videoElement.style.height = '100%';
+    videoElement.style.objectFit = 'cover';
+    
     // Force play to start immediately
     const playVideo = () => {
+      // This line is crucial - makes the video visible
+      videoElement.style.display = 'block';
+      
       videoElement.play()
         .then(() => {
           console.log("Camera started successfully");
+          // Ensure video is visible
+          videoElement.style.display = 'block';
           onSuccess();
         })
         .catch(err => {
@@ -106,6 +120,8 @@ export const setupVideoStream = (
             videoElement.play()
               .then(() => {
                 console.log("Camera started successfully on retry");
+                // Ensure video is visible
+                videoElement.style.display = 'block';
                 onSuccess();
               })
               .catch(retryErr => {
@@ -124,6 +140,8 @@ export const setupVideoStream = (
     
     videoElement.onplaying = () => {
       console.log("Video is now playing, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
+      // Make absolutely sure video is visible
+      videoElement.style.display = 'block';
     };
     
     // Fallback in case onloadedmetadata doesn't fire

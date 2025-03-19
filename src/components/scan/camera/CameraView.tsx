@@ -1,6 +1,7 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { RotateCw } from "lucide-react";
+import { applyVideoElementFixes } from "./utils/device-detection";
 
 interface CameraViewProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -21,23 +22,15 @@ const CameraView: React.FC<CameraViewProps> = ({
       
       console.log("CameraView mounted, setting up video element");
       
-      // Apply critical styles directly to ensure visibility
-      video.style.display = 'block !important';
-      video.style.visibility = 'visible !important';
-      video.style.opacity = '1 !important';
-      video.style.width = '100%';
-      video.style.height = '100%';
-      video.style.objectFit = 'cover';
-      video.style.zIndex = '10';
+      // Apply browser-specific fixes and critical styles
+      applyVideoElementFixes(video);
       
       // Force repaint when video can play
       const handleCanPlay = () => {
         console.log("Video can play event fired");
-        // Make video visible with inline styles to override any potential CSS issues
+        // Ensure video is visible
         if (video) {
-          video.style.display = 'block !important';
-          video.style.visibility = 'visible !important';
-          video.style.opacity = '1 !important';
+          applyVideoElementFixes(video);
           // Force layout recalculation
           void video.offsetHeight;
         }
@@ -48,9 +41,7 @@ const CameraView: React.FC<CameraViewProps> = ({
         console.log("Video is now playing with dimensions:", video.videoWidth, "x", video.videoHeight);
         // Make video visible when playing starts
         if (video) {
-          video.style.display = 'block !important';
-          video.style.visibility = 'visible !important';
-          video.style.opacity = '1 !important';
+          applyVideoElementFixes(video);
           // Force layout recalculation
           void video.offsetHeight;
         }

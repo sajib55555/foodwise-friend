@@ -2,6 +2,7 @@
 import { useRef, useEffect, useState } from "react";
 import { requestCameraAccess, stopStreamTracks, setupVideoStream, CameraFacingMode, isMobileDevice, hasMultipleCameras } from "../utils";
 import { useToast } from "@/hooks/use-toast";
+import { applyVideoElementFixes } from "../utils/device-detection";
 
 interface UseCameraInitializationOptions {
   activeCamera: boolean;
@@ -103,6 +104,9 @@ export const useCameraInitialization = ({
       
       // Setup the video stream if the video element exists
       if (videoRef.current) {
+        // Apply browser-specific fixes
+        applyVideoElementFixes(videoRef.current);
+        
         setupVideoStream(
           videoRef.current,
           stream,

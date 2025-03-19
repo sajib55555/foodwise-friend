@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
-import { Loader2, Calendar, ChefHat, Filter, Download } from "lucide-react";
+import { Loader2, Calendar, ChefHat, Filter, Download, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button-custom";
@@ -51,35 +51,35 @@ const WeeklyMealPlanner: React.FC = () => {
   const [activeDay, setActiveDay] = useState("day1");
   const [error, setError] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const [apiTimeout, setApiTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  const dietaryPreferences = [
-    { value: "Balanced", label: "Balanced" },
-    { value: "High Protein", label: "High Protein" },
-    { value: "Low Carb", label: "Low Carb" },
-    { value: "Plant-Based", label: "Plant-Based" },
-    { value: "Mediterranean", label: "Mediterranean" },
-    { value: "Keto", label: "Keto" },
-    { value: "Paleo", label: "Paleo" }
-  ];
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (apiTimeout) {
+        clearTimeout(apiTimeout);
+      }
+    };
+  }, [apiTimeout]);
 
-  const nutritionalGoals = [
-    { value: "Weight maintenance", label: "Weight Maintenance" },
-    { value: "Weight loss", label: "Weight Loss" },
-    { value: "Muscle gain", label: "Muscle Gain" },
-    { value: "Athletic performance", label: "Athletic Performance" },
-    { value: "General health", label: "General Health" }
-  ];
-
-  const daysOptions = [
-    { value: "3", label: "3 Days" },
-    { value: "5", label: "5 Days" },
-    { value: "7", label: "7 Days (1 Week)" },
-    { value: "14", label: "14 Days (2 Weeks)" }
-  ];
-
-  const generateMealPlan = async () => {
+  const generateMealPlan = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
+    // Create a timeout that will automatically switch to fallback mode if the API takes too long
+    const timeout = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        setError("The meal plan generation is taking longer than expected. Please try again.");
+        toast({
+          title: "Request Timeout",
+          description: "The meal plan generation took too long. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }, 15000); // 15 seconds timeout
+    
+    setApiTimeout(timeout);
     
     try {
       const { data, error } = await supabase.functions.invoke("generate-weekly-meal-plan", {
@@ -90,6 +90,10 @@ const WeeklyMealPlanner: React.FC = () => {
           numberOfDays: parseInt(days, 10)
         }
       });
+      
+      // Clear the timeout since we got a response
+      clearTimeout(timeout);
+      setApiTimeout(null);
       
       if (error) {
         console.error("Supabase function error:", error);
@@ -111,6 +115,10 @@ const WeeklyMealPlanner: React.FC = () => {
         description: `Your ${days}-day meal plan is ready!`,
       });
     } catch (error) {
+      // Clear the timeout since we got an error response
+      clearTimeout(timeout);
+      setApiTimeout(null);
+      
       console.error("Error generating meal plan:", error);
       toast({
         title: "Error",
@@ -120,7 +128,7 @@ const WeeklyMealPlanner: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [preferences, restrictions, goals, days, toast, loading]);
 
   const saveMealPlan = () => {
     // This would be implemented to save the meal plan to the user's profile
@@ -216,8 +224,9 @@ const WeeklyMealPlanner: React.FC = () => {
               </div>
               
               {error && (
-                <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md border border-red-200 text-sm">
-                  {error}
+                <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-md border border-red-200 text-sm flex items-start gap-2">
+                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <div>{error}</div>
                 </div>
               )}
               
@@ -334,5 +343,30 @@ const WeeklyMealPlanner: React.FC = () => {
     </PageTransition>
   );
 };
+
+const dietaryPreferences = [
+  { value: "Balanced", label: "Balanced" },
+  { value: "High Protein", label: "High Protein" },
+  { value: "Low Carb", label: "Low Carb" },
+  { value: "Plant-Based", label: "Plant-Based" },
+  { value: "Mediterranean", label: "Mediterranean" },
+  { value: "Keto", label: "Keto" },
+  { value: "Paleo", label: "Paleo" }
+];
+
+const nutritionalGoals = [
+  { value: "Weight maintenance", label: "Weight Maintenance" },
+  { value: "Weight loss", label: "Weight Loss" },
+  { value: "Muscle gain", label: "Muscle Gain" },
+  { value: "Athletic performance", label: "Athletic Performance" },
+  { value: "General health", label: "General Health" }
+];
+
+const daysOptions = [
+  { value: "3", label: "3 Days" },
+  { value: "5", label: "5 Days" },
+  { value: "7", label: "7 Days (1 Week)" },
+  { value: "14", label: "14 Days (2 Weeks)" }
+];
 
 export default WeeklyMealPlanner;

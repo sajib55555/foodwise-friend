@@ -24,149 +24,275 @@ serve(async (req) => {
       throw new Error('OpenAI API key is not configured')
     }
 
-    console.log("Sending request to OpenAI API")
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a nutrition expert specializing in meal planning. 
-            Generate a ${numberOfDays || 7}-day meal plan based on user preferences, dietary restrictions, and nutritional goals.
-            For each day, include breakfast, lunch, dinner, and an optional snack.
-            For each meal, include a name, brief description, list of ingredients, approximate calories, and key macronutrients (protein, carbs, fat).
-            Format your response as a JSON object with days as keys and meal objects for each day.
-            Example structure:
-            {
-              "days": {
-                "day1": {
-                  "breakfast": {
-                    "name": "Oatmeal with Berries",
-                    "description": "Hearty oatmeal topped with fresh berries",
-                    "ingredients": ["Oats", "Milk", "Berries", "Honey"],
-                    "calories": 350,
-                    "macros": { "protein": "8g", "carbs": "55g", "fat": "6g" }
-                  },
-                  "lunch": { ... },
-                  "dinner": { ... },
-                  "snack": { ... }
-                },
-                "day2": { ... },
-                ...
-              }
-            }`
-          },
-          {
-            role: 'user',
-            content: `Generate a meal plan with these parameters:
-            - Preferences: ${preferences || 'Not specified'}
-            - Dietary restrictions: ${restrictions || 'None'}
-            - Nutritional goals: ${nutritionalGoals || 'Balanced diet'}
-            - Number of days: ${numberOfDays || 7}`
-          }
-        ],
-        response_format: { type: "json_object" }
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.text()
-      console.error("OpenAI API Error:", response.status, errorData)
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    console.log("Received response from OpenAI API")
+    // Generate a fallback meal plan for demonstration purposes
+    // This ensures users get a response even if the API call fails
+    const fallbackMealPlan = generateFallbackMealPlan(numberOfDays || 7, preferences, nutritionalGoals)
     
-    let mealPlan
     try {
-      const content = data.choices[0].message.content
-      console.log("Parsing content:", content.substring(0, 100) + "...") // Log start of content for debugging
-      mealPlan = JSON.parse(content)
-      console.log("Successfully parsed meal plan data")
-    } catch (e) {
-      console.error('Error parsing OpenAI response:', e)
-      // Fallback structure if parsing fails
-      mealPlan = {
-        days: {
-          "day1": {
-            breakfast: {
-              name: "Balanced Oatmeal Bowl",
-              description: "Hearty oatmeal with fruits and nuts",
-              ingredients: ["Rolled oats", "Almond milk", "Banana", "Berries", "Walnuts", "Honey"],
-              calories: 350,
-              macros: { protein: "10g", carbs: "45g", fat: "12g" }
+      console.log("Sending request to OpenAI API")
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a nutrition expert specializing in meal planning. 
+              Generate a ${numberOfDays || 7}-day meal plan based on user preferences, dietary restrictions, and nutritional goals.
+              For each day, include breakfast, lunch, dinner, and an optional snack.
+              For each meal, include a name, brief description, list of ingredients, approximate calories, and key macronutrients (protein, carbs, fat).
+              Format your response as a JSON object with days as keys and meal objects for each day.
+              Example structure:
+              {
+                "days": {
+                  "day1": {
+                    "breakfast": {
+                      "name": "Oatmeal with Berries",
+                      "description": "Hearty oatmeal topped with fresh berries",
+                      "ingredients": ["Oats", "Milk", "Berries", "Honey"],
+                      "calories": 350,
+                      "macros": { "protein": "8g", "carbs": "55g", "fat": "6g" }
+                    },
+                    "lunch": { ... },
+                    "dinner": { ... },
+                    "snack": { ... }
+                  },
+                  "day2": { ... },
+                  ...
+                }
+              }`
             },
-            lunch: {
-              name: "Mediterranean Salad",
-              description: "Fresh salad with a Mediterranean twist",
-              ingredients: ["Mixed greens", "Feta cheese", "Olives", "Cherry tomatoes", "Cucumber", "Olive oil"],
-              calories: 350,
-              macros: { protein: "12g", carbs: "20g", fat: "25g" }
-            },
-            dinner: {
-              name: "Lemon Herb Grilled Chicken",
-              description: "Tender grilled chicken with roasted vegetables",
-              ingredients: ["Chicken breast", "Lemon", "Herbs", "Zucchini", "Bell peppers", "Olive oil"],
-              calories: 450,
-              macros: { protein: "35g", carbs: "20g", fat: "25g" }
-            },
-            snack: {
-              name: "Greek Yogurt Parfait",
-              description: "Creamy yogurt with honey and nuts",
-              ingredients: ["Greek yogurt", "Honey", "Almonds", "Cinnamon"],
-              calories: 200,
-              macros: { protein: "15g", carbs: "15g", fat: "8g" }
+            {
+              role: 'user',
+              content: `Generate a meal plan with these parameters:
+              - Preferences: ${preferences || 'Not specified'}
+              - Dietary restrictions: ${restrictions || 'None'}
+              - Nutritional goals: ${nutritionalGoals || 'Balanced diet'}
+              - Number of days: ${numberOfDays || 7}`
             }
-          },
-          "day2": {
-            breakfast: {
-              name: "Veggie Egg Scramble",
-              description: "Fluffy eggs with fresh vegetables",
-              ingredients: ["Eggs", "Spinach", "Tomatoes", "Onions", "Avocado", "Whole grain toast"],
-              calories: 400,
-              macros: { protein: "20g", carbs: "25g", fat: "25g" }
-            },
-            lunch: {
-              name: "Quinoa Power Bowl",
-              description: "Protein-rich quinoa with roasted vegetables",
-              ingredients: ["Quinoa", "Chickpeas", "Sweet potatoes", "Kale", "Tahini dressing"],
-              calories: 450,
-              macros: { protein: "15g", carbs: "60g", fat: "15g" }
-            },
-            dinner: {
-              name: "Baked Salmon with Asparagus",
-              description: "Omega-rich salmon with lemon and herbs",
-              ingredients: ["Salmon fillet", "Asparagus", "Lemon", "Dill", "Olive oil"],
-              calories: 420,
-              macros: { protein: "35g", carbs: "10g", fat: "25g" }
-            },
-            snack: {
-              name: "Apple with Almond Butter",
-              description: "Fresh fruit with protein-rich nut butter",
-              ingredients: ["Apple", "Almond butter"],
-              calories: 180,
-              macros: { protein: "5g", carbs: "20g", fat: "10g" }
-            }
-          }
-        }
-      }
-    }
+          ],
+          response_format: { type: "json_object" }
+        }),
+      })
 
-    return new Response(
-      JSON.stringify(mealPlan),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      if (!response.ok) {
+        const errorData = await response.text()
+        console.error("OpenAI API Error:", response.status, errorData)
+        throw new Error(`OpenAI API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("Received response from OpenAI API")
+      
+      let mealPlan
+      try {
+        const content = data.choices[0].message.content
+        console.log("Parsing content:", content.substring(0, 100) + "...") // Log start of content for debugging
+        mealPlan = JSON.parse(content)
+        console.log("Successfully parsed meal plan data")
+        return new Response(
+          JSON.stringify(mealPlan),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      } catch (e) {
+        console.error('Error parsing OpenAI response:', e)
+        // If parsing fails, return the fallback
+        console.log("Returning fallback meal plan due to parsing error")
+        return new Response(
+          JSON.stringify(fallbackMealPlan),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } catch (error) {
+      console.error('OpenAI API Error:', error)
+      console.log("Returning fallback meal plan due to API error")
+      // Return the fallback meal plan on API failure
+      return new Response(
+        JSON.stringify(fallbackMealPlan),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
   } catch (error) {
-    console.error('Error:', error)
+    console.error('General Error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
+
+// Helper function to generate a fallback meal plan with the requested number of days
+function generateFallbackMealPlan(days = 7, preferences = 'Balanced', goals = 'Weight maintenance') {
+  const fallbackPlan = {
+    days: {}
+  }
+  
+  // Protein adjustment based on preferences
+  let proteinEmphasis = 1.0
+  if (preferences === 'High Protein') proteinEmphasis = 1.5
+  if (preferences === 'Low Carb') proteinEmphasis = 1.3
+  
+  // Calorie adjustment based on goals
+  let calorieMultiplier = 1.0
+  if (goals === 'Weight loss') calorieMultiplier = 0.8
+  if (goals === 'Muscle gain') calorieMultiplier = 1.2
+  
+  const breakfastOptions = [
+    {
+      name: "Protein Oatmeal Bowl",
+      description: "Hearty oatmeal with added protein powder and fruits",
+      ingredients: ["Rolled oats", "Protein powder", "Banana", "Berries", "Almond milk", "Honey"],
+      calories: Math.round(350 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(18 * proteinEmphasis)}g`, 
+        carbs: "45g", 
+        fat: "8g" 
+      }
+    },
+    {
+      name: "Greek Yogurt Parfait",
+      description: "Creamy yogurt layered with fruits and granola",
+      ingredients: ["Greek yogurt", "Mixed berries", "Granola", "Honey", "Chia seeds"],
+      calories: Math.round(320 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(20 * proteinEmphasis)}g`, 
+        carbs: "40g", 
+        fat: "10g" 
+      }
+    },
+    {
+      name: "Veggie Egg Scramble",
+      description: "Fluffy eggs with fresh vegetables and herbs",
+      ingredients: ["Eggs", "Spinach", "Bell peppers", "Onions", "Feta cheese", "Whole grain toast"],
+      calories: Math.round(380 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(22 * proteinEmphasis)}g`, 
+        carbs: "30g", 
+        fat: "20g" 
+      }
+    }
+  ]
+  
+  const lunchOptions = [
+    {
+      name: "Mediterranean Salad Bowl",
+      description: "Fresh salad with quinoa, chickpeas and feta",
+      ingredients: ["Mixed greens", "Quinoa", "Chickpeas", "Cucumber", "Cherry tomatoes", "Feta cheese", "Olive oil dressing"],
+      calories: Math.round(420 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(15 * proteinEmphasis)}g`, 
+        carbs: "50g", 
+        fat: "18g" 
+      }
+    },
+    {
+      name: "Grilled Chicken Wrap",
+      description: "Lean protein with vegetables in a whole grain wrap",
+      ingredients: ["Grilled chicken breast", "Whole grain wrap", "Avocado", "Lettuce", "Tomato", "Greek yogurt sauce"],
+      calories: Math.round(450 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(30 * proteinEmphasis)}g`, 
+        carbs: "40g", 
+        fat: "15g" 
+      }
+    },
+    {
+      name: "Lentil Soup with Side Salad",
+      description: "Hearty lentil soup with a fresh side salad",
+      ingredients: ["Red lentils", "Carrots", "Celery", "Onions", "Vegetable broth", "Mixed greens", "Balsamic vinaigrette"],
+      calories: Math.round(380 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(18 * proteinEmphasis)}g`, 
+        carbs: "55g", 
+        fat: "10g" 
+      }
+    }
+  ]
+  
+  const dinnerOptions = [
+    {
+      name: "Baked Salmon with Vegetables",
+      description: "Omega-rich salmon with roasted seasonal vegetables",
+      ingredients: ["Salmon fillet", "Asparagus", "Sweet potatoes", "Olive oil", "Lemon", "Herbs"],
+      calories: Math.round(460 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(35 * proteinEmphasis)}g`, 
+        carbs: "30g", 
+        fat: "22g" 
+      }
+    },
+    {
+      name: "Turkey Chili",
+      description: "Lean turkey with beans and vegetables in a spicy stew",
+      ingredients: ["Ground turkey", "Kidney beans", "Black beans", "Tomatoes", "Bell peppers", "Onions", "Spices"],
+      calories: Math.round(420 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(32 * proteinEmphasis)}g`, 
+        carbs: "40g", 
+        fat: "12g" 
+      }
+    },
+    {
+      name: "Stir-Fried Tofu with Brown Rice",
+      description: "Plant-based protein with vegetables and whole grains",
+      ingredients: ["Tofu", "Brown rice", "Broccoli", "Carrots", "Snow peas", "Soy sauce", "Ginger"],
+      calories: Math.round(400 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(20 * proteinEmphasis)}g`, 
+        carbs: "50g", 
+        fat: "12g" 
+      }
+    }
+  ]
+  
+  const snackOptions = [
+    {
+      name: "Apple with Almond Butter",
+      description: "Fresh fruit with protein-rich nut butter",
+      ingredients: ["Apple", "Almond butter"],
+      calories: Math.round(180 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(5 * proteinEmphasis)}g`, 
+        carbs: "20g", 
+        fat: "9g" 
+      }
+    },
+    {
+      name: "Protein Smoothie",
+      description: "Refreshing fruit smoothie with added protein",
+      ingredients: ["Banana", "Berries", "Protein powder", "Almond milk", "Ice"],
+      calories: Math.round(200 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(20 * proteinEmphasis)}g`, 
+        carbs: "25g", 
+        fat: "3g" 
+      }
+    },
+    {
+      name: "Trail Mix",
+      description: "Energizing mix of nuts, seeds and dried fruits",
+      ingredients: ["Almonds", "Walnuts", "Pumpkin seeds", "Dried cranberries", "Dark chocolate chips"],
+      calories: Math.round(190 * calorieMultiplier),
+      macros: { 
+        protein: `${Math.round(6 * proteinEmphasis)}g`, 
+        carbs: "15g", 
+        fat: "12g" 
+      }
+    }
+  ]
+  
+  for (let i = 1; i <= days; i++) {
+    fallbackPlan.days[`day${i}`] = {
+      breakfast: breakfastOptions[i % breakfastOptions.length],
+      lunch: lunchOptions[i % lunchOptions.length],
+      dinner: dinnerOptions[i % dinnerOptions.length],
+      snack: snackOptions[i % snackOptions.length]
+    }
+  }
+  
+  return fallbackPlan
+}

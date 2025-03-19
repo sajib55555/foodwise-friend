@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
@@ -136,6 +137,12 @@ const WeeklyMealPlanner: React.FC = () => {
       title: "Meal Plan Saved",
       description: "Your meal plan has been saved to your profile.",
     });
+  };
+
+  // Get day name for display
+  const getDayName = (index: number) => {
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    return days[index % 7];
   };
 
   return (
@@ -270,19 +277,29 @@ const WeeklyMealPlanner: React.FC = () => {
               </div>
               
               <Tabs value={activeDay} onValueChange={setActiveDay}>
-                {/* Make tabs scrollable on mobile */}
-                <div className="relative overflow-x-auto pb-1">
-                  <TabsList className={`grid ${isMobile ? 'grid-flow-col auto-cols-max' : `grid-cols-${Math.min(7, Object.keys(mealPlan.days).length)}`} mb-4 w-full md:w-auto`}>
-                    {Object.keys(mealPlan.days).map((day, index) => (
-                      <TabsTrigger key={day} value={day} className="whitespace-nowrap px-3 md:px-4">
-                        Day {index + 1}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
+                {/* Improved scrollable tabs for all days */}
+                <div className="relative">
+                  <ScrollArea className="pb-1 w-full">
+                    <TabsList className="inline-flex h-auto py-1 w-full">
+                      {Object.keys(mealPlan.days).map((day, index) => (
+                        <TabsTrigger 
+                          key={day} 
+                          value={day} 
+                          className="px-3 py-2 whitespace-nowrap text-sm"
+                        >
+                          <span className="flex flex-col items-center gap-1">
+                            <span className="font-medium">{getDayName(index)}</span>
+                            <span className="text-xs text-muted-foreground">Day {index + 1}</span>
+                          </span>
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </ScrollArea>
                 </div>
                 
-                {Object.entries(mealPlan.days).map(([day, meals]) => (
+                {Object.entries(mealPlan.days).map(([day, meals], dayIndex) => (
                   <TabsContent key={day} value={day} className="space-y-4">
+                    <h3 className="text-lg font-medium mb-2">{getDayName(dayIndex)} - Day {dayIndex + 1}</h3>
                     {['breakfast', 'lunch', 'dinner', 'snack'].map((mealType) => {
                       const meal = meals[mealType as keyof DayMeals];
                       if (!meal) return null;

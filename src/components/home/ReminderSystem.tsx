@@ -27,16 +27,16 @@ const ReminderSystem = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.2 }}
     >
-      <Card variant="glass" className="border border-amber-300/30 dark:border-amber-800/20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-50/30 to-yellow-50/20 dark:from-amber-900/10 dark:to-yellow-900/5 z-0"></div>
-        <div className="absolute -right-16 -top-16 w-32 h-32 bg-amber-400/20 rounded-full blur-xl"></div>
-        <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-yellow-400/20 rounded-full blur-xl"></div>
+      <Card variant="glass" className="border border-green-300/30 dark:border-green-800/20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-teal-50/20 dark:from-green-900/10 dark:to-teal-900/5 z-0"></div>
+        <div className="absolute -right-16 -top-16 w-32 h-32 bg-green-400/20 rounded-full blur-xl"></div>
+        <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-teal-400/20 rounded-full blur-xl"></div>
         
         <CardHeader className="pb-2 relative z-10">
           <div className="flex justify-between items-center">
             <CardTitle className="text-base flex items-center gap-2">
-              <Bell className="h-5 w-5 text-amber-500" />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-yellow-600 font-bold">
+              <Bell className="h-5 w-5 text-green-500" />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600 font-bold">
                 Meal Reminders
               </span>
             </CardTitle>
@@ -90,7 +90,7 @@ const ReminderSystem = () => {
                   
                   <div className="flex justify-end space-x-2 pt-2">
                     <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                    <Button variant="amber-gradient" onClick={() => setDialogOpen(false)}>Add Reminder</Button>
+                    <Button variant="green-gradient" onClick={() => setDialogOpen(false)}>Add Reminder</Button>
                   </div>
                 </div>
               </DialogContent>
@@ -103,15 +103,15 @@ const ReminderSystem = () => {
               {reminders.map((reminder) => (
                 <li 
                   key={reminder.id} 
-                  className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-amber-100/60 to-yellow-100/40 dark:from-amber-900/20 dark:to-yellow-900/10 border border-amber-100/40 hover:shadow-md transition-all"
+                  className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-100/60 to-teal-100/40 dark:from-green-900/20 dark:to-teal-900/10 border border-green-100/40 hover:shadow-md transition-all"
                 >
                   <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center mr-3">
-                      <Clock className="h-4 w-4 text-amber-600" />
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                      <Clock className="h-4 w-4 text-green-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-amber-800 dark:text-amber-300">{reminder.title}</p>
-                      <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
+                      <p className="font-medium text-sm text-green-800 dark:text-green-300">{reminder.title}</p>
+                      <p className="text-xs text-green-600/70 dark:text-green-400/70">
                         {reminder.time} • {Array.isArray(reminder.days) ? reminder.days.join(", ") : reminder.days}
                       </p>
                     </div>
@@ -119,17 +119,17 @@ const ReminderSystem = () => {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-7 w-7 p-0 hover:bg-amber-200/30"
+                    className="h-7 w-7 p-0 hover:bg-green-200/30"
                     onClick={() => handleDeleteReminder(reminder.id)}
                   >
-                    <X className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                    <X className="h-4 w-4 text-green-700 dark:text-green-300" />
                   </Button>
                 </li>
               ))}
             </ul>
           ) : (
             <div className="text-center py-6">
-              <p className="text-amber-600/70 dark:text-amber-400/70 text-sm">No reminders set</p>
+              <p className="text-green-600/70 dark:text-green-400/70 text-sm">No reminders set</p>
             </div>
           )}
         </CardContent>

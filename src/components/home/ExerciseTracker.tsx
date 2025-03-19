@@ -76,16 +76,16 @@ const ExerciseTracker = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
     >
-      <Card variant="glass" className="border border-orange-300/30 dark:border-orange-800/20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-50/30 to-amber-50/20 dark:from-orange-900/10 dark:to-amber-900/5 z-0"></div>
-        <div className="absolute -right-16 -top-16 w-32 h-32 bg-orange-400/20 rounded-full blur-xl"></div>
-        <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-amber-400/20 rounded-full blur-xl"></div>
+      <Card variant="glass" className="border border-green-300/30 dark:border-green-800/20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-teal-50/20 dark:from-green-900/10 dark:to-teal-900/5 z-0"></div>
+        <div className="absolute -right-16 -top-16 w-32 h-32 bg-green-400/20 rounded-full blur-xl"></div>
+        <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-teal-400/20 rounded-full blur-xl"></div>
         
         <CardHeader className="pb-2 relative z-10">
           <div className="flex justify-between items-center">
             <CardTitle className="text-base flex items-center gap-2">
-              <Activity className="h-5 w-5 text-orange-500" />
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-600 to-amber-600 font-bold">
+              <Activity className="h-5 w-5 text-green-500" />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-teal-600 font-bold">
                 Exercise Activity
               </span>
             </CardTitle>
@@ -105,16 +105,16 @@ const ExerciseTracker = () => {
               {recentExercises.map((exercise) => (
                 <li 
                   key={exercise.id} 
-                  className="p-3 rounded-lg bg-gradient-to-r from-orange-100/60 to-amber-100/40 dark:from-orange-900/20 dark:to-amber-900/10 border border-orange-100/30 hover:shadow-md transition-all"
+                  className="p-3 rounded-lg bg-gradient-to-r from-green-100/60 to-teal-100/40 dark:from-green-900/20 dark:to-teal-900/10 border border-green-100/30 hover:shadow-md transition-all"
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="font-medium text-sm text-orange-800 dark:text-orange-300">{exercise.name}</h4>
-                      <p className="text-xs text-orange-600/70 dark:text-orange-400/70">{exercise.date}</p>
+                      <h4 className="font-medium text-sm text-green-800 dark:text-green-300">{exercise.name}</h4>
+                      <p className="text-xs text-green-600/70 dark:text-green-400/70">{exercise.date}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-orange-800 dark:text-orange-300">{exercise.calories} kcal</p>
-                      <p className="text-xs text-orange-600/70 dark:text-orange-400/70">{exercise.duration} min</p>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-300">{exercise.calories} kcal</p>
+                      <p className="text-xs text-green-600/70 dark:text-green-400/70">{exercise.duration} min</p>
                     </div>
                   </div>
                 </li>
@@ -122,13 +122,13 @@ const ExerciseTracker = () => {
             </ul>
           ) : (
             <div className="text-center py-6">
-              <p className="text-orange-600/70 dark:text-orange-400/70 text-sm">No recent exercises</p>
+              <p className="text-green-600/70 dark:text-green-400/70 text-sm">No recent exercises</p>
             </div>
           )}
           
           <Button 
             variant="outline" 
-            className="w-full mt-4 border-orange-300 bg-white/70 text-orange-700 hover:bg-orange-50 hover:text-orange-800 transition-all shadow-sm"
+            className="w-full mt-4 border-green-300 bg-white/70 text-green-700 hover:bg-green-50 hover:text-green-800 transition-all shadow-sm"
             size="sm"
             onClick={() => navigate("/workout")}
           >

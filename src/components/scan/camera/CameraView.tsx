@@ -90,13 +90,14 @@ const CameraView: React.FC<CameraViewProps> = ({
       {cameraLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-20">
           <div className="text-center text-white">
-            <RotateCw className="h-10 w-10 mx-auto mb-4 animate-spin text-emerald-500" />
+            <RotateCw className="h-10 w-10 mx-auto mb-4 animate-spin text-purple-500" />
             <p>Starting camera...</p>
           </div>
         </div>
       )}
+      {/* Updated the focus area with purple/blue border and larger scanning area */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-        <div className="border-2 border-emerald-500/80 rounded-lg w-[85%] h-[60%] border-dashed"></div>
+        <div className="border-2 border-purple-500/80 dark:border-purple-400/80 rounded-lg w-[90%] h-[70%] border-dashed shadow-[0_0_15px_rgba(147,51,234,0.3)] dark:shadow-[0_0_15px_rgba(147,51,234,0.5)]"></div>
       </div>
     </>
   );

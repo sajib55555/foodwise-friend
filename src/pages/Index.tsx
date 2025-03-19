@@ -81,9 +81,10 @@ const Index = () => {
             <AIHealthAssistant />
           </motion.div>
           
+          {/* Navigation Buttons - Updated to be side by side in a centered flex container */}
           <motion.div
             variants={itemVariants}
-            className="flex flex-wrap gap-2 justify-end"
+            className="flex justify-center gap-4 flex-wrap"
           >
             <Button
               onClick={() => navigate('/weekly-meal-planner')}

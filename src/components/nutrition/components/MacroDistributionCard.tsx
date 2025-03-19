@@ -39,6 +39,14 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
     );
   }
   
+  // Chart configuration
+  const chartConfig = {
+    protein: { color: "#3b82f6", label: "Protein" },
+    carbs: { color: "#22c55e", label: "Carbs" },
+    fat: { color: "#f59e0b", label: "Fat" },
+    noData: { color: "#e5e7eb", label: "No Data" }
+  };
+  
   return (
     <Card variant="glass" className="overflow-hidden border-blue-100 dark:border-blue-900/20">
       <CardHeader className="pb-2">
@@ -49,7 +57,7 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col sm:flex-row items-center justify-between">
-          <ChartContainer className="h-44 w-full max-w-xs mx-auto">
+          <ChartContainer className="h-44 w-full max-w-xs mx-auto" config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

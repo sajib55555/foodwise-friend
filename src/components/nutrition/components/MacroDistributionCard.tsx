@@ -1,66 +1,104 @@
 
 import React from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Award } from "lucide-react";
-import CustomTooltip from "./CustomTooltip";
-import { weeklyData } from "../data/mock-nutrition-data";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
+import { motion } from "framer-motion";
+import { PieChart as PieChartIcon } from "lucide-react";
 
-const MacroDistributionCard: React.FC = () => {
+interface MacroDistributionCardProps {
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+}
+
+const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({ 
+  protein = 0, 
+  carbs = 0, 
+  fat = 0 
+}) => {
+  // Calculate total
+  const total = protein + carbs + fat;
+  
+  // Calculate percentages
+  const proteinPercentage = total > 0 ? Math.round((protein / total) * 100) : 0;
+  const carbsPercentage = total > 0 ? Math.round((carbs / total) * 100) : 0;
+  const fatPercentage = total > 0 ? Math.round((fat / total) * 100) : 0;
+  
+  // Prepare data for chart
+  const data = [
+    { name: "Protein", value: protein, percentage: proteinPercentage, color: "#3b82f6" },
+    { name: "Carbs", value: carbs, percentage: carbsPercentage, color: "#22c55e" },
+    { name: "Fat", value: fat, percentage: fatPercentage, color: "#f59e0b" }
+  ].filter(item => item.value > 0);
+  
+  // If no data, provide default empty state
+  if (total === 0) {
+    data.push(
+      { name: "No Data", value: 1, percentage: 100, color: "#e5e7eb" }
+    );
+  }
+  
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1 }}
-    >
-      <Card variant="glass" className="border border-blue-200/30 dark:border-blue-800/20">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center">
-            <div className="mr-2 w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-500 rounded-full flex items-center justify-center">
-              <Award className="h-3.5 w-3.5 text-white" />
-            </div>
-            Macronutrient Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[200px]">
+    <Card variant="glass" className="overflow-hidden border-blue-100 dark:border-blue-900/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center">
+          <PieChartIcon className="mr-2 h-4 w-4 text-blue-500" />
+          Macro Distribution
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row items-center justify-between">
+          <ChartContainer className="h-44 w-full max-w-xs mx-auto">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={weeklyData}
-                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-                barSize={20}
-                barGap={8}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#888888" opacity={0.1} />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-                <Bar
-                  dataKey="protein"
-                  name="Protein"
-                  fill="#8884d8"
-                  radius={[4, 4, 0, 0]}
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={70}
+                  paddingAngle={2}
+                  dataKey="value"
+                  stroke="transparent"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number) => [`${value}g`, ""]}
+                  labelFormatter={() => ""}
                 />
-                <Bar
-                  dataKey="carbs"
-                  name="Carbs"
-                  fill="#82ca9d"
-                  radius={[4, 4, 0, 0]}
-                />
-                <Bar
-                  dataKey="fat"
-                  name="Fat"
-                  fill="#ffc658"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+          </ChartContainer>
+          
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-col space-y-2 mt-4 sm:mt-0"
+          >
+            {data.map((item, index) => (
+              <div key={index} className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
+                <span className="text-sm">{item.name}</span>
+                <span className="text-sm font-medium">
+                  {item.name !== "No Data" ? `${item.value}g (${item.percentage}%)` : ""}
+                </span>
+              </div>
+            ))}
+            
+            {total > 0 && (
+              <div className="pt-2 mt-2 border-t border-blue-100 dark:border-blue-800/30">
+                <span className="text-sm font-medium">Total: {total}g</span>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

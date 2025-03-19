@@ -1,63 +1,64 @@
 
 import React from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Sparkles } from "lucide-react";
-import CustomTooltip from "./CustomTooltip";
-import { weeklyData } from "../data/mock-nutrition-data";
+import { Progress } from "@/components/ui/progress";
+import { motion } from "framer-motion";
+import { Flame, Target } from "lucide-react";
 
-const CalorieIntakeCard: React.FC = () => {
+interface CalorieIntakeCardProps {
+  actualCalories?: number;
+}
+
+const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({ actualCalories = 0 }) => {
+  // Default target calories
+  const targetCalories = 2000;
+  
+  // Calculate percentage
+  const percentage = Math.min(Math.round((actualCalories / targetCalories) * 100), 100);
+  
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Card variant="glass" className="border border-green-200/30 dark:border-green-800/20">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center">
-            <div className="mr-2 w-6 h-6 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center">
-              <Sparkles className="h-3.5 w-3.5 text-white" />
+    <Card variant="glass" className="overflow-hidden border-green-100 dark:border-green-900/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center">
+          <Flame className="mr-2 h-4 w-4 text-orange-500" />
+          Calorie Intake
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mt-1 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="text-2xl font-bold text-orange-500">{actualCalories}</span>
+              <span className="ml-1 text-sm text-muted-foreground">/ {targetCalories} kcal</span>
             </div>
-            Weekly Calorie Intake
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[220px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={weeklyData}
-                margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#888888" opacity={0.1} />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="calories"
-                  name="Calories"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="goal"
-                  name="Goal"
-                  stroke="#64748b"
-                  strokeWidth={2}
-                  strokeDasharray="5 5"
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+              <Target className="h-3.5 w-3.5" />
+              <span>{percentage}%</span>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+          
+          <Progress
+            value={percentage}
+            className="h-2 bg-orange-100 dark:bg-orange-950/30"
+            indicatorClassName="bg-gradient-to-r from-orange-500 to-amber-500"
+          />
+          
+          <div className="grid grid-cols-3 gap-1 pt-2 text-xs text-muted-foreground">
+            {["Breakfast", "Lunch", "Dinner"].map((meal, index) => (
+              <motion.div
+                key={meal}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 + 0.2 }}
+                className="flex flex-col items-center justify-center p-2 rounded-md bg-orange-50/50 dark:bg-orange-950/20"
+              >
+                <span className="font-medium text-orange-700 dark:text-orange-300">{meal}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

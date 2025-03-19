@@ -90,15 +90,44 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
             if (data.rawAnalysis.includes('{') && data.rawAnalysis.includes('}')) {
               // Extract JSON from potential markdown code blocks
               let jsonStr = data.rawAnalysis;
+              
+              // Handle markdown code blocks
               if (jsonStr.includes('```json')) {
                 jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
               } else if (jsonStr.includes('```')) {
                 jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
               }
               
+              // Fix common issues before parsing - replace unquoted values
+              jsonStr = jsonStr
+                .replace(/"healthy"\s*:\s*moderate/g, '"healthy": false')
+                .replace(/"healthy"\s*:\s*high/g, '"healthy": false')
+                .replace(/"healthy"\s*:\s*low/g, '"healthy": true');
+              
+              console.log("Attempting to parse cleaned JSON");
+              
               const parsedData = JSON.parse(jsonStr);
               if (parsedData && typeof parsedData === 'object') {
                 console.log("Successfully parsed raw JSON data");
+                
+                // Ensure all ingredients have a healthy property as boolean
+                if (parsedData.ingredients && Array.isArray(parsedData.ingredients)) {
+                  parsedData.ingredients = parsedData.ingredients.map(ingredient => {
+                    if (typeof ingredient.healthy === 'undefined') {
+                      ingredient.healthy = true;
+                    }
+                    // Convert non-boolean healthy values to boolean
+                    if (typeof ingredient.healthy !== 'boolean') {
+                      const originalValue = ingredient.healthy;
+                      ingredient.healthy = false;
+                      if (!ingredient.warning && originalValue) {
+                        ingredient.warning = `Moderate (${originalValue})`;
+                      }
+                    }
+                    return ingredient;
+                  });
+                }
+                
                 setAnalysis(parsedData);
                 setError(null);
                 
@@ -112,6 +141,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
             }
           } catch (jsonErr) {
             console.error("Error parsing raw JSON:", jsonErr);
+            // Continue to use productInfo if available
           }
         }
 

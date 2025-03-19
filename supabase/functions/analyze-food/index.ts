@@ -118,7 +118,11 @@ serve(async (req) => {
             name, servingSize, calories, protein, carbs, fat, ingredients (array of objects with name, healthy, and optional warning), 
             healthScore, warnings (array of strings), recommendations (array of strings),
             vitamins (array of objects with name and amount), minerals (array of objects with name and amount),
-            and dietary (object with vegan, vegetarian, glutenFree, dairyFree as booleans).`
+            and dietary (object with vegan, vegetarian, glutenFree, dairyFree as booleans).
+            
+            IMPORTANT: Always use true/false as boolean values, never use strings like "moderate" or "high" as boolean values. 
+            If something is in-between, either mark it as false with a note, or use a separate property.
+            For example: { "name": "Cheese", "healthy": false, "note": "Moderate in fat" }`
           },
           {
             role: 'user',
@@ -157,7 +161,24 @@ serve(async (req) => {
       }
       
       console.log('AI response content:', data.choices[0].message.content.substring(0, 100) + '...')
-      analysisResult = JSON.parse(data.choices[0].message.content)
+      
+      // Improved JSON parsing with pre-processing
+      let contentText = data.choices[0].message.content
+      
+      // Handle markdown code blocks
+      if (contentText.includes('```json')) {
+        contentText = contentText.split('```json')[1].split('```')[0].trim()
+      } else if (contentText.includes('```')) {
+        contentText = contentText.split('```')[1].split('```')[0].trim()
+      }
+      
+      // Fix common JSON parsing issues - replace unquoted values
+      contentText = contentText
+        .replace(/"healthy"\s*:\s*moderate/g, '"healthy": false')
+        .replace(/"healthy"\s*:\s*high/g, '"healthy": false')
+        .replace(/"healthy"\s*:\s*low/g, '"healthy": true')
+      
+      analysisResult = JSON.parse(contentText)
       
       // Ensure all fields are present in the response
       const requiredFields = ['name', 'calories', 'protein', 'carbs', 'fat', 'ingredients', 'healthScore', 'warnings', 'recommendations', 'servingSize', 'vitamins', 'minerals', 'dietary'];
@@ -187,9 +208,28 @@ serve(async (req) => {
           }
         });
       }
+      
+      // Ensure all ingredients have a healthy property
+      if (analysisResult.ingredients && Array.isArray(analysisResult.ingredients)) {
+        analysisResult.ingredients = analysisResult.ingredients.map(ingredient => {
+          if (typeof ingredient.healthy === 'undefined') {
+            ingredient.healthy = true;
+          }
+          // Convert non-boolean healthy values to boolean
+          if (typeof ingredient.healthy !== 'boolean') {
+            const originalValue = ingredient.healthy;
+            ingredient.healthy = false;
+            if (!ingredient.warning && originalValue) {
+              ingredient.warning = `Moderate (${originalValue})`;
+            }
+          }
+          return ingredient;
+        });
+      }
+      
     } catch (e) {
       console.error('Error parsing OpenAI response:', e);
-      // If parsing fails, use the raw text
+      // Include the raw text in the response
       return new Response(
         JSON.stringify({
           productInfo: {

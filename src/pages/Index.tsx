@@ -76,6 +76,11 @@ const Index = () => {
             <ActionButtons />
           </motion.div>
           
+          {/* AI Health Assistant moved to just after ActionButtons */}
+          <motion.div variants={itemVariants}>
+            <AIHealthAssistant />
+          </motion.div>
+          
           <motion.div
             variants={itemVariants}
             className="flex flex-wrap gap-2 justify-end"
@@ -101,11 +106,6 @@ const Index = () => {
           
           <motion.div variants={itemVariants}>
             <NutritionSummary />
-          </motion.div>
-          
-          {/* AI Health Assistant positioned higher on the page */}
-          <motion.div variants={itemVariants}>
-            <AIHealthAssistant />
           </motion.div>
           
           {/* Responsive grid layout */}

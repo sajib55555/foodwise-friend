@@ -164,10 +164,11 @@ const MealPlans = () => {
     <PageTransition>
       <Header title="Meal Plans" showBackButton />
       <main className="container max-w-md mx-auto px-4 pb-24 pt-20">
-        <Card className="glass-card mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold">Select a Meal Plan</CardTitle>
-            <CardDescription>Choose a plan that fits your goals</CardDescription>
+        {/* Plan Selection Card */}
+        <Card className="glass-card mb-6 border border-purple-200/30 shadow-purple-lg/10">
+          <CardHeader className="bg-gradient-to-r from-purple-50/30 to-purple-100/30">
+            <CardTitle className="text-lg font-semibold text-purple-800">Select a Meal Plan</CardTitle>
+            <CardDescription className="text-purple-600">Choose a plan that fits your goals</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {mealPlans.map((plan) => (
@@ -179,25 +180,27 @@ const MealPlans = () => {
                 whileTap={{ scale: 0.98 }}
               >
                 <Card 
-                  className={`relative cursor-pointer border border-purple-100/20 hover:bg-purple-50/10 transition-all ${
-                    selectedPlan === plan.id ? "bg-purple-50/20 border-purple-200/50" : "bg-background/50"
+                  className={`relative cursor-pointer border transition-all ${
+                    selectedPlan === plan.id 
+                      ? "bg-gradient-to-r from-purple-100/40 to-purple-200/40 border-purple-300/50 shadow-purple-sm" 
+                      : "bg-background/50 border-purple-100/20 hover:bg-purple-50/20"
                   }`}
                   onClick={() => handleSelectPlan(plan.id)}
                 >
                   {plan.isPremium && !hasPremiumAccess && (
-                    <div className="absolute top-0 right-0 bg-purple-500 text-white px-2 py-1 text-xs rounded-bl-lg rounded-tr-lg flex items-center gap-1">
+                    <div className="absolute top-0 right-0 bg-gradient-premium text-white px-2 py-1 text-xs rounded-bl-lg rounded-tr-lg flex items-center gap-1">
                       <Lock className="h-3 w-3" />
                       Premium
                     </div>
                   )}
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-md font-medium flex items-center gap-2">
+                    <CardTitle className="text-md font-medium flex items-center gap-2 text-purple-700">
                       {plan.icon}
                       {plan.name}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">{plan.description}</p>
+                    <p className="text-sm text-purple-600/80">{plan.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -205,16 +208,17 @@ const MealPlans = () => {
           </CardContent>
         </Card>
 
+        {/* 7-Day Plan Card */}
         {plan && (
-          <Card className="glass-card">
-            <CardHeader>
+          <Card className="glass-card border border-purple-200/30 shadow-purple-lg/10">
+            <CardHeader className="bg-gradient-to-r from-purple-50/30 to-purple-100/30">
               <div className="flex justify-between items-center">
-                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2 text-purple-800">
                   <CalendarDays className="h-5 w-5 text-purple-500" />
                   7-Day Plan
                 </CardTitle>
               </div>
-              <CardDescription>{plan.name} - Weekly Schedule</CardDescription>
+              <CardDescription className="text-purple-600">{plan.name} - Weekly Schedule</CardDescription>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue={plan.days[0].day.toLowerCase()} className="w-full">
@@ -222,13 +226,13 @@ const MealPlans = () => {
                 <div className="relative mb-2 overflow-hidden">
                   <ScrollArea className="w-full" orientation="horizontal">
                     <div className="flex min-w-max pb-2 pr-2">
-                      <TabsList className="flex min-w-max bg-background/50 rounded-lg p-1 space-x-1">
+                      <TabsList className="flex min-w-max bg-gradient-to-r from-purple-100/50 to-purple-200/50 rounded-lg p-1 space-x-1">
                         {plan.days.map((day, index) => (
                           <TabsTrigger
                             key={day.day}
                             value={day.day.toLowerCase()}
                             onClick={() => setSelectedDay(index)}
-                            className="data-[state=active]:bg-purple-100/50 data-[state=active]:text-purple-800 rounded-md px-6 py-2 whitespace-nowrap flex-shrink-0"
+                            className="data-[state=active]:bg-gradient-premium data-[state=active]:text-white rounded-md px-6 py-2 whitespace-nowrap flex-shrink-0 text-purple-700"
                           >
                             {day.day}
                           </TabsTrigger>
@@ -247,13 +251,13 @@ const MealPlans = () => {
                     {day.meals.map((meal, mealIndex) => (
                       <div 
                         key={mealIndex} 
-                        className="p-4 rounded-lg bg-background/30 border border-purple-100/20"
+                        className="p-4 rounded-lg bg-gradient-to-r from-purple-50/30 to-purple-100/20 border border-purple-100/30"
                       >
                         <h3 className="font-medium text-purple-700 mb-2">{meal.type}</h3>
                         <ul className="space-y-1">
                           {meal.foods.map((food, foodIndex) => (
-                            <li key={foodIndex} className="text-sm flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400 inline-block"></span>
+                            <li key={foodIndex} className="text-sm flex items-center gap-2 text-purple-800">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 inline-block"></span>
                               {food}
                             </li>
                           ))}
@@ -264,10 +268,10 @@ const MealPlans = () => {
                 ))}
               </Tabs>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="bg-gradient-to-r from-purple-50/30 to-purple-100/30 rounded-b-lg">
               <Button 
-                variant="purple" 
-                className="w-full"
+                variant="premium" 
+                className="w-full text-white"
                 onClick={() => navigate('/nutrition')}
               >
                 Start This Plan

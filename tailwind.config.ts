@@ -156,6 +156,7 @@ export default {
                 'glass-sm': '0 2px 10px rgba(0, 0, 0, 0.05)',
                 'purple': '0 4px 14px rgba(124, 58, 237, 0.25)',
                 'purple-lg': '0 10px 25px -5px rgba(124, 58, 237, 0.3)',
+                'purple-sm': '0 2px 8px rgba(124, 58, 237, 0.15)',
                 // Adding missing shadow classes
                 'blue': '0 4px 14px rgba(59, 130, 246, 0.25)',
                 'blue-lg': '0 10px 25px -5px rgba(59, 130, 246, 0.3)',
@@ -171,7 +172,8 @@ export default {
             backgroundImage: {
                 'gradient-purple': 'linear-gradient(135deg, #9b87f5 0%, #7c3aed 100%)',
                 'gradient-purple-soft': 'linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%)',
-                'gradient-premium': 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                'gradient-premium': 'linear-gradient(135deg, #9b87f5 0%, #7c3aed 100%)',
+                'gradient-button-purple': 'linear-gradient(to right, #9b87f5, #7c3aed)',
             }
 		}
 	},

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
@@ -148,13 +149,13 @@ const WeeklyMealPlanner: React.FC = () => {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
-                <Calendar className="h-5 w-5 text-green-500" />
+          <Card className="border border-purple-200/30 shadow-purple-lg/10">
+            <CardHeader className="bg-gradient-to-r from-purple-50/30 to-purple-100/30">
+              <CardTitle className="flex items-center gap-2 text-xl md:text-2xl text-purple-800">
+                <Calendar className="h-5 w-5 text-purple-500" />
                 Weekly Meal Planner
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-purple-600">
                 Generate a personalized meal plan based on your preferences and goals
               </CardDescription>
             </CardHeader>
@@ -162,9 +163,9 @@ const WeeklyMealPlanner: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="preferences">Dietary Preference</Label>
+                    <Label htmlFor="preferences" className="text-purple-700">Dietary Preference</Label>
                     <Select value={preferences} onValueChange={setPreferences}>
-                      <SelectTrigger id="preferences">
+                      <SelectTrigger id="preferences" className="border-purple-200">
                         <SelectValue placeholder="Select dietary preference" />
                       </SelectTrigger>
                       <SelectContent>
@@ -178,21 +179,22 @@ const WeeklyMealPlanner: React.FC = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="restrictions">Dietary Restrictions (optional)</Label>
+                    <Label htmlFor="restrictions" className="text-purple-700">Dietary Restrictions (optional)</Label>
                     <Input
                       id="restrictions"
                       placeholder="E.g., gluten-free, no peanuts"
                       value={restrictions}
                       onChange={(e) => setRestrictions(e.target.value)}
+                      className="border-purple-200"
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="goals">Nutritional Goals</Label>
+                    <Label htmlFor="goals" className="text-purple-700">Nutritional Goals</Label>
                     <Select value={goals} onValueChange={setGoals}>
-                      <SelectTrigger id="goals">
+                      <SelectTrigger id="goals" className="border-purple-200">
                         <SelectValue placeholder="Select nutritional goal" />
                       </SelectTrigger>
                       <SelectContent>
@@ -206,9 +208,9 @@ const WeeklyMealPlanner: React.FC = () => {
                   </div>
                   
                   <div>
-                    <Label htmlFor="days">Plan Duration</Label>
+                    <Label htmlFor="days" className="text-purple-700">Plan Duration</Label>
                     <Select value={days} onValueChange={setDays}>
-                      <SelectTrigger id="days">
+                      <SelectTrigger id="days" className="border-purple-200">
                         <SelectValue placeholder="Select number of days" />
                       </SelectTrigger>
                       <SelectContent>
@@ -236,7 +238,7 @@ const WeeklyMealPlanner: React.FC = () => {
                   disabled={loading}
                   className="w-full"
                   size="lg"
-                  variant="green-gradient"
+                  variant="purple-gradient"
                 >
                   {loading ? (
                     <>
@@ -262,8 +264,8 @@ const WeeklyMealPlanner: React.FC = () => {
               className="space-y-6"
             >
               <div className="flex justify-between items-center flex-wrap gap-2">
-                <h2 className="text-lg md:text-xl font-semibold">Your {days}-Day Meal Plan</h2>
-                <Button onClick={saveMealPlan} variant="outline" size="sm">
+                <h2 className="text-lg md:text-xl font-semibold text-purple-800">Your {days}-Day Meal Plan</h2>
+                <Button onClick={saveMealPlan} variant="purple-outline" size="sm">
                   <Download className="mr-2 h-4 w-4" />
                   Save Plan
                 </Button>
@@ -271,14 +273,14 @@ const WeeklyMealPlanner: React.FC = () => {
               
               <Tabs value={activeDay} onValueChange={setActiveDay}>
                 <div className="relative mb-3">
-                  <ScrollArea className="w-full max-w-full overflow-x-auto">
+                  <ScrollArea className="w-full max-w-full overflow-x-auto" orientation="horizontal">
                     <div className="min-w-max pb-1"> 
-                      <TabsList className="flex min-w-max h-auto py-1 px-1">
+                      <TabsList className="flex min-w-max h-auto py-1 px-1 bg-gradient-to-r from-purple-100/50 to-purple-200/50">
                         {Object.keys(mealPlan.days).map((day, index) => (
                           <TabsTrigger 
                             key={day} 
                             value={day} 
-                            className="px-5 py-2 mx-0.5 whitespace-nowrap text-sm flex-shrink-0"
+                            className="px-5 py-2 mx-0.5 whitespace-nowrap text-sm flex-shrink-0 text-purple-700 data-[state=active]:bg-gradient-premium data-[state=active]:text-white"
                           >
                             <span className="flex flex-col items-center gap-1">
                               <span className="font-medium">{getDayName(index)}</span>

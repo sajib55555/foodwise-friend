@@ -14,6 +14,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
   const [activeCamera, setActiveCamera] = useState<boolean>(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState<boolean>(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -36,14 +37,30 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
 
   const setupCamera = async () => {
     try {
-      const constraints = { video: { facingMode: "environment" } };
+      setCameraError(null);
+      const constraints = { 
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => {
+              console.error("Error playing video:", err);
+              setCameraError("Failed to start video stream");
+            });
+          }
+        };
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
+      setCameraError("Failed to access camera. Please ensure camera permissions are enabled.");
     }
   };
 
@@ -61,15 +78,20 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         // Draw video frame to canvas
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Convert canvas to data URL
-        const imageDataUrl = canvas.toDataURL("image/jpeg");
-        setCapturedImage(imageDataUrl);
-        
-        // Stop camera stream
-        const stream = video.srcObject as MediaStream;
-        const tracks = stream.getTracks();
-        tracks.forEach((track) => track.stop());
-        setActiveCamera(false);
+        try {
+          // Convert canvas to data URL
+          const imageDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+          setCapturedImage(imageDataUrl);
+          
+          // Stop camera stream
+          const stream = video.srcObject as MediaStream;
+          const tracks = stream.getTracks();
+          tracks.forEach((track) => track.stop());
+          setActiveCamera(false);
+        } catch (error) {
+          console.error("Error creating image:", error);
+          setCameraError("Failed to capture image. Please try again.");
+        }
       }
     }
   };
@@ -78,10 +100,16 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     const file = event.target.files?.[0];
     if (file) {
       setUploading(true);
+      setCameraError(null);
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setCapturedImage(reader.result as string);
         setUploading(false);
+      };
+      reader.onerror = () => {
+        setUploading(false);
+        setCameraError("Failed to read image file. Please try a different file.");
       };
       reader.readAsDataURL(file);
     }
@@ -89,6 +117,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
 
   const resetCamera = () => {
     setCapturedImage(null);
+    setCameraError(null);
     setActiveCamera(true);
   };
 
@@ -140,6 +169,12 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
           </div>
         )}
         
+        {cameraError && (
+          <div className="absolute bottom-4 left-0 right-0 mx-4 bg-red-500/80 text-white p-2 rounded-md text-sm text-center">
+            {cameraError}
+          </div>
+        )}
+        
         <Button
           variant="glass"
           size="icon-sm"
@@ -163,7 +198,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         <div className="flex justify-center space-x-4">
           {!activeCamera && !capturedImage && (
             <Button
-              variant="default"
+              variant="blue-gradient"
               className="flex-1"
               onClick={() => setActiveCamera(true)}
             >
@@ -174,7 +209,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
           
           {activeCamera && (
             <Button
-              variant="default"
+              variant="blue-gradient"
               className="w-14 h-14 rounded-full"
               onClick={captureImage}
             >
@@ -187,13 +222,14 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
               <Button
                 variant="outline"
                 onClick={resetCamera}
+                className="border-purple-300 hover:bg-purple-50"
               >
-                <RotateCw className="h-5 w-5 mr-2" />
+                <RotateCw className="h-5 w-5 mr-2 text-purple-600" />
                 Retake
               </Button>
               
               <Button
-                variant="default"
+                variant="green-gradient"
                 onClick={handleSubmit}
               >
                 Analyze Food
@@ -203,8 +239,8 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
           
           {!activeCamera && (
             <Button
-              variant={capturedImage ? "outline" : "default"}
-              className={cn(capturedImage ? "" : "flex-1")}
+              variant={capturedImage ? "outline" : "purple-gradient"}
+              className={cn(capturedImage ? "border-purple-300 hover:bg-purple-50" : "flex-1")}
               onClick={uploadImage}
               disabled={uploading}
             >

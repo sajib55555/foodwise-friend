@@ -16,6 +16,19 @@ interface MealData {
   color: string;
 }
 
+// Define the expected structure of the metadata
+interface MealLogMetadata {
+  meal_type?: string;
+  food_items?: string[];
+  scanned_food?: {
+    name: string;
+    calories: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
+}
+
 const NutritionSummary: React.FC = () => {
   const [mealHistory, setMealHistory] = useState<MealData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,13 +82,14 @@ const NutritionSummary: React.FC = () => {
         if (data && data.length > 0) {
           // Process the meal data
           const processedMeals: MealData[] = data.map(item => {
-            const metadata = item.metadata || {};
+            // Properly type the metadata
+            const metadata = item.metadata as MealLogMetadata || {};
             const mealType = (metadata.meal_type || 'snack').toLowerCase();
             
             // Calculate total calories from food items if available
             let totalCalories = 0;
             if (metadata.scanned_food && metadata.scanned_food.calories) {
-              totalCalories += parseInt(metadata.scanned_food.calories);
+              totalCalories += parseInt(metadata.scanned_food.calories.toString());
             } else {
               // Estimate calories if not provided
               totalCalories = mealType === 'breakfast' ? 350 :

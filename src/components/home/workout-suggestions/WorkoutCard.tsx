@@ -52,7 +52,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, index, onTrac
         
         <div className="flex justify-center w-full mt-4">
           <Button 
-            size="sm" 
+            size={isMobile ? "sm" : "default"}
             variant="purple-gradient" 
             className="gap-1 w-full md:w-auto"
             onClick={() => onTrackWorkout(workout)}

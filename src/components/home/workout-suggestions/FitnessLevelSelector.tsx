@@ -34,14 +34,15 @@ export const FitnessLevelSelector: React.FC<FitnessLevelSelectorProps> = ({
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid grid-cols-2 mb-4 gap-2">
+      {/* Use a responsive grid with larger gap and fixed height for tabs */}
+      <TabsList className="grid grid-cols-2 mb-4 gap-2 md:grid-cols-4 h-auto">
         {fitnessLevels.map(level => (
           <TabsTrigger 
             key={level.id} 
             value={level.id}
             disabled={loading}
             className={cn(
-              "transition-all text-sm whitespace-nowrap px-2 py-1.5",
+              "transition-all text-sm whitespace-normal h-full px-2 py-2 flex items-center justify-center",
               tabColors[level.id as keyof typeof tabColors]
             )}
           >

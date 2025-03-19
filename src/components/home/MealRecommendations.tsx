@@ -125,14 +125,15 @@ const MealRecommendations: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid grid-cols-2 mb-4 gap-2">
+              {/* Update TabsList for consistent appearance with FitnessLevelSelector */}
+              <TabsList className="grid grid-cols-2 mb-4 gap-2 md:grid-cols-4 h-auto">
                 {dietaryPreferences.map(pref => (
                   <TabsTrigger 
                     key={pref.id} 
                     value={pref.id}
                     disabled={loading}
                     className={cn(
-                      "transition-all text-sm whitespace-nowrap px-2 py-1.5",
+                      "transition-all text-sm whitespace-normal h-full px-2 py-2 flex items-center justify-center",
                       tabColors[pref.id as keyof typeof tabColors]
                     )}
                   >
@@ -194,7 +195,7 @@ const MealRecommendations: React.FC = () => {
                     <h4 className="text-xs uppercase tracking-wider font-semibold mb-2 text-muted-foreground">Ingredients</h4>
                     <ul className="grid grid-cols-1 gap-y-1">
                       {meal.ingredients.map((ingredient, i) => (
-                        <li key={i} className="text-sm flex items-center gap-1">
+                        <li key={i} className="text-sm flex items-center gap-1 p-2 bg-background/50 rounded-md">
                           <span className="h-1.5 w-1.5 rounded-full bg-purple-500 mr-1"></span>
                           {ingredient}
                         </li>
@@ -203,11 +204,11 @@ const MealRecommendations: React.FC = () => {
                   </div>
                   
                   <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mt-4">
-                    <Button size="sm" variant="purple-gradient" className="gap-1 w-full sm:w-auto">
+                    <Button size={isMobile ? "sm" : "default"} variant="purple-gradient" className="gap-1 w-full sm:w-auto">
                       <Clock className="h-3.5 w-3.5" />
                       Save for Later
                     </Button>
-                    <Button size="sm" variant="purple-gradient" className="gap-1 w-full sm:w-auto">
+                    <Button size={isMobile ? "sm" : "default"} variant="purple-gradient" className="gap-1 w-full sm:w-auto">
                       <ScrollText className="h-3.5 w-3.5" />
                       Log Meal
                     </Button>

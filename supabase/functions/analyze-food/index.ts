@@ -24,6 +24,7 @@ serve(async (req) => {
     // If we have a barcode, we can use it to search for product information
     // This is a mock implementation since we're not connecting to a real product database
     if (barcode) {
+      console.log(`Processing barcode: ${barcode}`)
       return new Response(
         JSON.stringify({
           productInfo: {
@@ -66,14 +67,29 @@ serve(async (req) => {
 
     // For image analysis, we'll use OpenAI's API
     if (!imageData) {
+      console.error('No image data provided')
       throw new Error('No image data provided')
     }
 
+    // Fix: Properly handle image data format
+    let base64Data = imageData;
+    
     // Remove the prefix from base64 data if present
-    const base64Data = imageData.includes('base64,') 
-      ? imageData.split('base64,')[1] 
-      : imageData
+    if (imageData.includes('base64,')) {
+      base64Data = imageData.split('base64,')[1]
+      console.log('Image data prefix removed')
+    }
 
+    // Log the length of the image data for debugging
+    console.log(`Processing image data of length: ${base64Data.length} characters`)
+
+    // Make sure we have valid image data
+    if (!base64Data || base64Data.length < 100) {
+      console.error('Invalid or too small image data')
+      throw new Error('Invalid image data. Please try again with a clearer image.')
+    }
+
+    console.log('Sending request to OpenAI API...')
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -125,10 +141,22 @@ serve(async (req) => {
     })
 
     const data = await response.json()
+    console.log('Received response from OpenAI')
+    
+    if (data.error) {
+      console.error('OpenAI API error:', data.error)
+      throw new Error(`OpenAI API error: ${data.error.message || 'Unknown error'}`)
+    }
     
     // Parse the response content as JSON
     let analysisResult
     try {
+      if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+        console.error('Unexpected response format from OpenAI:', JSON.stringify(data))
+        throw new Error('Invalid response from AI service')
+      }
+      
+      console.log('AI response content:', data.choices[0].message.content.substring(0, 100) + '...')
       analysisResult = JSON.parse(data.choices[0].message.content)
       
       // Ensure all fields are present in the response
@@ -190,6 +218,7 @@ serve(async (req) => {
       )
     }
 
+    console.log('Successfully analyzed food image')
     return new Response(
       JSON.stringify({
         productInfo: analysisResult

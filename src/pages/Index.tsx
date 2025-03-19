@@ -38,14 +38,9 @@ const Index = () => {
     visible: { opacity: 1, y: 0 }
   };
 
-  // Background colors for card sections
-  const sectionColors = [
-    "from-purple-500/10 to-purple-500/5", // Purple
-    "from-blue-500/10 to-blue-500/5",     // Blue
-    "from-green-500/10 to-green-500/5",   // Green
-    "from-amber-500/10 to-amber-500/5",   // Amber
-    "from-pink-500/10 to-pink-500/5"      // Pink
-  ];
+  // Common feature card gradient for consistency
+  const featureCardGradient = "bg-gradient-to-br from-purple-500/10 via-indigo-500/8 to-blue-500/5";
+  const featureCardBorder = "border border-purple-300/30 dark:border-purple-900/30";
   
   return (
     <PageTransition>
@@ -66,7 +61,7 @@ const Index = () => {
             variants={itemVariants}
             className="text-center my-4"
           >
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-blue-600 to-purple-600">
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-indigo-600 to-blue-600">
               NutriTrack
             </h1>
             <p className="text-muted-foreground text-sm">Your personal health companion</p>
@@ -109,17 +104,17 @@ const Index = () => {
             <NutritionSummary />
           </motion.div>
           
-          {/* Responsive grid layout */}
+          {/* Responsive grid layout with consistent styling */}
           <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
             <motion.div 
               variants={itemVariants} 
-              className={`card-accent-blue ${!isMobile ? 'col-span-1' : ''}`}
+              className={`rounded-2xl p-6 ${featureCardGradient} ${featureCardBorder} ${!isMobile ? 'col-span-1' : ''}`}
             >
               <WaterTracker />
             </motion.div>
             <motion.div 
               variants={itemVariants}
-              className={`card-accent-green ${!isMobile ? 'col-span-1' : ''}`}
+              className={`rounded-2xl p-6 ${featureCardGradient} ${featureCardBorder} ${!isMobile ? 'col-span-1' : ''}`}
             >
               <ExerciseTracker />
             </motion.div>
@@ -128,13 +123,13 @@ const Index = () => {
           <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
             <motion.div 
               variants={itemVariants}
-              className={`card-accent-purple ${!isMobile ? 'col-span-1' : ''}`}
+              className={`rounded-2xl p-6 ${featureCardGradient} ${featureCardBorder} ${!isMobile ? 'col-span-1' : ''}`}
             >
               <SleepTracker />
             </motion.div>
             <motion.div 
               variants={itemVariants}
-              className={`card-accent-amber ${!isMobile ? 'col-span-1' : ''}`}
+              className={`rounded-2xl p-6 ${featureCardGradient} ${featureCardBorder} ${!isMobile ? 'col-span-1' : ''}`}
             >
               <GoalTracker />
             </motion.div>
@@ -143,28 +138,31 @@ const Index = () => {
           <div className={`grid grid-cols-1 ${isMobile ? '' : 'md:grid-cols-2'} gap-6`}>
             <motion.div 
               variants={itemVariants}
-              className={`card-accent-pink ${!isMobile ? 'col-span-1' : ''}`}
+              className={`rounded-2xl p-6 ${featureCardGradient} ${featureCardBorder} ${!isMobile ? 'col-span-1' : ''}`}
             >
               <MealRecommendations />
             </motion.div>
             <motion.div 
               variants={itemVariants}
-              className={`card-accent-blue ${!isMobile ? 'col-span-1' : ''}`}
+              className={`rounded-2xl p-6 ${featureCardGradient} ${featureCardBorder} ${!isMobile ? 'col-span-1' : ''}`}
             >
               <WorkoutSuggestions />
             </motion.div>
           </div>
           
-          <motion.div variants={itemVariants} className="card-accent-green">
+          <motion.div 
+            variants={itemVariants}
+            className={`rounded-2xl p-6 ${featureCardGradient} ${featureCardBorder}`}
+          >
             <ReminderSystem />
           </motion.div>
           
-          {/* Premium feature banner */}
+          {/* Premium feature banner with the same purple-to-blue gradient */}
           <motion.div
             variants={itemVariants}
             className="rounded-2xl overflow-hidden shadow-xl border border-purple-200/50 dark:border-purple-800/20 hover:shadow-purple transition-all duration-300"
           >
-            <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-6 relative overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 p-6 relative overflow-hidden">
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute -right-10 -top-10 w-40 h-40 bg-white rounded-full opacity-20"></div>
                 <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white rounded-full opacity-20"></div>

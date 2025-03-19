@@ -13,7 +13,6 @@ const CameraView: React.FC<CameraViewProps> = ({
   cameraLoading,
   cameraError
 }) => {
-  const [videoVisible, setVideoVisible] = useState(true);
   
   // Force repainting to improve camera initialization on some devices
   useEffect(() => {
@@ -26,15 +25,25 @@ const CameraView: React.FC<CameraViewProps> = ({
       // Force repaint when video can play
       const handleCanPlay = () => {
         console.log("Video can play event fired");
-        // Ensure video is visible
-        setVideoVisible(true);
+        // Make video visible with inline styles to override any potential CSS issues
+        if (video) {
+          video.style.display = 'block';
+          video.style.visibility = 'visible';
+          video.style.opacity = '1';
+          console.log("Video element should now be visible");
+        }
       };
       
       // Add debug events
       const handlePlaying = () => {
         console.log("Video is now playing with dimensions:", video.videoWidth, "x", video.videoHeight);
-        // Ensure video is visible when playing starts
-        setVideoVisible(true);
+        // Make video visible when playing starts
+        if (video) {
+          video.style.display = 'block';
+          video.style.visibility = 'visible';
+          video.style.opacity = '1';
+          console.log("Video element should now be visible (playing)");
+        }
       };
       
       // Handle video errors
@@ -65,9 +74,12 @@ const CameraView: React.FC<CameraViewProps> = ({
           width: '100%',
           height: '100%',
           objectFit: 'cover',
-          display: videoVisible ? 'block' : 'none'
+          display: 'block',
+          visibility: 'visible',
+          opacity: 1,
+          zIndex: 10
         }}
-        className="absolute inset-0 h-full w-full object-cover bg-black z-10"
+        className="absolute inset-0 h-full w-full object-cover bg-black"
       />
       {cameraLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-20">

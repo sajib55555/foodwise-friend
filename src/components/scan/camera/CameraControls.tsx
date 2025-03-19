@@ -40,18 +40,18 @@ const CameraControls: React.FC<CameraControlsProps> = ({
           </Button>
         )}
         
-        {/* If camera is active, show large capture button */}
+        {/* If camera is active, show large capture button with animation */}
         {activeCamera && (
           <Button
             variant="blue-gradient"
-            className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+            className="w-24 h-24 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
             onClick={onCapture}
             aria-label="Capture photo"
             style={{
               background: "linear-gradient(to right, #3b82f6, #10b981)",
-              boxShadow: "0 0 20px rgba(59, 130, 246, 0.7)",
+              boxShadow: "0 0 25px rgba(59, 130, 246, 0.8)",
               position: "relative",
-              zIndex: 30
+              zIndex: 50
             }}
           >
             <span className="block w-20 h-20 rounded-full border-4 border-white animate-pulse"></span>

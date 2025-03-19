@@ -31,18 +31,35 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
   } catch (err) {
     console.warn("Environment camera failed:", err);
     
-    // Fall back to any available camera with minimal constraints
+    // Try user camera (front camera) specifically
     try {
-      console.log("Trying any available camera with minimal constraints");
+      console.log("Trying user (front) camera");
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true,
+        video: { 
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
         audio: false
       });
-      console.log("Successfully accessed default camera");
+      console.log("Successfully accessed front camera");
       return stream;
-    } catch (secondErr) {
-      console.error("All camera access attempts failed:", secondErr);
-      throw new Error("Could not access any camera. Please check permissions and try again.");
+    } catch (frontErr) {
+      console.warn("Front camera failed:", frontErr);
+      
+      // Fall back to any available camera with minimal constraints
+      try {
+        console.log("Trying any available camera with minimal constraints");
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true,
+          audio: false
+        });
+        console.log("Successfully accessed default camera");
+        return stream;
+      } catch (secondErr) {
+        console.error("All camera access attempts failed:", secondErr);
+        throw new Error("Could not access any camera. Please check permissions and try again.");
+      }
     }
   }
 };
@@ -94,22 +111,33 @@ export const setupVideoStream = (
     videoElement.muted = true;
     videoElement.playsInline = true;
     
-    // Adjust style to ensure visibility
+    // Directly apply crucial visibility styles
     videoElement.style.display = 'block';
+    videoElement.style.visibility = 'visible';
+    videoElement.style.opacity = '1';
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.objectFit = 'cover';
+    videoElement.style.zIndex = '10';
     
     // Force play to start immediately
     const playVideo = () => {
       // This line is crucial - makes the video visible
       videoElement.style.display = 'block';
+      videoElement.style.visibility = 'visible';
+      videoElement.style.opacity = '1';
+      
+      // Log before playing
+      console.log("Attempting to play video");
       
       videoElement.play()
         .then(() => {
           console.log("Camera started successfully");
           // Ensure video is visible
           videoElement.style.display = 'block';
+          videoElement.style.visibility = 'visible';
+          videoElement.style.opacity = '1';
+          
           onSuccess();
         })
         .catch(err => {
@@ -117,11 +145,18 @@ export const setupVideoStream = (
           
           // Try one more time after a short delay
           setTimeout(() => {
+            videoElement.style.display = 'block';
+            videoElement.style.visibility = 'visible';
+            videoElement.style.opacity = '1';
+            
             videoElement.play()
               .then(() => {
                 console.log("Camera started successfully on retry");
                 // Ensure video is visible
                 videoElement.style.display = 'block';
+                videoElement.style.visibility = 'visible';
+                videoElement.style.opacity = '1';
+                
                 onSuccess();
               })
               .catch(retryErr => {
@@ -142,6 +177,8 @@ export const setupVideoStream = (
       console.log("Video is now playing, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
       // Make absolutely sure video is visible
       videoElement.style.display = 'block';
+      videoElement.style.visibility = 'visible';
+      videoElement.style.opacity = '1';
     };
     
     // Fallback in case onloadedmetadata doesn't fire

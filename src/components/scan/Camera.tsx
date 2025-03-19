@@ -42,20 +42,15 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     }
   });
 
-  // Automatically activate camera when component mounts with a delay
+  // Automatically activate camera when component mounts
   useEffect(() => {
-    console.log("Camera component mounted, opening camera");
-    const timer = setTimeout(() => {
-      if (!capturedImage) {
-        console.log("Delayed camera open triggered");
-        openCamera();
-      }
-    }, 300); // Reduced delay for faster camera initialization
+    console.log("Camera component mounted, opening camera immediately");
+    // Open camera immediately instead of using a timeout
+    openCamera();
     
     // Ensure camera is properly cleaned up when component unmounts
     return () => {
       console.log("Camera component unmounting, cleaning up");
-      clearTimeout(timer);
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         const tracks = stream.getTracks();

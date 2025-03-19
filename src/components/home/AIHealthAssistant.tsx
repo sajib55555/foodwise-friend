@@ -10,7 +10,7 @@ import {
   DialogFooter,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Mic, VolumeX, Volume, Loader2, Brain, Sparkles } from "lucide-react";
+import { Mic, VolumeX, Volume, Loader2, Brain, Sparkles, AlertCircle } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const voices = [
   { id: "alloy", name: "Alloy", description: "Neutral" },
@@ -34,6 +35,7 @@ const AIHealthAssistant = () => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [selectedVoice, setSelectedVoice] = useState("nova");
@@ -52,6 +54,7 @@ const AIHealthAssistant = () => {
     try {
       setLoading(true);
       setAnalysis(null);
+      setError(null);
 
       // Create a mock dataset since we don't have the actual tables in our database schema
       const mockHealthData = {
@@ -116,10 +119,24 @@ const AIHealthAssistant = () => {
 
       if (error) {
         console.error("Edge function error:", error);
+        setError(`Failed to analyze health data: ${error.message}`);
         throw new Error(error.message || 'Failed to analyze health data');
       }
 
       console.log("Received response from edge function:", data);
+
+      // Handle errors returned in the response body
+      if (data.error) {
+        console.error("API error:", data.error);
+        setError(data.error);
+        
+        // If we still have text analysis despite the error, show it
+        if (data.textAnalysis) {
+          setAnalysis(data.textAnalysis);
+        } else {
+          throw new Error(data.error);
+        }
+      }
 
       // Handle the response
       if (data.audioContent && data.textAnalysis) {
@@ -139,13 +156,22 @@ const AIHealthAssistant = () => {
             setPlaying(false);
           };
         }
-      } else if (data.error) {
-        throw new Error(data.error);
-      } else {
+      } else if (!data.audioContent && data.textAnalysis) {
+        // If we only have text analysis without audio
+        setAnalysis(data.textAnalysis);
+        toast({
+          title: "Voice synthesis unavailable",
+          description: "Only text analysis is available at this time.",
+          variant: "default",
+        });
+      } else if (!data.error) {
+        // If we don't have an error explicitly but also don't have the data we expected
+        setError("Invalid response from server");
         throw new Error('Invalid response from server');
       }
     } catch (error: any) {
       console.error("Error fetching data or analyzing:", error);
+      setError(error.message || "Failed to generate health insights");
       toast({
         title: "Error",
         description: error.message || "Failed to generate health insights",
@@ -176,6 +202,15 @@ const AIHealthAssistant = () => {
     }
   };
 
+  const resetStates = () => {
+    if (playing && audioRef.current) {
+      audioRef.current.pause();
+    }
+    setPlaying(false);
+    setAnalysis(null);
+    setError(null);
+  };
+
   return (
     <Card 
       variant="glass" 
@@ -204,7 +239,12 @@ const AIHealthAssistant = () => {
             </span>
           </div>
         </CardTitle>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(newOpen) => {
+          setOpen(newOpen);
+          if (!newOpen) {
+            resetStates();
+          }
+        }}>
           <DialogTrigger asChild>
             <Button variant="purple-gradient" size="sm" className="shadow-md hover:shadow-lg transition-all">
               <Sparkles className="h-4 w-4 mr-1" /> Get Insights
@@ -251,6 +291,16 @@ const AIHealthAssistant = () => {
                 />
               </div>
 
+              {error && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {analysis && (
                 <div className="mt-4 rounded-lg bg-purple-100/50 dark:bg-purple-900/20 p-4 border border-purple-200 dark:border-purple-800/20 text-sm">
                   <p className="text-purple-800 dark:text-purple-200">{analysis}</p>
@@ -264,6 +314,7 @@ const AIHealthAssistant = () => {
                   variant={playing ? "outline" : "purple-gradient"}
                   onClick={togglePlayback}
                   className="flex-1 gap-2 shadow-md"
+                  disabled={!audioRef.current?.src}
                 >
                   {playing ? (
                     <>
@@ -271,7 +322,7 @@ const AIHealthAssistant = () => {
                     </>
                   ) : (
                     <>
-                      <Volume className="h-4 w-4" /> Play Again
+                      <Volume className="h-4 w-4" /> {audioRef.current?.src ? "Play Again" : "Text Only"}
                     </>
                   )}
                 </Button>

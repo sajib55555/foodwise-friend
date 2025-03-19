@@ -24,8 +24,32 @@ serve(async (req) => {
       apiKey: OPENAI_API_KEY,
     });
 
-    const requestData = await req.json();
+    // Parse request data safely
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (error) {
+      console.error("Error parsing request JSON:", error);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     const { healthData, userName } = requestData;
+    
+    if (!healthData) {
+      return new Response(
+        JSON.stringify({ error: "Health data is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
     
     console.log("Received health data:", JSON.stringify(healthData));
     console.log("Received user name:", userName);
@@ -34,17 +58,30 @@ serve(async (req) => {
     const analysisPrompt = generateAnalysisPrompt(healthData, userName);
     console.log("Analysis prompt:", analysisPrompt);
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Using the recommended model
-      messages: [
+    // Generate OpenAI completion
+    let completion;
+    try {
+      completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini", // Using the recommended model
+        messages: [
+          {
+            role: "system",
+            content: "You are a health assistant that provides personalized health advice based on user data. Keep responses concise, clear, and actionable. Use a supportive and encouraging tone."
+          },
+          { role: "user", content: analysisPrompt }
+        ],
+        max_tokens: 500,
+      });
+    } catch (error) {
+      console.error("OpenAI API error:", error);
+      return new Response(
+        JSON.stringify({ error: `OpenAI API error: ${error.message}` }),
         {
-          role: "system",
-          content: "You are a health assistant that provides personalized health advice based on user data. Keep responses concise, clear, and actionable. Use a supportive and encouraging tone."
-        },
-        { role: "user", content: analysisPrompt }
-      ],
-      max_tokens: 500,
-    });
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     const analysis = completion.choices[0].message.content;
     console.log("Generated analysis:", analysis);
@@ -53,24 +90,40 @@ serve(async (req) => {
     console.log("Voice preference:", voicePreference);
 
     // Generate speech from the analysis
-    const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'tts-1',
-        input: analysis,
-        voice: voicePreference,
-        response_format: 'mp3',
-      }),
-    });
+    let speechResponse;
+    try {
+      speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: analysis,
+          voice: voicePreference,
+          response_format: 'mp3',
+        }),
+      });
 
-    if (!speechResponse.ok) {
-      const errorData = await speechResponse.json();
-      console.error("OpenAI speech API error:", errorData);
-      throw new Error(errorData.error?.message || 'Failed to generate speech');
+      if (!speechResponse.ok) {
+        const errorData = await speechResponse.json();
+        console.error("OpenAI speech API error:", errorData);
+        throw new Error(errorData.error?.message || 'Failed to generate speech');
+      }
+    } catch (error) {
+      console.error("Speech generation error:", error);
+      // Return the text analysis even if speech generation fails
+      return new Response(
+        JSON.stringify({ 
+          textAnalysis: analysis,
+          error: `Speech generation failed: ${error.message}`
+        }),
+        {
+          status: 200, // Return 200 to allow the app to at least show the text analysis
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Convert audio buffer to base64
@@ -86,7 +139,7 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      }
     );
   } catch (error) {
     console.error("Error:", error.message, error.stack);
@@ -95,12 +148,13 @@ serve(async (req) => {
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      }
     );
   }
 });
 
 function generateAnalysisPrompt(healthData: any, userName: string): string {
+  // Safely extract data with fallbacks
   const nutrition = healthData.nutrition || [];
   const exercise = healthData.exercise || [];
   const water = healthData.water || [];

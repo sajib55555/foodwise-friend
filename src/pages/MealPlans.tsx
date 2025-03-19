@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import PageTransition from "@/components/layout/PageTransition";
@@ -217,16 +218,17 @@ const MealPlans = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue={plan.days[0].day.toLowerCase()} className="w-full">
-                <div className="relative mb-2">
-                  <ScrollArea className="w-full max-w-full pb-2">
-                    <div className="min-w-full inline-flex">
-                      <TabsList className="flex min-w-max bg-background/50 rounded-lg p-1">
+                {/* Modified ScrollArea and TabsList to ensure all days are visible */}
+                <div className="relative mb-2 overflow-hidden">
+                  <ScrollArea className="w-full" orientation="horizontal">
+                    <div className="flex min-w-max pb-2 pr-2">
+                      <TabsList className="flex min-w-max bg-background/50 rounded-lg p-1 space-x-1">
                         {plan.days.map((day, index) => (
                           <TabsTrigger
                             key={day.day}
                             value={day.day.toLowerCase()}
                             onClick={() => setSelectedDay(index)}
-                            className="data-[state=active]:bg-purple-100/50 data-[state=active]:text-purple-800 rounded-md whitespace-nowrap px-4 py-2 flex-shrink-0"
+                            className="data-[state=active]:bg-purple-100/50 data-[state=active]:text-purple-800 rounded-md px-6 py-2 whitespace-nowrap flex-shrink-0"
                           >
                             {day.day}
                           </TabsTrigger>

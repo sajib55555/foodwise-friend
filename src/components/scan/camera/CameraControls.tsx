@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Camera, Image, RotateCw, SwitchCamera } from "lucide-react";
 import { Button } from "@/components/ui/button-custom";
@@ -63,20 +62,20 @@ const CameraControls: React.FC<CameraControlsProps> = ({
               </Button>
             )}
             
-            {/* Capture button */}
+            {/* Capture button - REDUCED SIZE BY 50% */}
             <Button
               variant="blue-gradient"
-              className="w-24 h-24 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
+              className="w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
               onClick={onCapture}
               aria-label="Capture photo"
               style={{
                 background: "linear-gradient(to right, #ff4800, #ff8a00)",
-                boxShadow: "0 0 30px rgba(255, 72, 0, 0.8)",
+                boxShadow: "0 0 15px rgba(255, 72, 0, 0.8)",
                 position: "relative",
                 zIndex: 50
               }}
             >
-              <span className="block w-20 h-20 rounded-full border-4 border-white animate-pulse"></span>
+              <span className="block w-10 h-10 rounded-full border-2 border-white animate-pulse"></span>
             </Button>
           </div>
         )}

@@ -147,9 +147,9 @@ const Scan = () => {
                   </TabsList>
                   
                   <TabsContent value="camera" className="mt-4">
-                    {/* Camera view - ENHANCED: Made larger with 5:4 aspect ratio for better mobile viewing */}
+                    {/* Updated camera view to match barcode scanner aspect ratio */}
                     {showCamera && (
-                      <div className="aspect-[5/4] rounded-xl overflow-hidden shadow-lg">
+                      <div className="aspect-[4/3] rounded-xl overflow-hidden shadow-lg">
                         <CameraComponent onCapture={handlePhotoCapture} onClose={handleCameraClose} />
                       </div>
                     )}

@@ -50,6 +50,28 @@ interface MealLogMetadata {
   };
 }
 
+// Define interface for the nutrition analysis
+interface NutritionAnalysisData {
+  name: string;
+  servingSize: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients: { name: string; healthy: boolean; warning?: string }[];
+  healthScore: number;
+  warnings: string[];
+  recommendations: string[];
+  vitamins: { name: string; amount: string }[];
+  minerals: { name: string; amount: string }[];
+  dietary: {
+    vegan: boolean;
+    vegetarian: boolean;
+    glutenFree: boolean;
+    dairyFree: boolean;
+  };
+}
+
 const Nutrition = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [latestMeal, setLatestMeal] = useState<MealData | null>(null);
@@ -257,6 +279,39 @@ const Nutrition = () => {
       { name: "Zinc", amount: "1.2mg" }
     ];
   }
+  
+  // Transform MealData to the format expected by DetailedNutritionAnalysis
+  function transformMealForAnalysis(meal: MealData): NutritionAnalysisData {
+    return {
+      name: meal.name,
+      servingSize: meal.servingSize || "1 serving", // Ensure servingSize is provided
+      calories: meal.calories,
+      protein: meal.protein,
+      carbs: meal.carbs,
+      fat: meal.fat,
+      // Transform string[] to required object format for ingredients
+      ingredients: (meal.ingredients || []).map(item => ({
+        name: item,
+        healthy: !item.toLowerCase().includes('sugar') && 
+                !item.toLowerCase().includes('fried') && 
+                !item.toLowerCase().includes('processed'),
+        warning: item.toLowerCase().includes('sugar') ? 'High sugar content' : 
+                item.toLowerCase().includes('fried') ? 'Fried foods are high in unhealthy fats' :
+                item.toLowerCase().includes('processed') ? 'Highly processed' : undefined
+      })),
+      healthScore: meal.healthScore || 5,
+      warnings: meal.warnings || ["No nutrition warnings"],
+      recommendations: meal.recommendations || ["No recommendations available"],
+      vitamins: meal.vitamins || [],
+      minerals: meal.minerals || [],
+      dietary: meal.dietary || {
+        vegan: false,
+        vegetarian: false,
+        glutenFree: false,
+        dairyFree: false
+      }
+    };
+  }
 
   return (
     <PageTransition>
@@ -330,7 +385,7 @@ const Nutrition = () => {
                 <div className="w-6 h-6 border-2 border-green-500 rounded-full animate-spin border-t-transparent"></div>
               </div>
             ) : latestMeal ? (
-              <DetailedNutritionAnalysis nutritionData={latestMeal} />
+              <DetailedNutritionAnalysis nutritionData={transformMealForAnalysis(latestMeal)} />
             ) : (
               <div className="text-center py-12">
                 <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No meals logged yet</p>

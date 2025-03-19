@@ -150,4 +150,17 @@ html {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
+  
+  /* Fix for content being cut off at the bottom */
+  .dialog-content .scrollarea {
+    padding-bottom: 20px;
+  }
+}
+
+/* Ensure all scrollable areas have touch scrolling enabled */
+.scrollarea, 
+.scroll-area,
+.dialog-content,
+[data-radix-scroll-area-viewport] {
+  -webkit-overflow-scrolling: touch !important;
 }

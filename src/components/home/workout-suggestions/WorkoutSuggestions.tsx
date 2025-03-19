@@ -17,6 +17,7 @@ const WorkoutSuggestions = () => {
   const [fitnessLevel, setFitnessLevel] = useState<FitnessLevel>("intermediate");
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<WorkoutSuggestion[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
   // Default recommendations that show on the main view
@@ -37,11 +38,33 @@ const WorkoutSuggestions = () => {
       description: `${workout.name} has been added to your workout tracker`,
       variant: "default"
     });
+    setOpen(false); // Close dialog after tracking
   };
 
   const handleGetSuggestions = async () => {
     setIsLoading(true);
+    setError(null);
     setSuggestions([]);
+    
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        setIsLoading(false);
+        setError("Request timed out. Please try again.");
+        toast({
+          title: "Request Timeout",
+          description: "It's taking longer than expected. Using default suggestions instead.",
+          variant: "destructive"
+        });
+        // Use fallback suggestions
+        setSuggestions(suggestedWorkouts
+          .filter(workout => workout.level === fitnessLevel)
+          .map(workout => ({
+            ...workout,
+            difficulty: workout.level,
+          })));
+      }
+    }, 10000); // 10 second timeout
     
     try {
       const { data, error } = await supabase.functions.invoke('generate-workout-suggestions', {
@@ -54,11 +77,14 @@ const WorkoutSuggestions = () => {
         }
       });
 
+      clearTimeout(timeoutId); // Clear the timeout since we got a response
+
       if (error) {
         console.error("Error fetching workout suggestions:", error);
+        setError(error.message);
         toast({
           title: "Error",
-          description: "Failed to get workout suggestions. Please try again.",
+          description: "Failed to get workout suggestions. Using default options instead.",
           variant: "destructive"
         });
         // Use fallback suggestions from predefined workouts
@@ -70,12 +96,17 @@ const WorkoutSuggestions = () => {
           })));
       } else {
         console.log("Received workout suggestions:", data);
+        if (!data || !data.workouts || !Array.isArray(data.workouts) || data.workouts.length === 0) {
+          throw new Error("Invalid or empty response");
+        }
         // Format the received data to match our WorkoutSuggestion type
         const formattedSuggestions = data.workouts.map((workout: any, index: number) => ({
           id: `generated-${index}`,
           name: workout.name,
           description: workout.description,
-          exercises: workout.exercises.map((ex: string) => ({ name: ex })),
+          exercises: Array.isArray(workout.exercises) 
+            ? workout.exercises.map((ex: string) => ({ name: ex }))
+            : [{ name: "Not specified" }],
           caloriesBurned: workout.caloriesBurned || 300,
           difficulty: workout.difficulty || "Moderate",
           duration: workout.duration || "30 minutes"
@@ -83,7 +114,9 @@ const WorkoutSuggestions = () => {
         setSuggestions(formattedSuggestions);
       }
     } catch (error) {
+      clearTimeout(timeoutId); // Clear the timeout since we got a response
       console.error("Error in workout suggestion generation:", error);
+      setError(error instanceof Error ? error.message : "Unknown error");
       toast({
         title: "Error",
         description: "Something went wrong. Using default suggestions instead.",
@@ -99,6 +132,10 @@ const WorkoutSuggestions = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRetry = () => {
+    handleGetSuggestions();
   };
 
   return (

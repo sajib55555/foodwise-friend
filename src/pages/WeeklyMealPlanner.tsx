@@ -227,7 +227,7 @@ const WeeklyMealPlanner: React.FC = () => {
                   disabled={loading}
                   className="w-full"
                   size="lg"
-                  variant="green"
+                  variant="green-gradient"
                 >
                   {loading ? (
                     <>

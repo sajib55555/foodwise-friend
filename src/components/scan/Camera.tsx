@@ -74,12 +74,12 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
 
   return (
     <motion.div 
-      className="flex flex-col h-full"
+      className="flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="relative flex-1 overflow-hidden rounded-3xl bg-black">
+      <div className="relative bg-black rounded-3xl overflow-hidden" style={{ height: "400px" }}>
         {activeCamera && (
           <CameraView 
             videoRef={videoRef} 

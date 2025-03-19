@@ -62,20 +62,20 @@ const CameraControls: React.FC<CameraControlsProps> = ({
             </Button>
           )}
           
-          {/* Capture button */}
+          {/* Capture button - 50% smaller */}
           <Button
             variant="blue-gradient"
-            className="w-20 h-20 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
+            className="w-10 h-10 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
             onClick={onCapture}
             aria-label="Capture photo"
             style={{
               background: "linear-gradient(to right, #ff6b00, #ff9a56)",
-              boxShadow: "0 0 30px rgba(255, 107, 0, 0.6)",
+              boxShadow: "0 0 15px rgba(255, 107, 0, 0.6)",
               position: "relative",
               zIndex: 50
             }}
           >
-            <span className="block w-16 h-16 rounded-full border-2 border-white animate-pulse"></span>
+            <span className="block w-8 h-8 rounded-full border-2 border-white animate-pulse"></span>
           </Button>
         </div>
       )}

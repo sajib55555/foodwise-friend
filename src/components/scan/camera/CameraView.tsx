@@ -22,9 +22,9 @@ const CameraView: React.FC<CameraViewProps> = ({
       const handleCanPlay = () => {
         console.log("Video can play event fired");
         // Force video element to repaint
-        video.style.opacity = '0';
+        video.style.display = 'none';
         setTimeout(() => {
-          if (video) video.style.opacity = '1';
+          if (video) video.style.display = 'block';
         }, 50);
       };
       
@@ -60,8 +60,8 @@ const CameraView: React.FC<CameraViewProps> = ({
           </div>
         </div>
       )}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="border-2 border-emerald-500/50 rounded-lg w-[85%] h-[60%] border-dashed"></div>
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="border-2 border-emerald-500/80 rounded-lg w-[85%] h-[60%] border-dashed"></div>
       </div>
     </>
   );

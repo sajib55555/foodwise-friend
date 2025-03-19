@@ -44,11 +44,11 @@ const CameraControls: React.FC<CameraControlsProps> = ({
         {activeCamera && (
           <Button
             variant="blue-gradient"
-            className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+            className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
             onClick={onCapture}
             aria-label="Capture photo"
           >
-            <span className="block w-12 h-12 rounded-full border-4 border-white"></span>
+            <span className="block w-16 h-16 rounded-full border-4 border-white"></span>
           </Button>
         )}
         

@@ -13,6 +13,7 @@ interface UseCameraSetupOptions {
 const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const setupAttemptedRef = useRef<boolean>(false);
   const { toast } = useToast();
   
   // Use our composable hooks
@@ -61,15 +62,17 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
 
   // Setup the camera when activeCamera state changes
   useEffect(() => {
+    // Only setup camera if activeCamera is true and no image is captured yet
     if (activeCamera && !capturedImage) {
       setupCamera();
+    } else if (!activeCamera && streamRef.current) {
+      // If camera becomes inactive, stop tracks
+      stopAllTracks();
     }
     
-    // Cleanup when component unmounts or when activeCamera changes to false
+    // Cleanup when component unmounts
     return () => {
-      if (!activeCamera) {
-        stopAllTracks();
-      }
+      stopAllTracks();
     };
   }, [activeCamera, capturedImage]);
 
@@ -77,12 +80,23 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
    * Initializes the camera and prepares the video stream
    */
   const setupCamera = async () => {
+    // Prevent multiple setup attempts
+    if (setupAttemptedRef.current) {
+      console.log("Camera setup already attempted, waiting...");
+      return;
+    }
+    
+    setupAttemptedRef.current = true;
+    
     try {
       console.log("Setting up camera...");
       startCameraLoading();
       
       // Stop any existing tracks before requesting new ones
       stopAllTracks();
+      
+      // Add a small delay to ensure previous tracks are fully stopped
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       const stream = await requestCameraAccess();
       
@@ -96,13 +110,20 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
         setupVideoStream(
           videoRef.current,
           stream,
-          setCameraReady,
-          (errorMessage) => handleCameraError(errorMessage)
+          () => {
+            setCameraReady();
+            setupAttemptedRef.current = false; // Reset for potential retries
+          },
+          (errorMessage) => {
+            handleCameraError(errorMessage);
+            setupAttemptedRef.current = false; // Reset for potential retries
+          }
         );
       } else {
         throw new Error("Video element not found");
       }
     } catch (error) {
+      setupAttemptedRef.current = false; // Reset for potential retries
       let errorMessage = "Failed to access camera. Please ensure camera permissions are enabled or use the upload option.";
       if (error instanceof Error) {
         errorMessage = error.message;
@@ -126,8 +147,9 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       return;
     }
     
-    // Check if video element is ready and playing
-    if (videoRef.current.readyState !== 4) {
+    // Check if video element is ready and has dimensions
+    if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+      console.error("Video not ready for capture. Dimensions:", videoRef.current.videoWidth, "x", videoRef.current.videoHeight);
       toast({
         title: "Camera Not Ready",
         description: "Camera is still initializing. Please wait a moment.",
@@ -139,8 +161,11 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     // Try to capture the image
     const imageUrl = captureImage(videoRef.current);
     if (imageUrl) {
+      console.log("Successfully captured image, stopping camera");
       stopAllTracks();
       setActiveCamera(false);
+    } else {
+      console.error("Failed to capture image");
     }
   };
 
@@ -151,6 +176,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     setCapturedImage(null);
     setCameraError(null);
     setActiveCamera(true);
+    setupAttemptedRef.current = false; // Reset for retry
   };
 
   /**
@@ -175,6 +201,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
   const openCamera = () => {
     setCameraError(null);
     setActiveCamera(true);
+    setupAttemptedRef.current = false; // Reset for retry
   };
 
   return {

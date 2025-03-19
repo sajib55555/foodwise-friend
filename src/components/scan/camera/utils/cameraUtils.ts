@@ -15,7 +15,7 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
     throw new Error("Your browser does not support camera access. Please try a different browser.");
   }
   
-  // Try environment camera (back camera) first
+  // Try environment camera (back camera) first with lower quality for better compatibility
   try {
     console.log("Requesting camera access with environment facing mode...");
     const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -31,9 +31,9 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
   } catch (err) {
     console.warn("Environment camera failed:", err);
     
-    // Fall back to any available camera
+    // Fall back to any available camera with minimal constraints
     try {
-      console.log("Trying any available camera");
+      console.log("Trying any available camera with minimal constraints");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: true,
         audio: false
@@ -52,10 +52,12 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
  */
 export const stopStreamTracks = (stream: MediaStream | null): void => {
   if (stream) {
+    console.log("Stopping all camera tracks");
     const tracks = stream.getTracks();
     tracks.forEach(track => {
       try {
         track.stop();
+        console.log("Track stopped:", track.kind);
       } catch (e) {
         console.error("Error stopping track:", e);
       }
@@ -77,22 +79,43 @@ export const setupVideoStream = (
       throw new Error("Video element is not available");
     }
     
+    console.log("Setting up video stream...");
+    
     // Set srcObject
     videoElement.srcObject = stream;
     videoElement.muted = true;
     videoElement.playsInline = true;
     
-    // Wait for metadata to load before playing
+    // Add all possible event listeners to debug
     videoElement.onloadedmetadata = () => {
-      videoElement.play()
-        .then(() => {
-          console.log("Camera started successfully");
-          onSuccess();
-        })
-        .catch(err => {
-          console.error("Error playing video:", err);
-          onError("Failed to start video stream. Please try again or use the upload option.");
-        });
+      console.log("Video metadata loaded");
+      // Introduce a small delay before playing to ensure everything is ready
+      setTimeout(() => {
+        videoElement.play()
+          .then(() => {
+            console.log("Camera started successfully");
+            // Additional delay to ensure the video is truly playing
+            setTimeout(() => {
+              onSuccess();
+            }, 300);
+          })
+          .catch(err => {
+            console.error("Error playing video:", err);
+            onError("Failed to start video stream. Please try again or use the upload option.");
+          });
+      }, 200);
+    };
+    
+    videoElement.onplaying = () => {
+      console.log("Video is now playing, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
+    };
+    
+    videoElement.onpause = () => {
+      console.log("Video playback paused");
+    };
+    
+    videoElement.onwaiting = () => {
+      console.log("Video is waiting for data");
     };
     
     // Add error handler

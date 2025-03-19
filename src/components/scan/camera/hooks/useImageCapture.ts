@@ -16,9 +16,21 @@ export const useImageCapture = ({ onCapture }: UseImageCaptureProps) => {
    */
   const captureImage = (videoElement: HTMLVideoElement | null) => {
     if (!videoElement || !canvasRef.current) {
+      console.error("Cannot capture: video or canvas element not available");
       toast({
         title: "Capture Error",
         description: "Camera is not initialized properly. Please try restarting the app.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    // Verify video is playing and has dimensions
+    if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0 || videoElement.readyState < 2) {
+      console.error("Video not ready for capture. ReadyState:", videoElement.readyState, "Dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
+      toast({
+        title: "Camera Not Ready",
+        description: "Camera not ready yet. Please wait a moment and try again.",
         variant: "destructive",
       });
       return null;
@@ -39,16 +51,6 @@ export const useImageCapture = ({ onCapture }: UseImageCaptureProps) => {
     try {
       console.log("Capturing image...");
       
-      // Make sure the video has loaded and has dimensions
-      if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
-        toast({
-          title: "Camera Not Ready",
-          description: "Camera not ready yet. Please wait a moment and try again.",
-          variant: "destructive",
-        });
-        return null;
-      }
-      
       // Set canvas dimensions to match video
       canvas.width = videoElement.videoWidth;
       canvas.height = videoElement.videoHeight;
@@ -58,15 +60,18 @@ export const useImageCapture = ({ onCapture }: UseImageCaptureProps) => {
       
       // Convert canvas to data URL - use JPEG format for better compatibility
       const imageDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+      console.log("Image captured with dimensions", canvas.width, "x", canvas.height);
+      
+      // Save to state
       setCapturedImage(imageDataUrl);
       
-      console.log("Image captured successfully");
+      // Notify success
       toast({
         title: "Image Captured",
         description: "Food image captured successfully.",
       });
       
-      // Save to state and return the image URL
+      // Call the callback with the image
       onCapture(imageDataUrl);
       return imageDataUrl;
     } catch (error) {

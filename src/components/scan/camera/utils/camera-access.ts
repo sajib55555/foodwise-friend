@@ -4,18 +4,23 @@
  */
 
 /**
+ * Camera facing mode types
+ */
+export type CameraFacingMode = 'user' | 'environment' | 'default';
+
+/**
  * Requests camera access with the specified constraints
  * Tries environment camera first, then falls back to any available camera
  */
-export const requestCameraAccess = async (): Promise<MediaStream> => {
-  console.log("Attempting to access camera...");
+export const requestCameraAccess = async (preferredFacingMode: CameraFacingMode = 'default'): Promise<MediaStream> => {
+  console.log(`Attempting to access camera with preferred mode: ${preferredFacingMode}...`);
   
   // Check if the browser supports getUserMedia
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     throw new Error("Your browser does not support camera access. Please try a different browser.");
   }
   
-  // Try to detect mobile devices to prioritize back camera
+  // Try to detect mobile devices to prioritize back camera if no preference specified
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   console.log("Device detected as:", isMobile ? "mobile" : "desktop");
   
@@ -38,8 +43,44 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
   
   let stream: MediaStream | null = null;
   
-  // On mobile prioritize the environment camera (back camera)
-  if (isMobile) {
+  // If a specific facing mode is requested (and we're on mobile), try that first
+  if (preferredFacingMode !== 'default' && isMobile) {
+    try {
+      console.log(`Trying specific camera mode: ${preferredFacingMode}`);
+      stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: { exact: preferredFacingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+      console.log(`Successfully accessed ${preferredFacingMode} camera`);
+      return stream;
+    } catch (err) {
+      console.warn(`Camera with exact ${preferredFacingMode} constraint failed:`, err);
+      
+      // Try without 'exact' constraint
+      try {
+        console.log(`Trying ${preferredFacingMode} camera without exact constraint`);
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: preferredFacingMode,
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+        console.log(`Successfully accessed ${preferredFacingMode} camera`);
+        return stream;
+      } catch (fallbackErr) {
+        console.warn(`${preferredFacingMode} camera fallback failed:`, fallbackErr);
+      }
+    }
+  }
+  
+  // On mobile prioritize the environment camera (back camera) if no specific preference
+  if (preferredFacingMode === 'default' && isMobile) {
     try {
       console.log("Mobile device detected - trying back camera first");
       stream = await navigator.mediaDevices.getUserMedia({ 
@@ -111,4 +152,30 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
   
   // This should never happen, but TypeScript wants a return statement
   throw new Error("Failed to initialize camera");
+};
+
+/**
+ * Determines if the current device is likely a mobile device
+ */
+export const isMobileDevice = (): boolean => {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
+
+/**
+ * Checks if the device has multiple cameras
+ * Note: This is not 100% reliable as some browsers may not report this correctly
+ */
+export const hasMultipleCameras = async (): Promise<boolean> => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+    return false;
+  }
+  
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+    return videoDevices.length > 1;
+  } catch (error) {
+    console.error('Error checking for multiple cameras:', error);
+    return false;
+  }
 };

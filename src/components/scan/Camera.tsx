@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
 import { X } from "lucide-react";
@@ -33,7 +34,9 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     resetCamera,
     uploadImage,
     handleSubmit,
-    openCamera
+    openCamera,
+    flipCamera,
+    canFlipCamera
   } = useCameraSetup({ 
     onCapture: (imageUrl) => {
       console.log("Camera component received captured image");
@@ -129,11 +132,13 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         activeCamera={activeCamera}
         capturedImage={capturedImage}
         uploading={uploading}
+        canFlipCamera={canFlipCamera}
         onCapture={captureImage}
         onReset={resetCamera}
         onUpload={uploadImage}
         onSubmit={handleSubmit}
         onOpenCamera={openCamera}
+        onFlipCamera={flipCamera}
       />
     </motion.div>
   );

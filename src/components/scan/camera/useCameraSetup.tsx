@@ -50,7 +50,9 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     streamRef,
     setupAttemptedRef,
     stopAllTracks,
-    openCamera: initializeCamera
+    openCamera: initializeCamera,
+    flipCamera,
+    canFlipCamera
   } = useCameraInitialization({
     activeCamera,
     capturedImage,
@@ -129,7 +131,9 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     resetCamera,
     uploadImage,
     handleSubmit,
-    openCamera
+    openCamera,
+    flipCamera,
+    canFlipCamera
   };
 };
 

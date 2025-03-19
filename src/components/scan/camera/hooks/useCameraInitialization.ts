@@ -1,6 +1,6 @@
 
-import { useRef, useEffect } from "react";
-import { requestCameraAccess, stopStreamTracks, setupVideoStream } from "../utils";
+import { useRef, useEffect, useState } from "react";
+import { requestCameraAccess, stopStreamTracks, setupVideoStream, CameraFacingMode, isMobileDevice, hasMultipleCameras } from "../utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface UseCameraInitializationOptions {
@@ -23,7 +23,21 @@ export const useCameraInitialization = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const setupAttemptedRef = useRef<boolean>(false);
+  const [facingMode, setFacingMode] = useState<CameraFacingMode>('default');
+  const [canFlipCamera, setCanFlipCamera] = useState<boolean>(false);
   const { toast } = useToast();
+
+  // Check if device has multiple cameras
+  useEffect(() => {
+    const checkCameraCapabilities = async () => {
+      if (isMobileDevice()) {
+        const hasMultiple = await hasMultipleCameras();
+        setCanFlipCamera(hasMultiple);
+      }
+    };
+    
+    checkCameraCapabilities();
+  }, []);
 
   // Cleanup function to stop all tracks
   const stopAllTracks = () => {
@@ -54,7 +68,7 @@ export const useCameraInitialization = ({
         stopAllTracks();
       }
     };
-  }, [activeCamera, capturedImage]);
+  }, [activeCamera, capturedImage, facingMode]);
 
   /**
    * Initializes the camera and prepares the video stream
@@ -69,7 +83,7 @@ export const useCameraInitialization = ({
     setupAttemptedRef.current = true;
     
     try {
-      console.log("Setting up camera...");
+      console.log(`Setting up camera with facing mode: ${facingMode}...`);
       startCameraLoading();
       
       // Stop any existing tracks before requesting new ones
@@ -78,8 +92,8 @@ export const useCameraInitialization = ({
       // Add a small delay to ensure previous tracks are fully stopped
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Request camera access
-      const stream = await requestCameraAccess();
+      // Request camera access with current facing mode
+      const stream = await requestCameraAccess(facingMode);
       
       if (!stream) {
         throw new Error("No camera stream available");
@@ -124,12 +138,37 @@ export const useCameraInitialization = ({
     setActiveCamera(true);
   };
 
+  /**
+   * Flips between front and back cameras
+   */
+  const flipCamera = () => {
+    if (!canFlipCamera) return;
+    
+    // Toggle between front and back cameras
+    const newMode: CameraFacingMode = facingMode === 'user' ? 'environment' : 'user';
+    
+    // Show toast notification
+    toast({
+      title: `Switching to ${newMode === 'user' ? 'front' : 'back'} camera`,
+      duration: 2000,
+    });
+    
+    // Set new facing mode and reset setup flags to force re-initialization
+    setFacingMode(newMode);
+    setupAttemptedRef.current = false;
+    
+    // Re-setup camera with new facing mode (effect will trigger due to facingMode change)
+  };
+
   return {
     videoRef,
     streamRef,
     setupAttemptedRef,
     stopAllTracks,
     setupCamera,
-    openCamera
+    openCamera,
+    flipCamera,
+    canFlipCamera,
+    facingMode
   };
 };

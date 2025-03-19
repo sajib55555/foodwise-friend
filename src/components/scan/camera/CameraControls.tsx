@@ -49,7 +49,9 @@ const CameraControls: React.FC<CameraControlsProps> = ({
             aria-label="Capture photo"
             style={{
               background: "linear-gradient(to right, #3b82f6, #10b981)",
-              boxShadow: "0 0 15px rgba(59, 130, 246, 0.5)"
+              boxShadow: "0 0 15px rgba(59, 130, 246, 0.5)",
+              position: "relative",
+              zIndex: 30
             }}
           >
             <span className="block w-16 h-16 rounded-full border-4 border-white"></span>

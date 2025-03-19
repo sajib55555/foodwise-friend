@@ -50,7 +50,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         console.log("Delayed camera open triggered");
         openCamera();
       }
-    }, 800);
+    }, 500); // Reduced delay for faster camera initialization
     
     // Ensure camera is properly cleaned up when component unmounts
     return () => {
@@ -73,15 +73,19 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
       exit={{ opacity: 0 }}
     >
       <div className="relative flex-1 overflow-hidden rounded-2xl bg-black">
-        {activeCamera ? (
+        {activeCamera && (
           <CameraView 
             videoRef={videoRef} 
             cameraLoading={cameraLoading}
             cameraError={cameraError}
           />
-        ) : capturedImage ? (
+        )}
+        
+        {!activeCamera && capturedImage && (
           <ImagePreview imageSrc={capturedImage} />
-        ) : (
+        )}
+        
+        {!activeCamera && !capturedImage && (
           <CameraPlaceholder />
         )}
         

@@ -61,19 +61,27 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     streamRef.current = null;
   };
 
-  // Setup the camera when activeCamera state changes
+  // Setup the camera when activeCamera state changes to true
   useEffect(() => {
-    // Only setup camera if activeCamera is true and no image is captured yet
+    let setupTimer: number;
+    
     if (activeCamera && !capturedImage) {
-      setupCamera();
+      console.log("Camera activated, setting up...");
+      // We'll add a short delay to ensure DOM is ready
+      setupTimer = window.setTimeout(() => {
+        setupCamera();
+      }, 300);
     } else if (!activeCamera && streamRef.current) {
-      // If camera becomes inactive, stop tracks
+      console.log("Camera deactivated, stopping tracks");
       stopAllTracks();
     }
     
-    // Cleanup when component unmounts
+    // Cleanup when component unmounts or activeCamera changes
     return () => {
-      stopAllTracks();
+      clearTimeout(setupTimer);
+      if (!activeCamera) {
+        stopAllTracks();
+      }
     };
   }, [activeCamera, capturedImage]);
 
@@ -100,6 +108,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       // Add a small delay to ensure previous tracks are fully stopped
       await new Promise(resolve => setTimeout(resolve, 300));
       
+      // Request camera access
       const stream = await requestCameraAccess();
       
       if (!stream) {
@@ -108,6 +117,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       
       streamRef.current = stream;
       
+      // Setup the video stream if the video element exists
       if (videoRef.current) {
         setupVideoStream(
           videoRef.current,

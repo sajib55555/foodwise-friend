@@ -91,55 +91,48 @@ export const setupVideoStream = (
     videoElement.muted = true;
     videoElement.playsInline = true;
     
-    // Force resetting
-    const forceReflow = () => {
-      videoElement.style.display = 'none';
-      // Force layout recalculation
-      void videoElement.offsetHeight;
-      videoElement.style.display = 'block';
+    // Force play to start immediately
+    const playVideo = () => {
+      videoElement.play()
+        .then(() => {
+          console.log("Camera started successfully");
+          onSuccess();
+        })
+        .catch(err => {
+          console.error("Error playing video:", err);
+          
+          // Try one more time after a short delay
+          setTimeout(() => {
+            videoElement.play()
+              .then(() => {
+                console.log("Camera started successfully on retry");
+                onSuccess();
+              })
+              .catch(retryErr => {
+                console.error("Error playing video on retry:", retryErr);
+                onError("Failed to start video stream. Please try again or use the upload option.");
+              });
+          }, 300);
+        });
     };
     
     // Add all possible event listeners to debug
     videoElement.onloadedmetadata = () => {
       console.log("Video metadata loaded");
-      
-      // Force reflow before playing
-      forceReflow();
-      
-      // Introduce a small delay before playing to ensure everything is ready
-      setTimeout(() => {
-        videoElement.play()
-          .then(() => {
-            console.log("Camera started successfully");
-            // Additional delay to ensure the video is truly playing
-            setTimeout(() => {
-              if (videoElement.videoWidth > 0) {
-                console.log("Video dimensions confirmed:", videoElement.videoWidth, "x", videoElement.videoHeight);
-                onSuccess();
-              } else {
-                console.error("Video has no dimensions after playing");
-                onError("Camera started but no video feed is available. Please try again.");
-              }
-            }, 300);
-          })
-          .catch(err => {
-            console.error("Error playing video:", err);
-            onError("Failed to start video stream. Please try again or use the upload option.");
-          });
-      }, 200);
+      playVideo();
     };
     
     videoElement.onplaying = () => {
       console.log("Video is now playing, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
     };
     
-    videoElement.onpause = () => {
-      console.log("Video playback paused");
-    };
-    
-    videoElement.onwaiting = () => {
-      console.log("Video is waiting for data");
-    };
+    // Fallback in case onloadedmetadata doesn't fire
+    setTimeout(() => {
+      if (videoElement.paused && videoElement.srcObject) {
+        console.log("Fallback: forcing video play after delay");
+        playVideo();
+      }
+    }, 1000);
     
     // Add error handler
     videoElement.onerror = (event) => {

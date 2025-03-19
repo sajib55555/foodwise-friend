@@ -55,7 +55,12 @@ const CameraView: React.FC<CameraViewProps> = ({
         autoPlay
         playsInline
         muted
-        style={{ display: videoVisible ? 'block' : 'none' }}
+        style={{
+          display: videoVisible ? 'block' : 'none',
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover'
+        }}
         className="absolute inset-0 h-full w-full object-cover bg-black"
       />
       {cameraLoading && (

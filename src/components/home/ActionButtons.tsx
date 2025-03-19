@@ -5,9 +5,11 @@ import { Card, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { PlusCircle, UtensilsCrossed, Salad, Scale, Dumbbell } from "lucide-react";
 import { motion } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ActionButtons = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const actions = [
     { 
@@ -49,8 +51,8 @@ const ActionButtons = () => {
 
   return (
     <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20">
-      <CardContent className="p-6">
-        <div className="grid grid-cols-5 gap-3">
+      <CardContent className="p-3 md:p-6">
+        <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-5 gap-3'}`}>
           {actions.map((action, index) => (
             <motion.div
               key={action.label}
@@ -62,12 +64,12 @@ const ActionButtons = () => {
               <Button 
                 variant="ghost"
                 size="icon"
-                className={`w-16 h-16 rounded-full mb-2 text-white ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
+                className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full mb-1 md:mb-2 text-white ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
               >
                 {action.icon}
               </Button>
-              <span className="text-xs font-medium text-center">{action.label}</span>
+              <span className="text-[10px] md:text-xs font-medium text-center">{action.label}</span>
             </motion.div>
           ))}
         </div>

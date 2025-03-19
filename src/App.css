@@ -121,3 +121,16 @@ body {
 .read-the-docs {
   color: #888;
 }
+
+/* Make sure main content is scrollable on mobile */
+@media (max-width: 768px) {
+  body, #root, main {
+    height: 100%;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  
+  main {
+    padding-bottom: 6rem !important; /* Extra space for mobile navbar */
+  }
+}

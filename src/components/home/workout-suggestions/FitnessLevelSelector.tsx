@@ -34,14 +34,14 @@ export const FitnessLevelSelector: React.FC<FitnessLevelSelectorProps> = ({
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className={`mb-4 ${isMobile ? 'grid grid-cols-2 gap-y-2' : 'grid grid-cols-4'}`}>
+      <TabsList className="grid grid-cols-2 mb-4 gap-2">
         {fitnessLevels.map(level => (
           <TabsTrigger 
             key={level.id} 
             value={level.id}
             disabled={loading}
             className={cn(
-              "transition-all text-xs sm:text-sm whitespace-nowrap px-2 py-1.5",
+              "transition-all text-sm whitespace-nowrap px-2 py-1.5",
               tabColors[level.id as keyof typeof tabColors]
             )}
           >
@@ -57,6 +57,7 @@ export const FitnessLevelSelector: React.FC<FitnessLevelSelectorProps> = ({
           <Button 
             variant="purple-gradient"
             className="w-full"
+            size={isMobile ? "sm" : "default"}
             onClick={() => onFetchSuggestions(level.label)}
             disabled={loading}
           >

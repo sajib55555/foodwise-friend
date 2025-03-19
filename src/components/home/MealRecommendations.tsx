@@ -125,14 +125,14 @@ const MealRecommendations: React.FC = () => {
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className={`mb-4 ${isMobile ? 'grid grid-cols-2 gap-y-2' : 'grid grid-cols-4'}`}>
+              <TabsList className="grid grid-cols-2 mb-4 gap-2">
                 {dietaryPreferences.map(pref => (
                   <TabsTrigger 
                     key={pref.id} 
                     value={pref.id}
                     disabled={loading}
                     className={cn(
-                      "transition-all text-xs sm:text-sm whitespace-nowrap px-2 py-1.5",
+                      "transition-all text-sm whitespace-nowrap px-2 py-1.5",
                       tabColors[pref.id as keyof typeof tabColors]
                     )}
                   >
@@ -148,6 +148,7 @@ const MealRecommendations: React.FC = () => {
                   <Button 
                     variant="purple-gradient"
                     className="w-full"
+                    size={isMobile ? "sm" : "default"}
                     onClick={() => fetchRecommendations(pref.label)}
                     disabled={loading}
                   >
@@ -191,22 +192,22 @@ const MealRecommendations: React.FC = () => {
                   
                   <div className="mt-2">
                     <h4 className="text-xs uppercase tracking-wider font-semibold mb-2 text-muted-foreground">Ingredients</h4>
-                    <ul className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-x-4 gap-y-1`}>
+                    <ul className="grid grid-cols-1 gap-y-1">
                       {meal.ingredients.map((ingredient, i) => (
                         <li key={i} className="text-sm flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-purple-500"></span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-purple-500 mr-1"></span>
                           {ingredient}
                         </li>
                       ))}
                     </ul>
                   </div>
                   
-                  <div className="flex justify-end gap-2 mt-2">
-                    <Button size="sm" variant="purple-gradient" className="gap-1">
+                  <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-2 mt-4">
+                    <Button size="sm" variant="purple-gradient" className="gap-1 w-full sm:w-auto">
                       <Clock className="h-3.5 w-3.5" />
                       Save for Later
                     </Button>
-                    <Button size="sm" variant="purple-gradient" className="gap-1">
+                    <Button size="sm" variant="purple-gradient" className="gap-1 w-full sm:w-auto">
                       <ScrollText className="h-3.5 w-3.5" />
                       Log Meal
                     </Button>

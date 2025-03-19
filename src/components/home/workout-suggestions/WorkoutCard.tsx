@@ -50,11 +50,11 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, index, onTrac
           </ul>
         </div>
         
-        <div className={`flex ${isMobile ? 'justify-center' : 'justify-end'} gap-2 mt-2`}>
+        <div className="flex justify-center w-full mt-4">
           <Button 
             size="sm" 
             variant="purple-gradient" 
-            className="gap-1"
+            className="gap-1 w-full md:w-auto"
             onClick={() => onTrackWorkout(workout)}
           >
             <Dumbbell className="h-3.5 w-3.5" />

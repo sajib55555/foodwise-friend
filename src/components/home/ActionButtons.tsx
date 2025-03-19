@@ -13,35 +13,35 @@ const ActionButtons = () => {
 
   const actions = [
     { 
-      icon: <PlusCircle className="h-5 w-5" />, 
+      icon: <PlusCircle className="h-4 w-4 md:h-5 md:w-5" />, 
       label: "Log Meal", 
       onClick: () => navigate("/log-meal"),
       gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
       shadow: "shadow-purple"
     },
     { 
-      icon: <UtensilsCrossed className="h-5 w-5" />, 
+      icon: <UtensilsCrossed className="h-4 w-4 md:h-5 md:w-5" />, 
       label: "Food Scanner", 
       onClick: () => navigate("/scan"),
       gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
       shadow: "shadow-blue"
     },
     { 
-      icon: <Salad className="h-5 w-5" />, 
+      icon: <Salad className="h-4 w-4 md:h-5 md:w-5" />, 
       label: "Meal Plans", 
       onClick: () => navigate("/plans"),
       gradient: "bg-gradient-to-br from-green-400 to-green-600",
       shadow: "shadow-green"
     },
     { 
-      icon: <Scale className="h-5 w-5" />, 
+      icon: <Scale className="h-4 w-4 md:h-5 md:w-5" />, 
       label: "Weight", 
       onClick: () => navigate("/weight"),
       gradient: "bg-gradient-to-br from-amber-400 to-amber-600",
       shadow: "shadow-amber"
     },
     { 
-      icon: <Dumbbell className="h-5 w-5" />, 
+      icon: <Dumbbell className="h-4 w-4 md:h-5 md:w-5" />, 
       label: "Workouts", 
       onClick: () => navigate("/workout"),
       gradient: "bg-gradient-to-br from-pink-400 to-pink-600",
@@ -51,7 +51,7 @@ const ActionButtons = () => {
 
   return (
     <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20">
-      <CardContent className="p-3 md:p-6">
+      <CardContent className="p-2 md:p-6">
         <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-5 gap-3'}`}>
           {actions.map((action, index) => (
             <motion.div
@@ -64,12 +64,12 @@ const ActionButtons = () => {
               <Button 
                 variant="ghost"
                 size="icon"
-                className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full mb-1 md:mb-2 text-white ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
+                className={`${isMobile ? 'w-10 h-10' : 'w-16 h-16'} rounded-full mb-1 md:mb-2 text-white ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
               >
                 {action.icon}
               </Button>
-              <span className="text-[10px] md:text-xs font-medium text-center">{action.label}</span>
+              <span className="text-[9px] md:text-xs font-medium text-center">{action.label}</span>
             </motion.div>
           ))}
         </div>

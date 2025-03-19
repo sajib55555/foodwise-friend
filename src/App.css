@@ -10,6 +10,7 @@
 body {
   background: linear-gradient(135deg, rgba(240, 253, 244, 0.3), rgba(237, 233, 254, 0.3));
   min-height: 100vh;
+  overflow-y: auto;
 }
 
 /* Custom scrollbar */

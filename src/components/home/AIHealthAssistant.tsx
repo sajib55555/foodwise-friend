@@ -120,7 +120,13 @@ const AIHealthAssistant = () => {
       if (error) {
         console.error("Edge function error:", error);
         setError(`Failed to analyze health data: ${error.message}`);
-        throw new Error(error.message || 'Failed to analyze health data');
+        setAnalysis(data?.textAnalysis || null);
+        return;
+      }
+
+      if (!data) {
+        setError("No response from server");
+        return;
       }
 
       console.log("Received response from edge function:", data);
@@ -129,19 +135,18 @@ const AIHealthAssistant = () => {
       if (data.error) {
         console.error("API error:", data.error);
         setError(data.error);
-        
-        // If we still have text analysis despite the error, show it
-        if (data.textAnalysis) {
-          setAnalysis(data.textAnalysis);
-        } else {
-          throw new Error(data.error);
-        }
       }
 
-      // Handle the response
-      if (data.audioContent && data.textAnalysis) {
+      // Handle the text analysis
+      if (data.textAnalysis) {
         setAnalysis(data.textAnalysis);
-        
+      } else {
+        setError("No analysis was generated");
+        return;
+      }
+
+      // Handle the audio if available
+      if (data.audioContent) {
         // Convert base64 to audio
         const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
         
@@ -149,25 +154,34 @@ const AIHealthAssistant = () => {
         if (audioRef.current) {
           audioRef.current.src = audioSrc;
           audioRef.current.volume = volume / 100;
-          audioRef.current.play();
-          setPlaying(true);
+          
+          try {
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  setPlaying(true);
+                })
+                .catch(err => {
+                  console.error("Audio playback error:", err);
+                  setError("Audio playback failed. You may need to interact with the page first.");
+                });
+            }
+          } catch (err) {
+            console.error("Audio play error:", err);
+          }
           
           audioRef.current.onended = () => {
             setPlaying(false);
           };
         }
-      } else if (!data.audioContent && data.textAnalysis) {
-        // If we only have text analysis without audio
-        setAnalysis(data.textAnalysis);
+      } else if (!data.error) {
+        // If we don't have audio but we have text and no explicit error
         toast({
           title: "Voice synthesis unavailable",
           description: "Only text analysis is available at this time.",
           variant: "default",
         });
-      } else if (!data.error) {
-        // If we don't have an error explicitly but also don't have the data we expected
-        setError("Invalid response from server");
-        throw new Error('Invalid response from server');
       }
     } catch (error: any) {
       console.error("Error fetching data or analyzing:", error);
@@ -188,8 +202,17 @@ const AIHealthAssistant = () => {
         audioRef.current.pause();
         setPlaying(false);
       } else {
-        audioRef.current.play();
-        setPlaying(true);
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setPlaying(true);
+            })
+            .catch(err => {
+              console.error("Audio playback error:", err);
+              setError("Audio playback failed. You may need to interact with the page first.");
+            });
+        }
       }
     }
   };

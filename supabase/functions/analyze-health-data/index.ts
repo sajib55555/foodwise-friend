@@ -17,7 +17,14 @@ serve(async (req) => {
   try {
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not set');
+      console.error('OPENAI_API_KEY is not set');
+      return new Response(
+        JSON.stringify({ error: "OPENAI_API_KEY is not set" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const openai = new OpenAI({
@@ -42,6 +49,7 @@ serve(async (req) => {
     const { healthData, userName } = requestData;
     
     if (!healthData) {
+      console.error("Health data is missing");
       return new Response(
         JSON.stringify({ error: "Health data is required" }),
         {
@@ -55,13 +63,13 @@ serve(async (req) => {
     console.log("Received user name:", userName);
 
     // Generate personalized health analysis
-    const analysisPrompt = generateAnalysisPrompt(healthData, userName);
+    const analysisPrompt = generateAnalysisPrompt(healthData, userName || 'User');
     console.log("Analysis prompt:", analysisPrompt);
 
     // Generate OpenAI completion
-    let completion;
+    let analysis;
     try {
-      completion = await openai.chat.completions.create({
+      const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini", // Using the recommended model
         messages: [
           {
@@ -72,27 +80,43 @@ serve(async (req) => {
         ],
         max_tokens: 500,
       });
+      
+      analysis = completion.choices[0].message.content;
+      console.log("Generated analysis:", analysis);
     } catch (error) {
       console.error("OpenAI API error:", error);
       return new Response(
-        JSON.stringify({ error: `OpenAI API error: ${error.message}` }),
+        JSON.stringify({ 
+          error: `OpenAI API error: ${error.message}`,
+          textAnalysis: "I couldn't analyze your health data at the moment. Please try again later."
+        }),
         {
-          status: 500,
+          status: 200, // Return 200 to avoid client-side error handling issues
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
-    const analysis = completion.choices[0].message.content;
-    console.log("Generated analysis:", analysis);
+    if (!analysis) {
+      console.error("Failed to generate analysis");
+      return new Response(
+        JSON.stringify({ 
+          error: "Failed to generate analysis",
+          textAnalysis: "I couldn't analyze your health data at the moment. Please try again later."
+        }),
+        {
+          status: 200, // Return 200 to avoid client-side error handling issues
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
     const voicePreference = healthData.voicePreference || 'nova';
     console.log("Voice preference:", voicePreference);
 
     // Generate speech from the analysis
-    let speechResponse;
     try {
-      speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+      const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -107,10 +131,48 @@ serve(async (req) => {
       });
 
       if (!speechResponse.ok) {
-        const errorData = await speechResponse.json();
-        console.error("OpenAI speech API error:", errorData);
-        throw new Error(errorData.error?.message || 'Failed to generate speech');
+        const errorText = await speechResponse.text();
+        console.error("OpenAI speech API error. Status:", speechResponse.status, "Response:", errorText);
+        
+        // Parse error response if it's JSON
+        let errorMessage = "Speech generation failed";
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error?.message || errorMessage;
+        } catch (e) {
+          // If parsing fails, use the raw text
+          errorMessage = errorText || errorMessage;
+        }
+        
+        // Return text analysis even if speech generation fails
+        return new Response(
+          JSON.stringify({ 
+            textAnalysis: analysis,
+            error: `Speech generation failed: ${errorMessage}`
+          }),
+          {
+            status: 200, // Return 200 to avoid client-side error handling
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
       }
+
+      // Convert audio buffer to base64
+      const arrayBuffer = await speechResponse.arrayBuffer();
+      const base64Audio = btoa(
+        String.fromCharCode(...new Uint8Array(arrayBuffer))
+      );
+
+      return new Response(
+        JSON.stringify({ 
+          audioContent: base64Audio,
+          textAnalysis: analysis 
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     } catch (error) {
       console.error("Speech generation error:", error);
       // Return the text analysis even if speech generation fails
@@ -120,33 +182,20 @@ serve(async (req) => {
           error: `Speech generation failed: ${error.message}`
         }),
         {
-          status: 200, // Return 200 to allow the app to at least show the text analysis
+          status: 200, // Return 200 to avoid client-side error handling
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
-
-    // Convert audio buffer to base64
-    const arrayBuffer = await speechResponse.arrayBuffer();
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    );
-
+  } catch (error) {
+    console.error("Unhandled error:", error.message, error.stack);
     return new Response(
       JSON.stringify({ 
-        audioContent: base64Audio,
-        textAnalysis: analysis 
+        error: error.message,
+        textAnalysis: "An unexpected error occurred. Please try again later."
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    console.error("Error:", error.message, error.stack);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
+        status: 200, // Return 200 to avoid client-side error handling
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
@@ -162,7 +211,7 @@ function generateAnalysisPrompt(healthData: any, userName: string): string {
   const goals = healthData.goals || [];
 
   return `
-    Analyze the following health data for ${userName || 'the user'} and provide personalized health advice and recommendations:
+    Analyze the following health data for ${userName} and provide personalized health advice and recommendations:
     
     Nutrition data: ${JSON.stringify(nutrition)}
     Exercise data: ${JSON.stringify(exercise)}

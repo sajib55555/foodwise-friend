@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { PlusCircle, UtensilsCrossed, Salad, Scale, Dumbbell } from "lucide-react";
+import { PlusCircle, UtensilsCrossed, Salad, Scale, Dumbbell, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -46,13 +46,20 @@ const ActionButtons = () => {
       onClick: () => navigate("/workout"),
       gradient: "bg-gradient-to-br from-pink-400 to-pink-600",
       shadow: "shadow-pink"
+    },
+    { 
+      icon: <Target className="h-4 w-4 md:h-5 md:w-5" />, 
+      label: "Goals", 
+      onClick: () => navigate("/goals"),
+      gradient: "bg-gradient-to-br from-teal-400 to-teal-600",
+      shadow: "shadow-teal"
     }
   ];
 
   return (
     <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20">
       <CardContent className="p-2 md:p-6">
-        <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-5 gap-3'}`}>
+        <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-6 gap-3'}`}>
           {actions.map((action, index) => (
             <motion.div
               key={action.label}

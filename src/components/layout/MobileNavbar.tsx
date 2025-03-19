@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Camera, BarChart3, Settings } from "lucide-react";
+import { Home, Camera, BarChart3, Settings, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -11,6 +11,7 @@ const MobileNavbar: React.FC = () => {
     // Consider paths like /log-meal to match with their parent actions
     if (path === "/plans" && location.pathname === "/plans") return true;
     if (path === "/scan" && location.pathname === "/log-meal") return true;
+    if (path === "/goals" && location.pathname === "/goals") return true;
     return location.pathname === path;
   };
 
@@ -30,6 +31,14 @@ const MobileNavbar: React.FC = () => {
       activeColor: "text-blue-600",
       gradientClass: "bg-gradient-to-br from-blue-400 to-blue-600",
       indicatorClass: "bg-blue-600"
+    },
+    { 
+      path: "/goals", 
+      icon: Target, 
+      label: "Goals",
+      activeColor: "text-teal-600",
+      gradientClass: "bg-gradient-to-br from-teal-400 to-teal-600", 
+      indicatorClass: "bg-teal-600"
     },
     { 
       path: "/nutrition", 

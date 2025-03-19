@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +23,7 @@ import MealPlans from "./pages/MealPlans";
 import WeightTracker from "./pages/WeightTracker";
 import WorkoutTracker from "./pages/WorkoutTracker";
 import WeeklyMealPlanner from "./pages/WeeklyMealPlanner";
+import GoalsTracker from "./pages/GoalsTracker";
 import { ActivityLogProvider } from "@/contexts/ActivityLogContext";
 
 const queryClient = new QueryClient();
@@ -120,6 +122,11 @@ const AppRoutes = () => {
         <Route path="/workout" element={
           <ProtectedRoute>
             <WorkoutTracker />
+          </ProtectedRoute>
+        } />
+        <Route path="/goals" element={
+          <ProtectedRoute>
+            <GoalsTracker />
           </ProtectedRoute>
         } />
 

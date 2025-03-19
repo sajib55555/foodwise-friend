@@ -48,8 +48,8 @@ const CameraControls: React.FC<CameraControlsProps> = ({
             onClick={onCapture}
             aria-label="Capture photo"
             style={{
-              background: "linear-gradient(to right, #3b82f6, #10b981)",
-              boxShadow: "0 0 25px rgba(59, 130, 246, 0.8)",
+              background: "linear-gradient(to right, #ff4800, #ff8a00)",
+              boxShadow: "0 0 30px rgba(255, 72, 0, 0.8)",
               position: "relative",
               zIndex: 50
             }}

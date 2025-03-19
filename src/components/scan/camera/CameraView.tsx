@@ -19,8 +19,16 @@ const CameraView: React.FC<CameraViewProps> = ({
     if (videoRef.current) {
       const video = videoRef.current;
       
-      // Enhanced debugging and visibility
       console.log("CameraView mounted, setting up video element");
+      
+      // Apply critical styles directly to ensure visibility
+      video.style.display = 'block';
+      video.style.visibility = 'visible';
+      video.style.opacity = '1';
+      video.style.width = '100%';
+      video.style.height = '100%';
+      video.style.objectFit = 'cover';
+      video.style.zIndex = '10';
       
       // Force repaint when video can play
       const handleCanPlay = () => {
@@ -30,7 +38,8 @@ const CameraView: React.FC<CameraViewProps> = ({
           video.style.display = 'block';
           video.style.visibility = 'visible';
           video.style.opacity = '1';
-          console.log("Video element should now be visible");
+          // Force layout recalculation
+          void video.offsetHeight;
         }
       };
       
@@ -42,7 +51,8 @@ const CameraView: React.FC<CameraViewProps> = ({
           video.style.display = 'block';
           video.style.visibility = 'visible';
           video.style.opacity = '1';
-          console.log("Video element should now be visible (playing)");
+          // Force layout recalculation
+          void video.offsetHeight;
         }
       };
       
@@ -77,7 +87,8 @@ const CameraView: React.FC<CameraViewProps> = ({
           display: 'block',
           visibility: 'visible',
           opacity: 1,
-          zIndex: 10
+          zIndex: 10,
+          backgroundColor: '#000'
         }}
         className="absolute inset-0 h-full w-full object-cover bg-black"
       />

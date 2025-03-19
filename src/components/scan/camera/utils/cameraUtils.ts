@@ -15,26 +15,36 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
     throw new Error("Your browser does not support camera access. Please try a different browser.");
   }
   
-  // Try environment camera (back camera) first with higher quality
-  try {
-    console.log("Requesting camera access with environment facing mode...");
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { 
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      },
-      audio: false
-    });
-    console.log("Successfully accessed environment camera");
-    return stream;
-  } catch (err) {
-    console.warn("Environment camera failed:", err);
-    
-    // Try user camera (front camera) specifically
+  // Try to detect mobile devices to prioritize back camera
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  console.log("Device detected as:", isMobile ? "mobile" : "desktop");
+  
+  let stream: MediaStream | null = null;
+  
+  // On mobile prioritize the environment camera (back camera)
+  if (isMobile) {
+    try {
+      console.log("Mobile device detected - trying back camera first");
+      stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+      console.log("Successfully accessed back camera");
+      return stream;
+    } catch (err) {
+      console.warn("Back camera failed:", err);
+    }
+  }
+  
+  // Try user camera (front camera) specifically
+  if (!stream) {
     try {
       console.log("Trying user (front) camera");
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: "user",
           width: { ideal: 1280 },
@@ -46,22 +56,27 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
       return stream;
     } catch (frontErr) {
       console.warn("Front camera failed:", frontErr);
-      
-      // Fall back to any available camera with minimal constraints
-      try {
-        console.log("Trying any available camera with minimal constraints");
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: true,
-          audio: false
-        });
-        console.log("Successfully accessed default camera");
-        return stream;
-      } catch (secondErr) {
-        console.error("All camera access attempts failed:", secondErr);
-        throw new Error("Could not access any camera. Please check permissions and try again.");
-      }
     }
   }
+  
+  // Fall back to any available camera with minimal constraints
+  if (!stream) {
+    try {
+      console.log("Trying any available camera with minimal constraints");
+      stream = await navigator.mediaDevices.getUserMedia({ 
+        video: true,
+        audio: false
+      });
+      console.log("Successfully accessed default camera");
+      return stream;
+    } catch (secondErr) {
+      console.error("All camera access attempts failed:", secondErr);
+      throw new Error("Could not access any camera. Please check permissions and try again.");
+    }
+  }
+  
+  // This should never happen, but TypeScript wants a return statement
+  throw new Error("Failed to initialize camera");
 };
 
 /**
@@ -106,48 +121,58 @@ export const setupVideoStream = (
       videoElement.srcObject = null;
     }
     
-    // Set stream and properties
-    videoElement.srcObject = stream;
-    videoElement.muted = true;
-    videoElement.playsInline = true;
-    
-    // Directly apply crucial visibility styles
+    // Set critical styles first to ensure visibility
     videoElement.style.display = 'block';
     videoElement.style.visibility = 'visible';
     videoElement.style.opacity = '1';
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.objectFit = 'cover';
+    videoElement.style.backgroundColor = '#000';
     videoElement.style.zIndex = '10';
+    
+    // Set stream and properties
+    videoElement.srcObject = stream;
+    videoElement.muted = true;
+    videoElement.playsInline = true;
     
     // Force play to start immediately
     const playVideo = () => {
-      // This line is crucial - makes the video visible
+      // Ensure video is visible - important!
       videoElement.style.display = 'block';
       videoElement.style.visibility = 'visible';
       videoElement.style.opacity = '1';
       
-      // Log before playing
+      // Force layout recalculation
+      void videoElement.offsetHeight;
+      
       console.log("Attempting to play video");
       
       videoElement.play()
         .then(() => {
           console.log("Camera started successfully");
-          // Ensure video is visible
+          // Ensure video is still visible after successful play
           videoElement.style.display = 'block';
           videoElement.style.visibility = 'visible';
           videoElement.style.opacity = '1';
+          
+          // Force browser to recalculate layout
+          void videoElement.offsetHeight;
           
           onSuccess();
         })
         .catch(err => {
           console.error("Error playing video:", err);
           
-          // Try one more time after a short delay
+          // Try one more time after a short delay with more assertive styles
           setTimeout(() => {
-            videoElement.style.display = 'block';
-            videoElement.style.visibility = 'visible';
-            videoElement.style.opacity = '1';
+            // Even more direct styling
+            videoElement.style.display = 'block !important';
+            videoElement.style.visibility = 'visible !important';
+            videoElement.style.opacity = '1 !important';
+            
+            // Force layout recalculation
+            void videoElement.offsetHeight;
             
             videoElement.play()
               .then(() => {
@@ -167,7 +192,7 @@ export const setupVideoStream = (
         });
     };
     
-    // Add all possible event listeners to debug
+    // Set up all possible event listeners to debug
     videoElement.onloadedmetadata = () => {
       console.log("Video metadata loaded");
       playVideo();
@@ -179,15 +204,18 @@ export const setupVideoStream = (
       videoElement.style.display = 'block';
       videoElement.style.visibility = 'visible';
       videoElement.style.opacity = '1';
+      
+      // Force layout recalculation
+      void videoElement.offsetHeight;
     };
     
     // Fallback in case onloadedmetadata doesn't fire
     setTimeout(() => {
-      if (videoElement.paused && videoElement.srcObject) {
+      if ((videoElement.paused || videoElement.readyState < 2) && videoElement.srcObject) {
         console.log("Fallback: forcing video play after delay");
         playVideo();
       }
-    }, 1000);
+    }, 500);
     
     // Add error handler
     videoElement.onerror = (event) => {

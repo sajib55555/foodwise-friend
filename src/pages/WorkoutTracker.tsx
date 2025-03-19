@@ -12,6 +12,7 @@ import WorkoutHistoryList from "@/components/workout/WorkoutHistoryList";
 import WorkoutStatsCards from "@/components/workout/WorkoutStatsCards";
 import { motion } from "framer-motion";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Workout {
   id: string;
@@ -28,6 +29,7 @@ const WorkoutTracker = () => {
   const { logActivity } = useActivityLog();
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const isMobile = useIsMobile();
 
   // Load workouts from localStorage on component mount
   useEffect(() => {
@@ -126,60 +128,68 @@ const WorkoutTracker = () => {
 
   return (
     <PageTransition>
-      <Header title="Workout Tracker" />
-      <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
-        <div className="space-y-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <WorkoutStatsCards 
-              totalWorkouts={totalWorkouts} 
-              totalCalories={totalCalories} 
-              totalDuration={totalDuration} 
-            />
-          </motion.div>
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30">
+        {/* Decorative elements */}
+        <div className="absolute top-20 right-5 w-64 h-64 bg-purple-300/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 left-5 w-72 h-72 bg-indigo-300/10 rounded-full blur-3xl"></div>
+        
+        <Header title="Workout Tracker" />
+        <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="relative z-10"
+            >
+              <WorkoutStatsCards 
+                totalWorkouts={totalWorkouts} 
+                totalCalories={totalCalories} 
+                totalDuration={totalDuration} 
+              />
+            </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-          >
-            <Card variant="glass">
-              <CardHeader className="pb-2">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-purple-500" />
-                    Workout History
-                  </CardTitle>
-                  <Button
-                    variant="purple"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => setShowWorkoutForm(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Workout
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <WorkoutHistoryList workouts={workouts} onDelete={deleteWorkout} />
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </main>
-      
-      {showWorkoutForm && (
-        <WorkoutForm
-          onSubmit={addWorkout}
-          onCancel={() => setShowWorkoutForm(false)}
-        />
-      )}
-      
-      <MobileNavbar />
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="relative z-10"
+            >
+              <Card variant="glass" className="shadow-purple-sm border border-purple-200/50 dark:border-purple-800/30 overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-base sm:text-lg flex items-center gap-2 text-gradient-purple">
+                      <Activity className="h-5 w-5 text-purple-500" />
+                      Workout History
+                    </CardTitle>
+                    <Button
+                      variant="purple-gradient"
+                      size={isMobile ? "pill-sm" : "pill"}
+                      className="shadow-purple hover:shadow-purple-lg transition-all"
+                      onClick={() => setShowWorkoutForm(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Workout
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <WorkoutHistoryList workouts={workouts} onDelete={deleteWorkout} />
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+        </main>
+        
+        {showWorkoutForm && (
+          <WorkoutForm
+            onSubmit={addWorkout}
+            onCancel={() => setShowWorkoutForm(false)}
+          />
+        )}
+        
+        <MobileNavbar />
+      </div>
     </PageTransition>
   );
 };

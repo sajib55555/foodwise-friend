@@ -75,7 +75,6 @@ const WorkoutSuggestions: React.FC = () => {
     const level = fitnessLevels.find(level => level.id === value);
     if (level) {
       setCurrentFitnessLevel(level.label);
-      fetchSuggestions(level.label);
     }
   };
 

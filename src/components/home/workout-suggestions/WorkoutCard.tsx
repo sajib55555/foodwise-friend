@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-c
 import { Button } from "@/components/ui/button-custom";
 import { Dumbbell, Clock } from "lucide-react";
 import { WorkoutSuggestion } from "./types";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface WorkoutCardProps {
   workout: WorkoutSuggestion;
@@ -12,6 +13,8 @@ interface WorkoutCardProps {
 }
 
 export const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, index, onTrackWorkout }) => {
+  const isMobile = useIsMobile();
+  
   return (
     <Card key={index} className="overflow-hidden">
       <CardHeader className="pb-2 bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10">
@@ -30,7 +33,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, index, onTrac
           <div className="py-1 px-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-xs">
             {workout.difficulty}
           </div>
-          <div className="py-1 px-2 rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs">
+          <div className="py-1 px-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-xs">
             ~{workout.caloriesBurned} kcal
           </div>
         </div>
@@ -47,7 +50,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({ workout, index, onTrac
           </ul>
         </div>
         
-        <div className="flex justify-end gap-2 mt-2">
+        <div className={`flex ${isMobile ? 'justify-center' : 'justify-end'} gap-2 mt-2`}>
           <Button 
             size="sm" 
             variant="purple-gradient" 

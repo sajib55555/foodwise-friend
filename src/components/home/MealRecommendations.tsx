@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Meal {
   name: string;
@@ -28,6 +29,7 @@ interface MealRecommendationsResponse {
 
 const MealRecommendations: React.FC = () => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<Meal[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -43,10 +45,10 @@ const MealRecommendations: React.FC = () => {
 
   // Map of dietary preferences to color classes
   const tabColors = {
-    balanced: "data-[state=active]:bg-amber-100 data-[state=active]:text-amber-700 dark:data-[state=active]:bg-amber-900/30 dark:data-[state=active]:text-amber-300",
-    protein: "data-[state=active]:bg-red-100 data-[state=active]:text-red-700 dark:data-[state=active]:bg-red-900/30 dark:data-[state=active]:text-red-300",
-    lowCarb: "data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300",
-    plantBased: "data-[state=active]:bg-green-100 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900/30 dark:data-[state=active]:text-green-300",
+    balanced: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
+    protein: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
+    lowCarb: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
+    plantBased: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
   };
 
   const fetchRecommendations = async (preference: string) => {
@@ -104,7 +106,6 @@ const MealRecommendations: React.FC = () => {
     const preference = dietaryPreferences.find(pref => pref.id === value);
     if (preference) {
       setCurrentPreferences(preference.label);
-      fetchRecommendations(preference.label);
     }
   };
 
@@ -118,20 +119,20 @@ const MealRecommendations: React.FC = () => {
         <Card variant="glass">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <ChefHat className="h-5 w-5 text-amber-500" />
+              <ChefHat className="h-5 w-5 text-purple-500" />
               Meal Recommendations
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="grid grid-cols-4 mb-4">
+              <TabsList className={`mb-4 ${isMobile ? 'grid grid-cols-2 gap-y-2' : 'grid grid-cols-4'}`}>
                 {dietaryPreferences.map(pref => (
                   <TabsTrigger 
                     key={pref.id} 
                     value={pref.id}
                     disabled={loading}
                     className={cn(
-                      "transition-all",
+                      "transition-all text-xs sm:text-sm whitespace-nowrap px-2 py-1.5",
                       tabColors[pref.id as keyof typeof tabColors]
                     )}
                   >
@@ -145,7 +146,7 @@ const MealRecommendations: React.FC = () => {
                   <p className="text-sm text-muted-foreground">{pref.description}</p>
                   
                   <Button 
-                    variant="amber-gradient"
+                    variant="purple-gradient"
                     className="w-full"
                     onClick={() => fetchRecommendations(pref.label)}
                     disabled={loading}
@@ -167,7 +168,7 @@ const MealRecommendations: React.FC = () => {
           <div className="space-y-6 mt-4">
             {recommendations.map((meal, index) => (
               <Card key={index} className="overflow-hidden">
-                <CardHeader className="pb-2 bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-950/20 dark:to-amber-900/10">
+                <CardHeader className="pb-2 bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10">
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">{meal.name}</CardTitle>
                     <div className="text-sm font-medium">{meal.calories} kcal</div>
@@ -177,23 +178,23 @@ const MealRecommendations: React.FC = () => {
                   <p className="text-sm text-muted-foreground">{meal.description}</p>
                   
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <div className="py-1 px-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-xs">
+                    <div className="py-1 px-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-xs">
                       Protein: {meal.macros.protein}
                     </div>
-                    <div className="py-1 px-2 rounded-full bg-green-100 dark:bg-green-900/30 text-xs">
+                    <div className="py-1 px-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-xs">
                       Carbs: {meal.macros.carbs}
                     </div>
-                    <div className="py-1 px-2 rounded-full bg-orange-100 dark:bg-orange-900/30 text-xs">
+                    <div className="py-1 px-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-xs">
                       Fat: {meal.macros.fat}
                     </div>
                   </div>
                   
                   <div className="mt-2">
                     <h4 className="text-xs uppercase tracking-wider font-semibold mb-2 text-muted-foreground">Ingredients</h4>
-                    <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+                    <ul className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-x-4 gap-y-1`}>
                       {meal.ingredients.map((ingredient, i) => (
                         <li key={i} className="text-sm flex items-center gap-1">
-                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-purple-500"></span>
                           {ingredient}
                         </li>
                       ))}
@@ -201,11 +202,11 @@ const MealRecommendations: React.FC = () => {
                   </div>
                   
                   <div className="flex justify-end gap-2 mt-2">
-                    <Button size="sm" variant="amber-gradient" className="gap-1">
+                    <Button size="sm" variant="purple-gradient" className="gap-1">
                       <Clock className="h-3.5 w-3.5" />
                       Save for Later
                     </Button>
-                    <Button size="sm" variant="amber-gradient" className="gap-1">
+                    <Button size="sm" variant="purple-gradient" className="gap-1">
                       <ScrollText className="h-3.5 w-3.5" />
                       Log Meal
                     </Button>

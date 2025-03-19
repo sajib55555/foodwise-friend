@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button-custom";
 import { ArrowRight } from "lucide-react";
 import { FitnessLevel } from "./types";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FitnessLevelSelectorProps {
   fitnessLevels: FitnessLevel[];
@@ -21,24 +22,26 @@ export const FitnessLevelSelector: React.FC<FitnessLevelSelectorProps> = ({
   onTabChange,
   onFetchSuggestions,
 }) => {
-  // Map of fitness levels to color classes
+  const isMobile = useIsMobile();
+  
+  // Map of fitness levels to color classes - using purple for consistency
   const tabColors = {
-    beginner: "data-[state=active]:bg-green-100 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900/30 dark:data-[state=active]:text-green-300",
-    intermediate: "data-[state=active]:bg-blue-100 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300",
+    beginner: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
+    intermediate: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
     advanced: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
-    expert: "data-[state=active]:bg-pink-100 data-[state=active]:text-pink-700 dark:data-[state=active]:bg-pink-900/30 dark:data-[state=active]:text-pink-300",
+    expert: "data-[state=active]:bg-purple-100 data-[state=active]:text-purple-700 dark:data-[state=active]:bg-purple-900/30 dark:data-[state=active]:text-purple-300",
   };
 
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid grid-cols-4 mb-4">
+      <TabsList className={`mb-4 ${isMobile ? 'grid grid-cols-2 gap-y-2' : 'grid grid-cols-4'}`}>
         {fitnessLevels.map(level => (
           <TabsTrigger 
             key={level.id} 
             value={level.id}
             disabled={loading}
             className={cn(
-              "transition-all",
+              "transition-all text-xs sm:text-sm whitespace-nowrap px-2 py-1.5",
               tabColors[level.id as keyof typeof tabColors]
             )}
           >

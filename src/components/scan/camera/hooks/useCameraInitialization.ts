@@ -1,6 +1,6 @@
 
 import { useRef, useEffect } from "react";
-import { requestCameraAccess, stopStreamTracks, setupVideoStream } from "../utils/cameraUtils";
+import { requestCameraAccess, stopStreamTracks, setupVideoStream } from "../utils";
 import { useToast } from "@/hooks/use-toast";
 
 interface UseCameraInitializationOptions {

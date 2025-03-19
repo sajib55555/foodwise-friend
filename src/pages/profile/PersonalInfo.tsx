@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
@@ -10,20 +10,80 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Camera } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
+import ProfilePictureUpload from "@/components/profile/ProfilePictureUpload";
 
 const PersonalInfo = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, getProfile } = useAuth();
+  const { logActivity } = useActivityLog();
+  const { toast } = useToast();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   
-  // Form state would normally be managed here with useState
-  // This is a simplified implementation
+  // Form state
+  const [formData, setFormData] = useState({
+    full_name: profile?.full_name || "",
+    weight: profile?.weight || "",
+    height: profile?.height || "",
+    goal: profile?.goal || ""
+  });
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value
+    });
+  };
+  
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission - would update profile in a real implementation
-    // Show success message
-    navigate("/profile");
+    
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Update profile data
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.full_name,
+          weight: formData.weight,
+          height: formData.height,
+          goal: formData.goal,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      // Log activity
+      await logActivity('profile_updated', 'Updated personal information');
+      
+      // Update local profile data
+      await getProfile();
+      
+      toast({
+        title: "Profile updated",
+        description: "Your personal information has been updated successfully.",
+      });
+      
+      navigate("/profile");
+    } catch (error: any) {
+      console.error('Error updating profile:', error.message);
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: "There was a problem updating your profile.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,16 +97,31 @@ const PersonalInfo = () => {
             transition={{ duration: 0.5 }}
           >
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-col items-center pb-6">
+                <div className="mb-4 relative cursor-pointer group" onClick={() => setShowUploadModal(true)}>
+                  <Avatar className="w-20 h-20 border-2 border-purple-200/50">
+                    {profile?.avatar_url ? (
+                      <AvatarImage src={profile.avatar_url} alt={profile.full_name || "User"} />
+                    ) : (
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xl">
+                        {(profile?.full_name || user?.email?.charAt(0) || "U").toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Camera className="h-6 w-6 text-white" />
+                  </div>
+                </div>
                 <CardTitle>Edit Personal Information</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="full_name">Full Name</Label>
                     <Input 
-                      id="name"
-                      defaultValue={profile?.full_name || user?.email?.split('@')[0] || ""}
+                      id="full_name"
+                      value={formData.full_name}
+                      onChange={handleChange}
                       placeholder="Your full name"
                     />
                   </div>
@@ -67,7 +142,8 @@ const PersonalInfo = () => {
                     <Input 
                       id="weight"
                       type="text"
-                      defaultValue={profile?.weight || ""}
+                      value={formData.weight}
+                      onChange={handleChange}
                       placeholder="e.g. 70kg"
                     />
                   </div>
@@ -77,7 +153,8 @@ const PersonalInfo = () => {
                     <Input 
                       id="height"
                       type="text"
-                      defaultValue={profile?.height || ""}
+                      value={formData.height}
+                      onChange={handleChange}
                       placeholder="e.g. 175cm"
                     />
                   </div>
@@ -87,7 +164,8 @@ const PersonalInfo = () => {
                     <Input 
                       id="goal"
                       type="text"
-                      defaultValue={profile?.goal || ""}
+                      value={formData.goal}
+                      onChange={handleChange}
                       placeholder="e.g. Lose weight, gain muscle"
                     />
                   </div>
@@ -101,9 +179,13 @@ const PersonalInfo = () => {
                       <ArrowLeft className="mr-2 h-4 w-4" />
                       Back
                     </Button>
-                    <Button type="submit" className="flex-1">
+                    <Button 
+                      type="submit" 
+                      className="flex-1"
+                      disabled={loading}
+                    >
                       <Save className="mr-2 h-4 w-4" />
-                      Save Changes
+                      {loading ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 </form>
@@ -113,6 +195,20 @@ const PersonalInfo = () => {
         </main>
       </PageTransition>
       <MobileNavbar />
+      
+      {showUploadModal && (
+        <ProfilePictureUpload 
+          onClose={() => setShowUploadModal(false)} 
+          onSuccess={() => {
+            setShowUploadModal(false);
+            getProfile();
+            toast({
+              title: "Profile picture updated",
+              description: "Your profile picture has been updated successfully.",
+            });
+          }}
+        />
+      )}
     </>
   );
 };

@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
@@ -6,15 +7,21 @@ import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { User, Settings, Bell, Shield, LogOut, Calendar, Crown, BadgeCheck, ChevronRight, Sparkles } from "lucide-react";
+import { User, Settings, Bell, Shield, LogOut, Calendar, Crown, BadgeCheck, ChevronRight, Sparkles, Upload, Camera } from "lucide-react";
 import { staggerContainer, staggerItem } from "@/utils/transitions";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import ActivityHistory from '@/components/profile/ActivityHistory';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import ProfilePictureUpload from "@/components/profile/ProfilePictureUpload";
 
 const Profile = () => {
-  const { user, profile, subscription, signOut } = useAuth();
+  const { user, profile, subscription, signOut, getProfile } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -68,15 +75,25 @@ const Profile = () => {
                 </div>
                 <CardContent className="pt-0 relative -mt-10">
                   <div className="flex flex-col items-center">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-4 border-white dark:border-gray-800">
-                      {subscription?.status === "active" ? (
-                        <Crown className="h-8 w-8 text-white" />
-                      ) : (
-                        <User className="h-8 w-8 text-white" />
-                      )}
+                    <div 
+                      className="relative cursor-pointer group"
+                      onClick={() => setShowUploadModal(true)}
+                    >
+                      <Avatar className="w-20 h-20 border-4 border-white dark:border-gray-800">
+                        {profile?.avatar_url ? (
+                          <AvatarImage src={profile.avatar_url} alt={userData.name} />
+                        ) : (
+                          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white text-xl">
+                            {userData.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="h-6 w-6 text-white" />
+                      </div>
                     </div>
-                    <div className="mt-3 text-center">
-                      <h2 className="text-xl font-medium">{userData.name}</h2>
+                    <div className="mt-3 text-center space-y-1">
+                      <h2 className="text-xl font-semibold">{userData.name}</h2>
                       <p className="text-sm text-muted-foreground">{userData.email}</p>
                       {subscription?.status === "active" && (
                         <div className="mt-1 inline-flex items-center bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-full text-xs text-purple-700 dark:text-purple-300">
@@ -178,6 +195,7 @@ const Profile = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
+              className="max-h-96"
             >
               <ActivityHistory />
             </motion.div>
@@ -185,6 +203,20 @@ const Profile = () => {
         </main>
       </PageTransition>
       <MobileNavbar />
+
+      {showUploadModal && (
+        <ProfilePictureUpload 
+          onClose={() => setShowUploadModal(false)} 
+          onSuccess={() => {
+            setShowUploadModal(false);
+            getProfile();
+            toast({
+              title: "Profile picture updated",
+              description: "Your profile picture has been updated successfully.",
+            });
+          }}
+        />
+      )}
     </>
   );
 };

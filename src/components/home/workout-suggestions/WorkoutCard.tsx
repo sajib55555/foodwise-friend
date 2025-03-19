@@ -24,52 +24,52 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   
   return (
     <Card key={index} className={`overflow-hidden ${compact ? 'shadow-sm' : ''}`}>
-      <CardHeader className={`${compact ? 'p-3 pb-1' : 'pb-2'} bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10`}>
+      <CardHeader className={`${compact ? 'p-2 pb-0.5' : 'pb-2'} bg-gradient-to-r from-purple-50 to-purple-100/50 dark:from-purple-950/20 dark:to-purple-900/10`}>
         <div className="flex justify-between items-start">
-          <CardTitle className={compact ? "text-base" : "text-lg"}>{workout.name}</CardTitle>
-          <div className="flex items-center gap-1 text-sm font-medium">
-            <Clock className="h-3.5 w-3.5" />
+          <CardTitle className={compact ? "text-sm" : "text-lg"}>{workout.name}</CardTitle>
+          <div className="flex items-center gap-1 text-xs font-medium">
+            <Clock className="h-3 w-3" />
             {workout.duration}
           </div>
         </div>
       </CardHeader>
-      <CardContent className={compact ? "p-3 space-y-2" : "p-4 space-y-3"}>
-        <p className={`${compact ? 'text-xs' : 'text-sm'} text-muted-foreground`}>{workout.description}</p>
+      <CardContent className={compact ? "p-2 space-y-1.5" : "p-4 space-y-3"}>
+        <p className={`${compact ? 'text-xs leading-tight' : 'text-sm'} text-muted-foreground`}>{workout.description}</p>
         
-        <div className="flex flex-wrap gap-1.5 mt-1">
-          <Badge variant="outline" className="bg-purple-100/50 dark:bg-purple-900/20 text-xs">
+        <div className="flex flex-wrap gap-1 mt-1">
+          <Badge variant="outline" className="bg-purple-100/50 dark:bg-purple-900/20 text-xs py-0">
             {workout.difficulty}
           </Badge>
-          <Badge variant="outline" className="bg-purple-100/50 dark:bg-purple-900/20 text-xs">
+          <Badge variant="outline" className="bg-purple-100/50 dark:bg-purple-900/20 text-xs py-0">
             ~{workout.caloriesBurned} kcal
           </Badge>
         </div>
         
         <div className={compact ? "mt-1" : "mt-2"}>
-          <h4 className={`${compact ? 'text-xs mb-1' : 'text-xs mb-2'} uppercase tracking-wider font-semibold text-muted-foreground`}>
+          <h4 className={`${compact ? 'text-xs mb-0.5' : 'text-xs mb-2'} uppercase tracking-wider font-semibold text-muted-foreground`}>
             Exercises
           </h4>
-          <ul className="grid grid-cols-1 gap-y-1">
+          <ul className="grid grid-cols-1 gap-y-0.5">
             {Array.isArray(workout.exercises) && workout.exercises.map((exercise, i) => (
               <li 
                 key={i} 
-                className={`${compact ? 'text-xs py-1.5' : 'text-sm py-2'} flex items-center gap-1 px-2 bg-background/50 rounded-md`}
+                className={`${compact ? 'text-xs py-1' : 'text-sm py-2'} flex items-center gap-1 px-2 bg-background/50 rounded-md`}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-purple-500 mr-1"></span>
+                <span className="h-1 w-1 rounded-full bg-purple-500 mr-1"></span>
                 {typeof exercise === 'string' ? exercise : exercise.name}
               </li>
             ))}
           </ul>
         </div>
         
-        <div className={`flex justify-center w-full ${compact ? 'mt-2' : 'mt-4'}`}>
+        <div className={`flex justify-center w-full ${compact ? 'mt-1' : 'mt-4'}`}>
           <Button 
             size={compact || isMobile ? "sm" : "default"}
             variant="purple-gradient" 
-            className="gap-1 w-full"
+            className="gap-1 w-full text-xs py-1 h-7"
             onClick={() => onTrackWorkout(workout)}
           >
-            <Dumbbell className={`${compact || isMobile ? 'h-3 w-3' : 'h-3.5 w-3.5'}`} />
+            <Dumbbell className="h-3 w-3" />
             Track Workout
           </Button>
         </div>

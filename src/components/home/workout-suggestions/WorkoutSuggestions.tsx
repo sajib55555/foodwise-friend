@@ -1,135 +1,72 @@
 
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
-import { Dumbbell } from "lucide-react";
-import { Dialog } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button-custom";
+import { Dumbbell, ChevronRight, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { WorkoutSuggestion, WorkoutSuggestionsResponse, fitnessLevels } from "./types";
-import { FitnessLevelSelector } from "./FitnessLevelSelector";
-import { SuggestionsDialog } from "./SuggestionsDialog";
-import { convertToTrackerWorkout } from "./utils";
+import WorkoutCard from "./WorkoutCard";
+import SuggestionsDialog from "./SuggestionsDialog";
+import { FitnessLevel, Workout } from "./types";
+import { suggestedWorkouts } from "./utils";
 
-const WorkoutSuggestions: React.FC = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<WorkoutSuggestion[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [currentFitnessLevel, setCurrentFitnessLevel] = useState("Beginner");
-  const [activeTab, setActiveTab] = useState("beginner");
-  
-  const fetchSuggestions = async (fitnessLevel: string) => {
-    setLoading(true);
-    setCurrentFitnessLevel(fitnessLevel);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-workout-suggestions", {
-        body: {
-          fitnessLevel,
-          goalType: "", // Could be populated from user profile
-          duration: "", // Could be populated from user preference
-          equipment: "", // Could be populated from user profile
-          limitations: "" // Could be populated from user profile
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Make sure we have valid data before setting it
-      const response = data as WorkoutSuggestionsResponse;
-      
-      if (!response || !response.workouts || !Array.isArray(response.workouts)) {
-        throw new Error("Invalid response format from workout suggestions");
-      }
-      
-      // Validate workout data to ensure it has the required properties
-      const validatedWorkouts = response.workouts.map(workout => ({
-        name: workout.name || "Unnamed Workout",
-        description: workout.description || "No description available",
-        exercises: Array.isArray(workout.exercises) ? workout.exercises : [],
-        caloriesBurned: typeof workout.caloriesBurned === 'number' ? workout.caloriesBurned : 0,
-        difficulty: workout.difficulty || "Beginner",
-        duration: workout.duration || "30 minutes"
-      }));
-      
-      setSuggestions(validatedWorkouts);
-      setDialogOpen(true);
-    } catch (error) {
-      console.error("Error fetching workout suggestions:", error);
-      toast({
-        title: "Error",
-        description: "Failed to get workout suggestions. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    // Find the corresponding fitness level label
-    const level = fitnessLevels.find(level => level.id === value);
-    if (level) {
-      setCurrentFitnessLevel(level.label);
-    }
-  };
-
-  const trackWorkout = (workout: WorkoutSuggestion) => {
-    // Convert workout to the format expected by the tracker
-    const newWorkout = convertToTrackerWorkout(workout);
-    
-    // Save workout to localStorage for transfer to the workout tracker
-    localStorage.setItem('pendingWorkout', JSON.stringify(newWorkout));
-    
-    // Close the dialog
-    setDialogOpen(false);
-    
-    // Show toast and navigate to workout tracker
-    toast({
-      title: "Workout Added to Tracker",
-      description: `${workout.name} has been added to your workout tracker.`,
-    });
-    
-    navigate('/workout');
-  };
+const WorkoutSuggestions = () => {
+  const [showDialog, setShowDialog] = useState(false);
+  const [fitnessLevel, setFitnessLevel] = useState<FitnessLevel>("intermediate");
+  const [recommendations, setRecommendations] = useState<Workout[]>(
+    suggestedWorkouts.filter((workout) => 
+      workout.level === "beginner" || workout.level === "intermediate"
+    ).slice(0, 2)
+  );
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.3 }}
+      transition={{ duration: 0.3 }}
     >
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <Card variant="glass">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Dumbbell className="h-5 w-5 text-purple-500" />
-              Workout Suggestions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FitnessLevelSelector 
-              fitnessLevels={fitnessLevels}
-              activeTab={activeTab}
-              loading={loading}
-              onTabChange={handleTabChange}
-              onFetchSuggestions={fetchSuggestions}
-            />
-          </CardContent>
-        </Card>
+      <Card variant="glass" className="border border-blue-300/30 dark:border-blue-800/20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-indigo-50/20 dark:from-blue-900/10 dark:to-indigo-900/5 z-0"></div>
+        <div className="absolute -right-16 -top-16 w-32 h-32 bg-blue-400/20 rounded-full blur-xl"></div>
+        <div className="absolute -left-16 -bottom-16 w-32 h-32 bg-indigo-400/20 rounded-full blur-xl"></div>
         
-        {dialogOpen && (
-          <SuggestionsDialog
-            suggestions={suggestions}
-            currentFitnessLevel={currentFitnessLevel}
-            onTrackWorkout={trackWorkout}
-          />
-        )}
-      </Dialog>
+        <CardHeader className="pb-2 relative z-10">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Dumbbell className="h-5 w-5 text-blue-500" />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 font-bold">
+              Workout Suggestions
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="relative z-10">
+          <div className="space-y-3">
+            {recommendations.map((workout) => (
+              <WorkoutCard 
+                key={workout.id} 
+                workout={workout} 
+                className="bg-gradient-to-r from-blue-100/60 to-indigo-100/40 dark:from-blue-900/20 dark:to-indigo-900/10 border border-blue-100/40 hover:shadow-md"
+              />
+            ))}
+            
+            <Button 
+              variant="outline" 
+              className="w-full mt-2 border-blue-300 bg-white/70 text-blue-700 hover:bg-blue-50 hover:text-blue-800 transition-all shadow-sm"
+              size="sm"
+              onClick={() => setShowDialog(true)}
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Get Personalized Suggestions
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+      
+      <SuggestionsDialog 
+        open={showDialog} 
+        setOpen={setShowDialog} 
+        fitnessLevel={fitnessLevel}
+        setFitnessLevel={setFitnessLevel}
+        setRecommendations={setRecommendations}
+      />
     </motion.div>
   );
 };

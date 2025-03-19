@@ -19,6 +19,23 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   console.log("Device detected as:", isMobile ? "mobile" : "desktop");
   
+  // First, try the most permissive constraints to see if camera access works at all
+  try {
+    console.log("Trying minimal camera constraints first to test access");
+    const testStream = await navigator.mediaDevices.getUserMedia({ 
+      video: true,
+      audio: false
+    });
+    
+    // If we got a stream, stop it immediately and proceed with proper constraints
+    const tracks = testStream.getTracks();
+    tracks.forEach(track => track.stop());
+    console.log("Camera access test successful, proceeding with proper setup");
+  } catch (testErr) {
+    console.error("Camera access test failed:", testErr);
+    throw new Error("Camera access denied. Please check your browser permissions.");
+  }
+  
   let stream: MediaStream | null = null;
   
   // On mobile prioritize the environment camera (back camera)
@@ -27,7 +44,7 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
       console.log("Mobile device detected - trying back camera first");
       stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: "environment",
+          facingMode: { exact: "environment" },
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
@@ -36,7 +53,24 @@ export const requestCameraAccess = async (): Promise<MediaStream> => {
       console.log("Successfully accessed back camera");
       return stream;
     } catch (err) {
-      console.warn("Back camera failed:", err);
+      console.warn("Back camera with exact constraint failed:", err);
+      
+      // Try without 'exact' constraint
+      try {
+        console.log("Trying back camera without exact constraint");
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+        console.log("Successfully accessed back camera");
+        return stream;
+      } catch (fallbackErr) {
+        console.warn("Back camera fallback failed:", fallbackErr);
+      }
     }
   }
   
@@ -122,9 +156,9 @@ export const setupVideoStream = (
     }
     
     // Set critical styles first to ensure visibility
-    videoElement.style.display = 'block';
-    videoElement.style.visibility = 'visible';
-    videoElement.style.opacity = '1';
+    videoElement.style.display = 'block !important';
+    videoElement.style.visibility = 'visible !important';
+    videoElement.style.opacity = '1 !important';
     videoElement.style.width = '100%';
     videoElement.style.height = '100%';
     videoElement.style.objectFit = 'cover';
@@ -139,9 +173,9 @@ export const setupVideoStream = (
     // Force play to start immediately
     const playVideo = () => {
       // Ensure video is visible - important!
-      videoElement.style.display = 'block';
-      videoElement.style.visibility = 'visible';
-      videoElement.style.opacity = '1';
+      videoElement.style.display = 'block !important';
+      videoElement.style.visibility = 'visible !important';
+      videoElement.style.opacity = '1 !important';
       
       // Force layout recalculation
       void videoElement.offsetHeight;
@@ -152,14 +186,17 @@ export const setupVideoStream = (
         .then(() => {
           console.log("Camera started successfully");
           // Ensure video is still visible after successful play
-          videoElement.style.display = 'block';
-          videoElement.style.visibility = 'visible';
-          videoElement.style.opacity = '1';
+          videoElement.style.display = 'block !important';
+          videoElement.style.visibility = 'visible !important';
+          videoElement.style.opacity = '1 !important';
           
           // Force browser to recalculate layout
           void videoElement.offsetHeight;
           
-          onSuccess();
+          // Add a small delay before calling success to ensure everything is ready
+          setTimeout(() => {
+            onSuccess();
+          }, 100);
         })
         .catch(err => {
           console.error("Error playing video:", err);
@@ -178,9 +215,9 @@ export const setupVideoStream = (
               .then(() => {
                 console.log("Camera started successfully on retry");
                 // Ensure video is visible
-                videoElement.style.display = 'block';
-                videoElement.style.visibility = 'visible';
-                videoElement.style.opacity = '1';
+                videoElement.style.display = 'block !important';
+                videoElement.style.visibility = 'visible !important';
+                videoElement.style.opacity = '1 !important';
                 
                 onSuccess();
               })
@@ -201,9 +238,9 @@ export const setupVideoStream = (
     videoElement.onplaying = () => {
       console.log("Video is now playing, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
       // Make absolutely sure video is visible
-      videoElement.style.display = 'block';
-      videoElement.style.visibility = 'visible';
-      videoElement.style.opacity = '1';
+      videoElement.style.display = 'block !important';
+      videoElement.style.visibility = 'visible !important';
+      videoElement.style.opacity = '1 !important';
       
       // Force layout recalculation
       void videoElement.offsetHeight;

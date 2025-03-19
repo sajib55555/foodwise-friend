@@ -22,9 +22,9 @@ const CameraView: React.FC<CameraViewProps> = ({
       console.log("CameraView mounted, setting up video element");
       
       // Apply critical styles directly to ensure visibility
-      video.style.display = 'block';
-      video.style.visibility = 'visible';
-      video.style.opacity = '1';
+      video.style.display = 'block !important';
+      video.style.visibility = 'visible !important';
+      video.style.opacity = '1 !important';
       video.style.width = '100%';
       video.style.height = '100%';
       video.style.objectFit = 'cover';
@@ -35,9 +35,9 @@ const CameraView: React.FC<CameraViewProps> = ({
         console.log("Video can play event fired");
         // Make video visible with inline styles to override any potential CSS issues
         if (video) {
-          video.style.display = 'block';
-          video.style.visibility = 'visible';
-          video.style.opacity = '1';
+          video.style.display = 'block !important';
+          video.style.visibility = 'visible !important';
+          video.style.opacity = '1 !important';
           // Force layout recalculation
           void video.offsetHeight;
         }
@@ -48,9 +48,9 @@ const CameraView: React.FC<CameraViewProps> = ({
         console.log("Video is now playing with dimensions:", video.videoWidth, "x", video.videoHeight);
         // Make video visible when playing starts
         if (video) {
-          video.style.display = 'block';
-          video.style.visibility = 'visible';
-          video.style.opacity = '1';
+          video.style.display = 'block !important';
+          video.style.visibility = 'visible !important';
+          video.style.opacity = '1 !important';
           // Force layout recalculation
           void video.offsetHeight;
         }

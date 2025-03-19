@@ -46,11 +46,15 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
   useEffect(() => {
     console.log("Camera component mounted, opening camera immediately");
     
-    // Open camera right away
-    openCamera();
+    // Give browser a moment to render the component, then open camera
+    const timer = setTimeout(() => {
+      console.log("Initial render complete, now opening camera");
+      openCamera();
+    }, 100);
     
     // Ensure camera is properly cleaned up when component unmounts
     return () => {
+      clearTimeout(timer);
       console.log("Camera component unmounting, cleaning up");
       if (videoRef.current && videoRef.current.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
@@ -87,7 +91,18 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         )}
         
         {!activeCamera && !capturedImage && (
-          <CameraPlaceholder />
+          <>
+            <CameraPlaceholder />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Button 
+                variant="green-gradient"
+                className="px-6 py-3"
+                onClick={openCamera}
+              >
+                Tap to Start Camera
+              </Button>
+            </div>
+          </>
         )}
         
         <CameraError errorMessage={cameraError} />

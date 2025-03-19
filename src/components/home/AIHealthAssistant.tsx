@@ -10,7 +10,17 @@ import {
   DialogFooter,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Mic, VolumeX, Volume, Loader2, Brain, Sparkles, AlertCircle } from "lucide-react";
+import { 
+  Drawer, 
+  DrawerContent, 
+  DrawerHeader, 
+  DrawerTitle, 
+  DrawerDescription,
+  DrawerFooter,
+  DrawerTrigger,
+  DrawerClose
+} from "@/components/ui/drawer";
+import { Mic, VolumeX, Volume, Loader2, Brain, Sparkles, AlertCircle, X } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +29,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 
 const voices = [
   { id: "alloy", name: "Alloy", description: "Neutral" },
@@ -32,7 +44,9 @@ const voices = [
 const AIHealthAssistant = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +147,11 @@ const AIHealthAssistant = () => {
       // Handle the text analysis
       if (data.textAnalysis) {
         setAnalysis(data.textAnalysis);
+        
+        // If on mobile, open the sheet/drawer for better visibility
+        if (isMobile) {
+          setSheetOpen(true);
+        }
       } else {
         setError("No analysis was generated");
         return;
@@ -236,8 +255,245 @@ const AIHealthAssistant = () => {
     setPlaying(false);
     setAnalysis(null);
     setError(null);
+    setSheetOpen(false);
   };
 
+  // Voice Settings Panel Component
+  const VoiceSettings = () => (
+    <div className="space-y-4 py-3">
+      <div className="space-y-2">
+        <Label htmlFor="voice-selection" className="text-purple-800 dark:text-purple-300">Voice</Label>
+        <Select 
+          value={selectedVoice} 
+          onValueChange={setSelectedVoice}
+        >
+          <SelectTrigger id="voice-selection" className="border-purple-200 dark:border-purple-800/40">
+            <SelectValue placeholder="Select a voice" />
+          </SelectTrigger>
+          <SelectContent>
+            {voices.map((voice) => (
+              <SelectItem key={voice.id} value={voice.id}>
+                {voice.name} - {voice.description}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="volume-slider" className="flex justify-between text-purple-800 dark:text-purple-300">
+          <span>Volume</span>
+          <span>{volume}%</span>
+        </Label>
+        <Slider
+          id="volume-slider"
+          value={[volume]}
+          min={0}
+          max={100}
+          step={5}
+          onValueChange={handleVolumeChange}
+          className="[&>.bg-primary]:bg-purple-500"
+        />
+      </div>
+    </div>
+  );
+
+  // Analysis Results Component
+  const AnalysisResults = () => (
+    <>
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {analysis && (
+        <div className="mt-4 rounded-lg bg-purple-100/50 dark:bg-purple-900/20 p-4 border border-purple-200 dark:border-purple-800/20 text-sm max-h-[50vh] overflow-y-auto">
+          <p className="text-purple-800 dark:text-purple-200">{analysis}</p>
+        </div>
+      )}
+    </>
+  );
+
+  // On mobile, use Sheet for a more compact UI
+  if (isMobile) {
+    return (
+      <Card 
+        variant="glass" 
+        className="overflow-hidden bg-gradient-to-br from-purple-500/10 to-blue-500/5 border-purple-300/30 dark:border-purple-800/20"
+      >
+        <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-purple-100/40 to-transparent dark:from-purple-900/20">
+          <CardTitle className="text-lg font-medium">
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Brain className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                <motion.div 
+                  className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full"
+                  animate={{
+                    scale: [1, 1.3, 1],
+                    opacity: [0.7, 1, 0.7]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: "reverse"
+                  }}
+                />
+              </div>
+              <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-blue-400">
+                AI Health Assistant
+              </span>
+            </div>
+          </CardTitle>
+          
+          {/* Use Sheet on mobile for a more compact UI */}
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetContent 
+              side="bottom" 
+              className="max-h-[80vh] bg-gradient-to-b from-white to-purple-50 dark:from-slate-900 dark:to-purple-950/20 border-purple-200 dark:border-purple-800/40"
+            >
+              <SheetHeader>
+                <div className="flex justify-between items-center">
+                  <SheetTitle className="text-gradient-purple">AI Health Insights</SheetTitle>
+                  <SheetClose className="rounded-full w-6 h-6 flex items-center justify-center hover:bg-purple-100 dark:hover:bg-purple-900/30">
+                    <X className="h-4 w-4" />
+                  </SheetClose>
+                </div>
+              </SheetHeader>
+              
+              <div className="py-4 overflow-y-auto">
+                <AnalysisResults />
+              </div>
+              
+              <SheetFooter className="flex items-center justify-between gap-2">
+                {analysis ? (
+                  <>
+                    <Button
+                      variant={playing ? "outline" : "purple-gradient"}
+                      onClick={togglePlayback}
+                      className="flex-1 gap-2 shadow-md text-xs"
+                      size="sm"
+                      disabled={!audioRef.current?.src}
+                    >
+                      {playing ? (
+                        <>
+                          <VolumeX className="h-3 w-3" /> Pause
+                        </>
+                      ) : (
+                        <>
+                          <Volume className="h-3 w-3" /> {audioRef.current?.src ? "Play Again" : "Text Only"}
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      size="sm" 
+                      className="text-xs border-purple-200 dark:border-purple-800/40"
+                      onClick={() => setSheetOpen(false)}
+                    >
+                      Close
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={handleRequestAssistant}
+                    disabled={loading}
+                    variant="purple-gradient"
+                    className="flex-1 gap-2 shadow-md text-xs"
+                    size="sm"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" /> Analyzing...
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="h-3 w-3" /> Get Analysis
+                      </>
+                    )}
+                  </Button>
+                )}
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
+          
+          <Button 
+            variant="purple-gradient" 
+            size="sm" 
+            className="shadow-md hover:shadow-lg transition-all"
+            onClick={() => {
+              if (analysis) {
+                setSheetOpen(true);
+              } else {
+                handleRequestAssistant();
+              }
+            }}
+          >
+            {analysis ? (
+              <>
+                <Sparkles className="h-4 w-4 mr-1" /> View Insights
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-1" /> Get Insights
+              </>
+            )}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex flex-col items-center p-4 text-center"
+          >
+            <div className="relative">
+              <motion.div 
+                className="absolute inset-0 rounded-full bg-purple-500/20 blur-xl"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.6, 0.3]
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  repeatType: "reverse"
+                }}
+              />
+              <Brain className="h-16 w-16 text-purple-600/80 dark:text-purple-400/80 relative z-10" />
+            </div>
+            <p className="text-muted-foreground text-sm mt-4 max-w-md">
+              Get personalized health insights and recommendations with our AI voice assistant
+            </p>
+            <Button
+              variant="purple-outline"
+              size="sm"
+              className="mt-4 shadow-sm hover:shadow hover:translate-y-[-2px] transition-all duration-200"
+              onClick={() => {
+                if (analysis) {
+                  setSheetOpen(true);
+                } else {
+                  handleRequestAssistant();
+                }
+              }}
+            >
+              <Sparkles className="h-4 w-4 mr-1 text-purple-500" />
+              {analysis ? "View health insights" : "Ask for health advice"}
+            </Button>
+          </motion.div>
+        </CardContent>
+        
+        {/* Hidden audio element for playing the TTS response */}
+        <audio ref={audioRef} style={{ display: 'none' }} />
+      </Card>
+    );
+  }
+
+  // On desktop, use Dialog
   return (
     <Card 
       variant="glass" 
@@ -282,58 +538,8 @@ const AIHealthAssistant = () => {
               <DialogTitle className="text-gradient-purple">AI Health Assistant</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-4 py-3">
-              <div className="space-y-2">
-                <Label htmlFor="voice-selection" className="text-purple-800 dark:text-purple-300">Voice</Label>
-                <Select 
-                  value={selectedVoice} 
-                  onValueChange={setSelectedVoice}
-                >
-                  <SelectTrigger id="voice-selection" className="border-purple-200 dark:border-purple-800/40">
-                    <SelectValue placeholder="Select a voice" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {voices.map((voice) => (
-                      <SelectItem key={voice.id} value={voice.id}>
-                        {voice.name} - {voice.description}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="volume-slider" className="flex justify-between text-purple-800 dark:text-purple-300">
-                  <span>Volume</span>
-                  <span>{volume}%</span>
-                </Label>
-                <Slider
-                  id="volume-slider"
-                  value={[volume]}
-                  min={0}
-                  max={100}
-                  step={5}
-                  onValueChange={handleVolumeChange}
-                  className="[&>.bg-primary]:bg-purple-500"
-                />
-              </div>
-
-              {error && (
-                <Alert variant="destructive" className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>
-                    {error}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {analysis && (
-                <div className="mt-4 rounded-lg bg-purple-100/50 dark:bg-purple-900/20 p-4 border border-purple-200 dark:border-purple-800/20 text-sm">
-                  <p className="text-purple-800 dark:text-purple-200">{analysis}</p>
-                </div>
-              )}
-            </div>
+            <VoiceSettings />
+            <AnalysisResults />
 
             <DialogFooter className="flex items-center justify-between">
               {analysis ? (

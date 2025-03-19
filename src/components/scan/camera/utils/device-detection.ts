@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for device and browser detection
  * to improve camera compatibility across different platforms
@@ -109,6 +108,24 @@ export const isTabletDevice = (): boolean => {
     (/android/.test(userAgent) && !/mobile/.test(userAgent)) ||
     (window.innerWidth >= 600 && window.innerWidth <= 1024 && isMobileDevice())
   );
+};
+
+/**
+ * Checks if the device has multiple cameras
+ */
+export const hasMultipleCameras = async (): Promise<boolean> => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+    return false;
+  }
+  
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoInputs = devices.filter(device => device.kind === 'videoinput');
+    return videoInputs.length > 1;
+  } catch (error) {
+    console.error('Error checking for multiple cameras:', error);
+    return false;
+  }
 };
 
 /**

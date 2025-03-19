@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for accessing and requesting camera hardware
  */
@@ -7,7 +6,7 @@ import {
   getBestCameraConstraints,
   getCameraErrorMessage,
   isMobileDevice,
-  hasMultipleCameras as checkMultipleCameras
+  hasMultipleCameras
 } from './device-detection';
 
 /**
@@ -24,7 +23,7 @@ export { isMobileDevice, getCameraErrorMessage };
  * Checks if the device has multiple cameras
  */
 export const hasMultipleCameras = async (): Promise<boolean> => {
-  return checkMultipleCameras();
+  return hasMultipleCameras();
 };
 
 /**

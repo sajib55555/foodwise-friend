@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
@@ -33,6 +33,19 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     handleSubmit,
     openCamera
   } = useCameraSetup({ onCapture });
+
+  // Effect for initial camera setup and proper cleanup
+  useEffect(() => {
+    return () => {
+      // Ensure camera is properly cleaned up when component unmounts
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        const tracks = stream.getTracks();
+        tracks.forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+    };
+  }, []);
 
   return (
     <motion.div 

@@ -15,35 +15,46 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
+
+  // Cleanup function to stop all tracks
+  const stopAllTracks = () => {
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
 
   // Automatically try to start the camera when component mounts
   useEffect(() => {
     if (!capturedImage) {
       setActiveCamera(true);
     }
+    
+    // Cleanup when component unmounts
+    return () => {
+      stopAllTracks();
+    };
   }, [capturedImage]);
 
   // Setup camera when activeCamera state changes
   useEffect(() => {
     if (activeCamera) {
       setupCamera();
+    } else {
+      stopAllTracks();
     }
-
-    // Cleanup when component unmounts or camera is deactivated
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        const tracks = stream.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
-    };
   }, [activeCamera]);
 
   const setupCamera = async () => {
     try {
       setCameraError(null);
       setCameraLoading(true);
+      
+      // Stop any existing tracks before requesting new ones
+      stopAllTracks();
       
       // Request camera access with proper constraints
       const constraints = { 
@@ -56,6 +67,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       
       console.log("Requesting camera access...");
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -109,9 +121,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
           setCapturedImage(imageDataUrl);
           
           // Stop camera stream
-          const stream = video.srcObject as MediaStream;
-          const tracks = stream.getTracks();
-          tracks.forEach((track) => track.stop());
+          stopAllTracks();
           setActiveCamera(false);
           
           console.log("Image captured successfully");

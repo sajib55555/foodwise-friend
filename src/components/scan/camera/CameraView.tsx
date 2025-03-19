@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from "react";
+import React from "react";
 import { RotateCw } from "lucide-react";
 
 interface CameraViewProps {
@@ -19,6 +19,7 @@ const CameraView: React.FC<CameraViewProps> = ({
         ref={videoRef}
         autoPlay
         playsInline
+        muted
         className="absolute inset-0 h-full w-full object-cover"
       />
       {cameraLoading && (

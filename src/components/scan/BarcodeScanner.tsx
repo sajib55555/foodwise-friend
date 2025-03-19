@@ -2,7 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent } from "@/components/ui/card-custom";
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Barcode } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 // This is a simplified barcode scanner. In a production app, you would use
@@ -63,17 +63,17 @@ const BarcodeScanner: React.FC<{
       exit={{ opacity: 0 }}
       className="w-full"
     >
-      <Card variant="glass">
+      <Card variant="glass" className="border-purple-100/30 dark:border-purple-800/20">
         <CardContent className="p-4">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-black">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-black">
             {error ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
                 <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
                 <p className="text-white text-sm">{error}</p>
                 <Button 
-                  variant="purple" 
+                  variant="purple-gradient" 
                   size="sm" 
-                  className="mt-4"
+                  className="mt-4 rounded-full"
                   onClick={onReset}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -92,8 +92,11 @@ const BarcodeScanner: React.FC<{
                 
                 {scanning && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-3/4 h-1/4 border-2 border-purple-500 rounded-lg flex items-center justify-center">
-                      <span className="text-purple-500 text-xs font-medium px-2 py-1 bg-white/80 rounded">Scanning...</span>
+                    <div className="w-3/4 h-1/3 border-2 border-dashed border-purple-500 rounded-[32px] flex items-center justify-center">
+                      <span className="text-purple-100 text-xs font-medium px-4 py-2 bg-purple-500/80 rounded-full flex items-center">
+                        <Barcode className="h-3 w-3 mr-1" />
+                        Scanning...
+                      </span>
                     </div>
                   </div>
                 )}
@@ -101,8 +104,8 @@ const BarcodeScanner: React.FC<{
             )}
           </div>
           
-          <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-4 p-4 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10 rounded-xl border border-purple-100/50 dark:border-purple-800/20">
+            <p className="text-sm text-purple-700 dark:text-purple-300 flex items-center justify-center">
               Position the barcode within the frame to scan
             </p>
           </div>

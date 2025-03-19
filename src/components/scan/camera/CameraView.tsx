@@ -95,9 +95,9 @@ const CameraView: React.FC<CameraViewProps> = ({
           </div>
         </div>
       )}
-      {/* Updated the focus area with purple/blue border and larger scanning area */}
+      {/* Updated scan area with purple dashed border that matches the reference image */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-        <div className="border-2 border-purple-500/80 dark:border-purple-400/80 rounded-lg w-[90%] h-[70%] border-dashed shadow-[0_0_15px_rgba(147,51,234,0.3)] dark:shadow-[0_0_15px_rgba(147,51,234,0.5)]"></div>
+        <div className="border-2 border-purple-500/80 dark:border-purple-400/80 rounded-[32px] w-[90%] h-[80%] border-dashed shadow-[0_0_15px_rgba(147,51,234,0.3)] dark:shadow-[0_0_15px_rgba(147,51,234,0.5)]"></div>
       </div>
     </>
   );

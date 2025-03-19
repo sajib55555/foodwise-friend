@@ -79,7 +79,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="relative flex-1 overflow-hidden rounded-2xl bg-black">
+      <div className="relative flex-1 overflow-hidden rounded-3xl bg-black">
         {activeCamera && (
           <CameraView 
             videoRef={videoRef} 
@@ -97,8 +97,8 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
             <CameraPlaceholder />
             <div className="absolute inset-0 flex items-center justify-center">
               <Button 
-                variant="green-gradient"
-                className="px-6 py-3"
+                variant="purple-gradient"
+                className="px-6 py-3 rounded-full shadow-purple"
                 onClick={openCamera}
               >
                 Tap to Start Camera
@@ -112,7 +112,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
         <Button
           variant="glass"
           size="icon-sm"
-          className="absolute top-4 right-4 bg-black/20 text-white border-white/10 z-50"
+          className="absolute top-4 right-4 bg-black/30 text-white border-white/10 z-50 rounded-full"
           onClick={onClose}
         >
           <X className="h-5 w-5" />

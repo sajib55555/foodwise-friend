@@ -54,9 +54,9 @@ const MobileNavbar: React.FC = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="fixed bottom-0 left-0 right-0 z-30 bg-background/70 border-t border-border/40 backdrop-blur-lg backdrop-saturate-150"
+      className="fixed bottom-0 left-0 right-0 z-30 bg-background/90 border-t border-border/40 backdrop-blur-xl backdrop-saturate-150 py-1"
     >
-      <div className="container mx-auto px-4 py-1">
+      <div className="container mx-auto px-4">
         <div className="flex items-center justify-around">
           {navItems.map((item) => (
             <NavItem 
@@ -107,7 +107,7 @@ const NavItem: React.FC<NavItemProps> = ({
     >
       <div className="relative">
         {isActive ? (
-          <div className={`p-1.5 rounded-full ${gradientClass} shadow-sm`}>
+          <div className={`p-2 rounded-full ${gradientClass} shadow-sm`}>
             <Icon className="h-5 w-5 text-white stroke-[2.5px]" />
           </div>
         ) : (

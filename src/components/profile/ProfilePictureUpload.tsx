@@ -6,6 +6,7 @@ import { Camera, Upload, X, Image, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfilePictureUploadProps {
   onClose: () => void;
@@ -15,6 +16,7 @@ interface ProfilePictureUploadProps {
 const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ onClose, onSuccess }) => {
   const { user } = useAuth();
   const { logActivity } = useActivityLog();
+  const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -75,9 +77,19 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ onClose, on
       // Log activity
       await logActivity('profile_updated', 'Updated profile picture');
       
+      toast({
+        title: "Success!",
+        description: "Your profile picture has been updated.",
+      });
+      
       onSuccess();
     } catch (error: any) {
       console.error('Error uploading avatar:', error.message);
+      toast({
+        variant: "destructive",
+        title: "Upload failed",
+        description: error.message,
+      });
     } finally {
       setUploading(false);
     }

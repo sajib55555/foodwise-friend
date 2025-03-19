@@ -1,173 +1,214 @@
-import React, { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { useActivityLog } from "@/contexts/ActivityLogContext";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card-custom";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Clock, Activity, PieChart, FileText, User, Weight, Dumbbell, Salad, Target, Bell, Settings } from "lucide-react";
 
-interface ActivityLog {
-  id: string;
-  activity_type: string;
-  description: string;
-  metadata: any;
-  created_at: string;
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
+import { useActivityLog } from '@/contexts/ActivityLogContext';
+import { format, formatDistanceToNow } from 'date-fns';
+import { 
+  LogIn, LogOut, Eye, Target, Award, Utensils, 
+  Dumbbell, Scale, Camera, UserCheck, 
+  CalendarClock, Filter, RefreshCw 
+} from 'lucide-react';
+import { Button } from '@/components/ui/button-custom';
+import { ActivityType } from '@/contexts/ActivityLogContext';
+
+type ActivityFilters = 'all' | 'login' | 'workout' | 'meal' | 'profile' | 'goal';
+
+interface ActivityHistoryProps {
+  limit?: number;
 }
 
-const ActivityHistory: React.FC = () => {
+const ActivityHistory: React.FC<ActivityHistoryProps> = ({ limit = 10 }) => {
   const { getUserActivities } = useActivityLog();
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [activities, setActivities] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<ActivityFilters>('all');
 
   useEffect(() => {
-    const fetchActivities = async () => {
-      setLoading(true);
-      const data = await getUserActivities(30); // Reduced to 30 recent activities
+    loadActivities();
+  }, []);
+
+  const loadActivities = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getUserActivities(30); // Fetch more to allow for filtering
       setActivities(data);
-      setLoading(false);
-    };
+    } catch (error) {
+      console.error('Error loading activities:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchActivities();
-  }, [getUserActivities]);
-
-  const filteredActivities = activeFilter === 'all' 
-    ? activities 
-    : activities.filter(activity => activity.activity_type === activeFilter);
-
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type: ActivityType) => {
     switch (type) {
-      case 'login':
-      case 'signup':
-        return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'logout':
-        return <Clock className="h-4 w-4 text-gray-500" />;
-      case 'view_page':
-        return <FileText className="h-4 w-4 text-indigo-500" />;
-      case 'profile_updated':
-        return <User className="h-4 w-4 text-purple-500" />;
+      case 'login': return <LogIn className="h-4 w-4 text-green-500" />;
+      case 'logout': return <LogOut className="h-4 w-4 text-red-500" />;
+      case 'view_page': return <Eye className="h-4 w-4 text-blue-500" />;
+      case 'goal_created': return <Target className="h-4 w-4 text-purple-500" />;
+      case 'goal_updated': return <Target className="h-4 w-4 text-indigo-500" />;
+      case 'goal_completed': return <Award className="h-4 w-4 text-yellow-500" />;
+      case 'meal_logged': return <Utensils className="h-4 w-4 text-orange-500" />;
+      case 'workout_logged': return <Dumbbell className="h-4 w-4 text-cyan-500" />;
+      case 'workout_deleted': return <Dumbbell className="h-4 w-4 text-red-500" />;
+      case 'weight_logged': return <Scale className="h-4 w-4 text-teal-500" />;
+      case 'weight_deleted': return <Scale className="h-4 w-4 text-red-500" />;
+      case 'scan_food': return <Camera className="h-4 w-4 text-pink-500" />;
+      case 'profile_updated': return <UserCheck className="h-4 w-4 text-emerald-500" />;
+      default: return <CalendarClock className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getActivityColor = (type: ActivityType) => {
+    switch (type) {
+      case 'login': 
+      case 'signup': 
+        return 'bg-green-50 border-green-100 dark:bg-green-900/20';
+      case 'logout': 
+        return 'bg-red-50 border-red-100 dark:bg-red-900/20';
+      case 'view_page': 
+        return 'bg-blue-50 border-blue-100 dark:bg-blue-900/20';
       case 'goal_created':
       case 'goal_updated':
       case 'goal_completed':
-        return <Target className="h-4 w-4 text-green-500" />;
+        return 'bg-purple-50 border-purple-100 dark:bg-purple-900/20';
       case 'meal_logged':
-        return <Salad className="h-4 w-4 text-emerald-500" />;
+        return 'bg-orange-50 border-orange-100 dark:bg-orange-900/20';
       case 'workout_logged':
-        return <Dumbbell className="h-4 w-4 text-pink-500" />;
+      case 'workout_deleted':
+        return 'bg-cyan-50 border-cyan-100 dark:bg-cyan-900/20';
       case 'weight_logged':
-        return <Weight className="h-4 w-4 text-orange-500" />;
-      default:
-        return <Activity className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const getActivityBadge = (type: string) => {
-    switch (type) {
-      case 'login':
-        return <Badge variant="outline" className="bg-blue-50/80 text-blue-600 border-blue-200">{type}</Badge>;
-      case 'signup':
-        return <Badge variant="outline" className="bg-indigo-50/80 text-indigo-600 border-indigo-200">{type}</Badge>;
-      case 'logout':
-        return <Badge variant="outline" className="bg-gray-50/80 text-gray-600 border-gray-200">{type}</Badge>;
-      case 'view_page':
-        return <Badge variant="outline" className="bg-slate-50/80 text-slate-600 border-slate-200">View</Badge>;
+      case 'weight_deleted':
+        return 'bg-teal-50 border-teal-100 dark:bg-teal-900/20';
+      case 'scan_food':
+        return 'bg-pink-50 border-pink-100 dark:bg-pink-900/20';
       case 'profile_updated':
-        return <Badge variant="outline" className="bg-purple-50/80 text-purple-600 border-purple-200">Profile</Badge>;
-      case 'goal_created':
-        return <Badge variant="outline" className="bg-green-50/80 text-green-600 border-green-200">New Goal</Badge>;
-      case 'goal_updated':
-        return <Badge variant="outline" className="bg-emerald-50/80 text-emerald-600 border-emerald-200">Goal</Badge>;
-      case 'goal_completed':
-        return <Badge variant="outline" className="bg-teal-50/80 text-teal-600 border-teal-200">Completed</Badge>;
-      case 'meal_logged':
-        return <Badge variant="outline" className="bg-amber-50/80 text-amber-600 border-amber-200">Meal</Badge>;
-      case 'workout_logged':
-        return <Badge variant="outline" className="bg-rose-50/80 text-rose-600 border-rose-200">Workout</Badge>;
-      case 'weight_logged':
-        return <Badge variant="outline" className="bg-orange-50/80 text-orange-600 border-orange-200">Weight</Badge>;
+        return 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20';
       default:
-        return <Badge variant="outline">{type}</Badge>;
+        return 'bg-gray-50 border-gray-100 dark:bg-gray-800/30';
     }
   };
 
-  const formatActivityTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
+  const getFilteredActivities = () => {
+    if (filter === 'all') return activities;
     
-    // If same day, just show time
-    if (date.toDateString() === today.toDateString()) {
-      return format(date, "h:mm a");
-    }
-    
-    // If within the last 7 days, show day name and time
-    const daysDiff = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysDiff < 7) {
-      return format(date, "EEE h:mm a");
-    }
-    
-    // Otherwise show date
-    return format(date, "MMM d");
+    return activities.filter(activity => {
+      const type = activity.activity_type;
+      switch (filter) {
+        case 'login': return type === 'login' || type === 'logout' || type === 'signup';
+        case 'workout': return type === 'workout_logged' || type === 'workout_deleted';
+        case 'meal': return type === 'meal_logged' || type === 'scan_food';
+        case 'profile': return type === 'profile_updated';
+        case 'goal': return type === 'goal_created' || type === 'goal_updated' || type === 'goal_completed';
+        default: return true;
+      }
+    });
   };
+
+  const filteredActivities = getFilteredActivities().slice(0, limit);
 
   return (
-    <Card className="overflow-hidden border-purple-200/20 dark:border-purple-800/20">
-      <CardHeader className="pb-2 px-4 pt-3">
-        <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <Activity className="h-4 w-4" />
-          Recent Activity
-        </CardTitle>
+    <Card variant="glass">
+      <CardHeader className="py-3 flex flex-row items-center justify-between">
+        <CardTitle className="text-lg">Activity History</CardTitle>
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex gap-1">
+            <Button
+              variant={filter === 'all' ? "default" : "outline"}
+              size="xs"
+              onClick={() => setFilter('all')}
+              className="text-xs py-1"
+            >
+              All
+            </Button>
+            <Button
+              variant={filter === 'login' ? "default" : "outline"}
+              size="xs"
+              onClick={() => setFilter('login')}
+              className="text-xs py-1"
+            >
+              Login
+            </Button>
+            <Button
+              variant={filter === 'workout' ? "default" : "outline"}
+              size="xs"
+              onClick={() => setFilter('workout')}
+              className="text-xs py-1"
+            >
+              Workout
+            </Button>
+            <Button
+              variant={filter === 'meal' ? "default" : "outline"}
+              size="xs"
+              onClick={() => setFilter('meal')}
+              className="text-xs py-1"
+            >
+              Meals
+            </Button>
+            <Button
+              variant={filter === 'profile' ? "default" : "outline"}
+              size="xs"
+              onClick={() => setFilter('profile')}
+              className="text-xs py-1"
+            >
+              Profile
+            </Button>
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={loadActivities}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="sm:hidden"
+            onClick={() => {
+              const filters: ActivityFilters[] = ['all', 'login', 'workout', 'meal', 'profile', 'goal'];
+              const currentIndex = filters.indexOf(filter);
+              const nextIndex = (currentIndex + 1) % filters.length;
+              setFilter(filters[nextIndex]);
+            }}
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <Tabs defaultValue="all" onValueChange={setActiveFilter} className="w-full">
-          <TabsList className="w-full grid grid-cols-4 rounded-none px-4 py-2">
-            <TabsTrigger value="all" className="text-xs h-7">All</TabsTrigger>
-            <TabsTrigger value="profile_updated" className="text-xs h-7">Profile</TabsTrigger>
-            <TabsTrigger value="meal_logged" className="text-xs h-7">Food</TabsTrigger>
-            <TabsTrigger value="workout_logged" className="text-xs h-7">Fitness</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value={activeFilter} className="mt-0">
-            {loading ? (
-              <div className="flex justify-center p-3">
-                <span className="text-xs text-muted-foreground">Loading activities...</span>
-              </div>
-            ) : filteredActivities.length === 0 ? (
-              <div className="text-center py-6">
-                <FileText className="h-6 w-6 mx-auto text-muted-foreground opacity-30" />
-                <p className="mt-1 text-xs text-muted-foreground">No activities recorded yet</p>
-              </div>
-            ) : (
-              <ScrollArea className="h-[250px]">
-                <div className="px-2">
-                  {filteredActivities.map((activity) => (
-                    <div 
-                      key={activity.id} 
-                      className="flex items-start gap-2 p-2 border-b border-border/30 hover:bg-muted/20 transition-colors rounded-md"
-                    >
-                      <div className="mt-1 w-6 h-6 rounded-full bg-primary/5 flex items-center justify-center">
-                        {getActivityIcon(activity.activity_type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-medium truncate">{activity.description}</p>
-                          <div className="flex items-center">
-                            <span className="text-xs text-muted-foreground">
-                              {formatActivityTime(activity.created_at)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-0.5">
-                          {getActivityBadge(activity.activity_type)}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+      <CardContent className="px-3 pb-3">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-12 bg-muted rounded-md animate-pulse" />
+            ))}
+          </div>
+        ) : filteredActivities.length === 0 ? (
+          <div className="text-center py-6 text-muted-foreground">
+            No activity data found
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {filteredActivities.map((activity) => (
+              <div 
+                key={activity.id} 
+                className={`rounded-md border p-2 flex items-center text-sm ${getActivityColor(activity.activity_type)}`}
+              >
+                <div className="w-8 h-8 flex items-center justify-center mr-3">
+                  {getActivityIcon(activity.activity_type)}
                 </div>
-              </ScrollArea>
-            )}
-          </TabsContent>
-        </Tabs>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{activity.description}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground hidden md:block">
+                  {format(new Date(activity.created_at), 'MMM d, h:mm a')}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

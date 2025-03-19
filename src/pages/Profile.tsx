@@ -7,14 +7,13 @@ import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { User, Settings, Bell, Shield, LogOut, Calendar, Crown, BadgeCheck, ChevronRight, Sparkles, Upload, Camera } from "lucide-react";
+import { User, Settings, Bell, Shield, LogOut, Calendar, BadgeCheck, ChevronRight, Sparkles, Camera } from "lucide-react";
 import { staggerContainer, staggerItem } from "@/utils/transitions";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import ActivityHistory from '@/components/profile/ActivityHistory';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
 import ProfilePictureUpload from "@/components/profile/ProfilePictureUpload";
 
 const Profile = () => {
@@ -93,7 +92,7 @@ const Profile = () => {
                       </div>
                     </div>
                     <div className="mt-3 text-center space-y-1">
-                      <h2 className="text-xl font-semibold">{userData.name}</h2>
+                      <h2 className="text-xl font-bold">{userData.name}</h2>
                       <p className="text-sm text-muted-foreground">{userData.email}</p>
                       {subscription?.status === "active" && (
                         <div className="mt-1 inline-flex items-center bg-purple-100 dark:bg-purple-900/40 px-2 py-0.5 rounded-full text-xs text-purple-700 dark:text-purple-300">
@@ -195,9 +194,9 @@ const Profile = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.3 }}
-              className="max-h-96"
+              className="max-h-64 overflow-auto"
             >
-              <ActivityHistory />
+              <ActivityHistory limit={5} />
             </motion.div>
           </div>
         </main>

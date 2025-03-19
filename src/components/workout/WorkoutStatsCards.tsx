@@ -61,7 +61,7 @@ const WorkoutStatsCards: React.FC<WorkoutStatsCardsProps> = ({
           <Card 
             variant="glass" 
             className={`h-full shadow-lg border border-white/20 dark:border-white/5 ${isMobile ? '' : 'hover:scale'}`}
-            hover={isMobile ? "default" : "scale"}
+            hover={isMobile ? "default" : "lift"}
           >
             <CardContent className={`p-5 flex ${isMobile ? 'flex-row items-center' : 'flex-col items-center'} gap-4`}>
               <div className={`${stat.iconBg} w-12 h-12 rounded-full flex items-center justify-center ${stat.glassColor}`}>

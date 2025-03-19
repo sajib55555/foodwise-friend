@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button-custom";
 import { Workout } from "@/pages/WorkoutTracker";
-import { Calendar, Clock, Flame, Dumbbell, Trash2, Activity, Running, Bike, Heart } from "lucide-react";
+import { Calendar, Clock, Flame, Dumbbell, Trash2, Activity, Bike, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 
@@ -16,7 +16,7 @@ const WorkoutHistoryList: React.FC<WorkoutHistoryListProps> = ({ workouts, onDel
   const getWorkoutIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case "cardio":
-        return <Running className="h-5 w-5 text-red-500" />;
+        return <Activity className="h-5 w-5 text-red-500" />;
       case "strength":
         return <Dumbbell className="h-5 w-5 text-purple-500" />;
       case "flexibility":

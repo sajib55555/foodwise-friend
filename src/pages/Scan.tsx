@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Camera, Barcode, Sparkles, Zap } from "lucide-react";
@@ -20,6 +20,13 @@ const Scan = () => {
   const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(true);
   const { toast } = useToast();
+
+  // Reset camera visibility when changing scan mode
+  useEffect(() => {
+    if (!scanComplete) {
+      setShowCamera(true);
+    }
+  }, [scanMode, scanComplete]);
 
   const handlePhotoCapture = (imageSrc: string) => {
     console.log("Photo captured:", imageSrc.substring(0, 50) + "...");
@@ -113,8 +120,11 @@ const Scan = () => {
                   </TabsList>
                   
                   <TabsContent value="camera" className="mt-6">
+                    {/* Camera is shown immediately */}
                     {showCamera && (
-                      <CameraComponent onCapture={handlePhotoCapture} onClose={handleCameraClose} />
+                      <div className="aspect-[4/3] rounded-xl overflow-hidden">
+                        <CameraComponent onCapture={handlePhotoCapture} onClose={handleCameraClose} />
+                      </div>
                     )}
                     
                     <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50/50 to-blue-50/50 dark:from-emerald-900/10 dark:to-blue-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800/20">

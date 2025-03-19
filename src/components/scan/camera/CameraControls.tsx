@@ -33,13 +33,13 @@ const CameraControls: React.FC<CameraControlsProps> = ({
   const isMobile = useIsMobile();
   
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex justify-center items-center space-x-4">
+    <div className="p-4 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
         {/* If camera is not active and no image captured, show Open Camera button */}
         {!activeCamera && !capturedImage && (
           <Button
             variant="blue-gradient"
-            className="flex-1 rounded-full shadow-blue h-12 transition-all hover:shadow-blue-lg"
+            className="w-full sm:w-auto rounded-full shadow-blue h-12 transition-all hover:shadow-blue-lg"
             onClick={onOpenCamera}
           >
             <Camera className="h-5 w-5 mr-2" />
@@ -49,7 +49,7 @@ const CameraControls: React.FC<CameraControlsProps> = ({
         
         {/* Camera controls when active */}
         {activeCamera && (
-          <div className="flex items-center justify-center w-full gap-6">
+          <div className="flex items-center justify-center w-full gap-8">
             {/* Camera flip button - only shown on mobile when camera can be flipped */}
             {canFlipCamera && (
               <Button
@@ -66,28 +66,28 @@ const CameraControls: React.FC<CameraControlsProps> = ({
             {/* Capture button */}
             <Button
               variant="blue-gradient"
-              className="w-12 h-12 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
+              className="w-16 h-16 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"
               onClick={onCapture}
               aria-label="Capture photo"
               style={{
                 background: "linear-gradient(to right, #ff4800, #ff8a00)",
-                boxShadow: "0 0 15px rgba(255, 72, 0, 0.5)",
+                boxShadow: "0 0 20px rgba(255, 72, 0, 0.6)",
                 position: "relative",
                 zIndex: 50
               }}
             >
-              <span className="block w-10 h-10 rounded-full border-2 border-white animate-pulse"></span>
+              <span className="block w-12 h-12 rounded-full border-2 border-white animate-pulse"></span>
             </Button>
           </div>
         )}
         
         {/* If image is captured, show retake and analyze buttons */}
         {capturedImage && (
-          <div className="flex w-full gap-4">
+          <div className="flex flex-col sm:flex-row w-full gap-4">
             <Button
               variant="outline"
               onClick={onReset}
-              className="flex-1 rounded-full border-purple-300 bg-white/80 backdrop-blur-sm hover:bg-purple-50 shadow-sm hover:shadow-md transition-all"
+              className="w-full sm:flex-1 rounded-full border-purple-300 bg-white/80 backdrop-blur-sm hover:bg-purple-50 shadow-sm hover:shadow-md transition-all"
             >
               <RotateCw className="h-5 w-5 mr-2 text-purple-600" />
               Retake
@@ -95,7 +95,7 @@ const CameraControls: React.FC<CameraControlsProps> = ({
             
             <Button
               variant="green-gradient"
-              className="flex-1 rounded-full shadow-green hover:shadow-green-lg transition-all"
+              className="w-full sm:flex-1 rounded-full shadow-green hover:shadow-green-lg transition-all"
               onClick={onSubmit}
             >
               Analyze Food
@@ -108,9 +108,10 @@ const CameraControls: React.FC<CameraControlsProps> = ({
           <Button
             variant={capturedImage ? "outline" : "purple-gradient"}
             className={cn(
+              "w-full sm:w-auto",
               capturedImage 
                 ? "border-purple-300 rounded-full bg-white/80 backdrop-blur-sm hover:bg-purple-50 shadow-sm hover:shadow-md transition-all" 
-                : "flex-1 rounded-full shadow-purple hover:shadow-purple-lg transition-all"
+                : "rounded-full shadow-purple hover:shadow-purple-lg transition-all"
             )}
             onClick={onUpload}
             disabled={uploading}

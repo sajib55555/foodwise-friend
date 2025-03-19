@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageTransition from "@/components/layout/PageTransition";
@@ -10,51 +11,252 @@ import DetailedNutritionAnalysis from "@/components/nutrition/DetailedNutritionA
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { Heart, Leaf, Utensils, ArrowUpCircle, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock nutrition data for demo purposes
-const mockNutritionData = {
-  name: "Mixed Berry Smoothie",
-  servingSize: "16 oz (473ml)",
-  calories: 320,
-  protein: 8,
-  carbs: 62,
-  fat: 5,
-  ingredients: [
-    { name: "Mixed Berries", healthy: true },
-    { name: "Banana", healthy: true },
-    { name: "Greek Yogurt", healthy: true },
-    { name: "Honey", healthy: true, warning: "Natural sugars" },
-    { name: "Almond Milk", healthy: true }
-  ],
-  healthScore: 8.5,
-  warnings: ["Contains natural sugars from honey and fruits"],
-  recommendations: [
-    "Excellent source of antioxidants from berries",
-    "Good post-workout option",
-    "Could add protein powder to increase protein content"
-  ],
-  vitamins: [
-    { name: "Vitamin C", amount: "45% DV" },
-    { name: "Vitamin A", amount: "12% DV" },
-    { name: "Vitamin D", amount: "15% DV" },
-    { name: "Vitamin B12", amount: "20% DV" }
-  ],
-  minerals: [
-    { name: "Potassium", amount: "520mg" },
-    { name: "Calcium", amount: "200mg" },
-    { name: "Iron", amount: "2mg" },
-    { name: "Zinc", amount: "1.2mg" }
-  ],
-  dietary: {
-    vegan: false,
-    vegetarian: true,
-    glutenFree: true,
-    dairyFree: false
-  }
-};
+// Define interface for the meal data
+interface MealData {
+  name: string;
+  servingSize?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  ingredients?: string[];
+  healthScore?: number;
+  warnings?: string[];
+  recommendations?: string[];
+  vitamins?: { name: string; amount: string }[];
+  minerals?: { name: string; amount: string }[];
+  dietary?: {
+    vegan: boolean;
+    vegetarian: boolean;
+    glutenFree: boolean;
+    dairyFree: boolean;
+  };
+  time?: string;
+}
+
+interface MealLogMetadata {
+  meal_type?: string;
+  food_items?: string[];
+  scanned_food?: {
+    name: string;
+    calories: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  };
+}
 
 const Nutrition = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [latestMeal, setLatestMeal] = useState<MealData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    async function fetchLatestMeal() {
+      setIsLoading(true);
+      try {
+        // Get today's date range for filtering
+        const today = new Date();
+        
+        // Query activity logs for meal_logged activities, get the latest one
+        const { data, error } = await supabase
+          .from('user_activity_logs')
+          .select('*')
+          .eq('activity_type', 'meal_logged')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (error) {
+          console.error('Error fetching meal data:', error);
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          // Process the meal data
+          const latestMealLog = data[0];
+          const metadata = latestMealLog.metadata as MealLogMetadata || {};
+          const mealType = (metadata.meal_type || 'snack').toLowerCase();
+          
+          // Get nutritional values
+          let calories = 0;
+          let protein = 0;
+          let carbs = 0;
+          let fat = 0;
+          let mealName = "";
+          let mealIngredients: string[] = [];
+          
+          if (metadata.scanned_food) {
+            mealName = metadata.scanned_food.name || mealType.charAt(0).toUpperCase() + mealType.slice(1);
+            calories = Number(metadata.scanned_food.calories) || 0;
+            protein = Number(metadata.scanned_food.protein) || 0;
+            carbs = Number(metadata.scanned_food.carbs) || 0;
+            fat = Number(metadata.scanned_food.fat) || 0;
+          } else {
+            mealName = mealType.charAt(0).toUpperCase() + mealType.slice(1) + " Meal";
+            // Estimate nutritional values if not provided
+            switch(mealType) {
+              case 'breakfast':
+                calories = 350;
+                protein = 15;
+                carbs = 45;
+                fat = 12;
+                break;
+              case 'lunch':
+                calories = 520;
+                protein = 25;
+                carbs = 65;
+                fat = 15;
+                break;
+              case 'dinner':
+                calories = 650;
+                protein = 35;
+                carbs = 70;
+                fat = 20;
+                break;
+              default: // snack
+                calories = 180;
+                protein = 5;
+                carbs = 25;
+                fat = 8;
+            }
+          }
+          
+          // Get food items
+          if (metadata.food_items && metadata.food_items.length > 0) {
+            mealIngredients = metadata.food_items;
+          }
+          
+          // Format the time
+          const createdAt = new Date(latestMealLog.created_at);
+          const formattedTime = format(createdAt, 'h:mm a');
+          
+          // Create processed meal data
+          const processedMeal: MealData = {
+            name: mealName,
+            servingSize: "1 serving",
+            calories,
+            protein,
+            carbs,
+            fat,
+            ingredients: mealIngredients.map(item => item),
+            healthScore: calculateHealthScore(protein, carbs, fat),
+            warnings: generateWarnings(calories, fat),
+            recommendations: generateRecommendations(protein, calories),
+            time: formattedTime,
+            dietary: {
+              vegan: false,
+              vegetarian: true,
+              glutenFree: true,
+              dairyFree: mealIngredients.every(item => 
+                !item.toLowerCase().includes('yogurt') && 
+                !item.toLowerCase().includes('cheese') && 
+                !item.toLowerCase().includes('milk'))
+            },
+            vitamins: generateVitamins(),
+            minerals: generateMinerals()
+          };
+          
+          setLatestMeal(processedMeal);
+        } else {
+          // If no data, use fallback
+          setLatestMeal(null);
+        }
+      } catch (error) {
+        console.error('Error in meal data processing:', error);
+        toast({
+          title: "Failed to load meal data",
+          description: "Please try refreshing the page",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchLatestMeal();
+  }, [toast]);
+
+  // Helper functions for generating meal analysis
+  function calculateHealthScore(protein: number, carbs: number, fat: number): number {
+    // Simple algorithm: higher protein ratio, moderate carbs, lower fat = better score
+    const total = protein + carbs + fat;
+    if (total === 0) return 5.0;
+    
+    const proteinRatio = protein / total;
+    const carbsRatio = carbs / total;
+    const fatRatio = fat / total;
+    
+    // Ideal macros might be around 30% protein, 50% carbs, 20% fat
+    // Calculate deviation from ideal and convert to a score
+    const score = 8.5 - (
+      Math.abs(proteinRatio - 0.3) * 5 +
+      Math.abs(carbsRatio - 0.5) * 3 +
+      Math.abs(fatRatio - 0.2) * 4
+    );
+    
+    return Math.max(1, Math.min(10, score));
+  }
+  
+  function generateWarnings(calories: number, fat: number): string[] {
+    const warnings: string[] = [];
+    
+    if (calories > 600) {
+      warnings.push("High calorie content");
+    }
+    
+    if (fat > 25) {
+      warnings.push("Contains high fat content");
+    }
+    
+    if (warnings.length === 0) {
+      warnings.push("No significant nutritional concerns");
+    }
+    
+    return warnings;
+  }
+  
+  function generateRecommendations(protein: number, calories: number): string[] {
+    const recommendations: string[] = [];
+    
+    if (protein < 15) {
+      recommendations.push("Consider adding a protein source to increase protein content");
+    }
+    
+    if (calories < 200) {
+      recommendations.push("This meal may not provide sufficient energy, consider adding more nutritious ingredients");
+    }
+    
+    recommendations.push("Stay hydrated by drinking water with your meal");
+    
+    if (recommendations.length === 1) {
+      recommendations.push("Overall a balanced meal, good job!");
+    }
+    
+    return recommendations;
+  }
+  
+  function generateVitamins(): { name: string; amount: string }[] {
+    return [
+      { name: "Vitamin C", amount: "45% DV" },
+      { name: "Vitamin A", amount: "12% DV" },
+      { name: "Vitamin D", amount: "15% DV" },
+      { name: "Vitamin B12", amount: "20% DV" }
+    ];
+  }
+  
+  function generateMinerals(): { name: string; amount: string }[] {
+    return [
+      { name: "Potassium", amount: "520mg" },
+      { name: "Calcium", amount: "200mg" },
+      { name: "Iron", amount: "2mg" },
+      { name: "Zinc", amount: "1.2mg" }
+    ];
+  }
 
   return (
     <PageTransition>
@@ -123,7 +325,20 @@ const Nutrition = () => {
           </TabsContent>
           
           <TabsContent value="analysis" className="space-y-6">
-            <DetailedNutritionAnalysis nutritionData={mockNutritionData} />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <div className="w-6 h-6 border-2 border-green-500 rounded-full animate-spin border-t-transparent"></div>
+              </div>
+            ) : latestMeal ? (
+              <DetailedNutritionAnalysis nutritionData={latestMeal} />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No meals logged yet</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  Log a meal to see detailed nutrition analysis
+                </p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
         

@@ -27,6 +27,7 @@ const buttonVariants = cva(
         "green-gradient": "bg-gradient-to-r from-green-500 to-emerald-400 text-white shadow-md hover:shadow-green-200/50",
         "amber-gradient": "bg-gradient-to-r from-amber-500 to-orange-400 text-white shadow-md hover:shadow-amber-200/50",
         "pink-gradient": "bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-md hover:shadow-pink-200/50",
+        "teal-gradient": "bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md hover:shadow-teal-200/50", 
         "rainbow-gradient": "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white shadow-md hover:shadow-purple-200/50",
         "glass-blue": "glass-blue text-blue-800 dark:text-blue-200 shadow-sm hover:shadow-md",
         "glass-green": "glass-green text-green-800 dark:text-green-200 shadow-sm hover:shadow-md",

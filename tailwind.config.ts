@@ -157,7 +157,6 @@ export default {
                 'purple': '0 4px 14px rgba(124, 58, 237, 0.25)',
                 'purple-lg': '0 10px 25px -5px rgba(124, 58, 237, 0.3)',
                 'purple-sm': '0 2px 8px rgba(124, 58, 237, 0.15)',
-                // Adding missing shadow classes
                 'blue': '0 4px 14px rgba(59, 130, 246, 0.25)',
                 'blue-lg': '0 10px 25px -5px rgba(59, 130, 246, 0.3)',
                 'green': '0 4px 14px rgba(34, 197, 94, 0.25)',
@@ -166,6 +165,8 @@ export default {
                 'amber-lg': '0 10px 25px -5px rgba(245, 158, 11, 0.3)',
                 'pink': '0 4px 14px rgba(236, 72, 153, 0.25)',
                 'pink-lg': '0 10px 25px -5px rgba(236, 72, 153, 0.3)',
+                'teal': '0 4px 14px rgba(20, 184, 166, 0.25)',
+                'teal-lg': '0 10px 25px -5px rgba(20, 184, 166, 0.3)',
                 'primary': '0 4px 14px rgba(124, 58, 237, 0.25)',
                 'primary-lg': '0 10px 25px -5px rgba(124, 58, 237, 0.3)',
             },

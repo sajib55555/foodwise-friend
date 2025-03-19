@@ -10,6 +10,7 @@ export const suggestedWorkouts: Workout[] = [
     category: "strength",
     duration: "30 minutes",
     caloriesBurned: 250,
+    difficulty: "Beginner",
     exercises: [
       { name: "Push-ups", sets: "3", reps: "10" },
       { name: "Squats", sets: "3", reps: "15" },
@@ -25,6 +26,7 @@ export const suggestedWorkouts: Workout[] = [
     category: "core",
     duration: "20 minutes",
     caloriesBurned: 180,
+    difficulty: "Beginner",
     exercises: [
       { name: "Crunches", sets: "3", reps: "15" },
       { name: "Russian Twists", sets: "3", reps: "20" },
@@ -40,6 +42,7 @@ export const suggestedWorkouts: Workout[] = [
     category: "cardio",
     duration: "25 minutes",
     caloriesBurned: 300,
+    difficulty: "Intermediate",
     exercises: [
       { name: "Jumping Jacks", duration: "45 seconds" },
       { name: "Mountain Climbers", duration: "45 seconds" },
@@ -55,6 +58,7 @@ export const suggestedWorkouts: Workout[] = [
     category: "strength",
     duration: "45 minutes",
     caloriesBurned: 400,
+    difficulty: "Advanced",
     exercises: [
       { name: "Pull-ups", sets: "4", reps: "8-10" },
       { name: "Deadlifts", sets: "4", reps: "8" },
@@ -70,6 +74,7 @@ export const suggestedWorkouts: Workout[] = [
     category: "strength",
     duration: "60 minutes",
     caloriesBurned: 500,
+    difficulty: "Expert",
     exercises: [
       { name: "Weighted Pull-ups", sets: "5", reps: "5" },
       { name: "Barbell Squats", sets: "5", reps: "5" },
@@ -79,7 +84,7 @@ export const suggestedWorkouts: Workout[] = [
   }
 ];
 
-export const convertToTrackerWorkout = (workout: WorkoutSuggestion): Omit<Workout, "id"> => {
+export const convertToTrackerWorkout = (workout: WorkoutSuggestion) => {
   // Convert duration string to minutes (assuming format like "30 minutes")
   const durationMatch = workout.duration.match(/(\d+)/);
   const durationMinutes = durationMatch ? parseInt(durationMatch[1]) : 30;
@@ -89,7 +94,7 @@ export const convertToTrackerWorkout = (workout: WorkoutSuggestion): Omit<Workou
     name: workout.name,
     type: workout.difficulty === "Beginner" ? "Flexibility" : 
           workout.difficulty === "Moderate" ? "Cardio" : "Strength",
-    duration: durationMinutes,
+    duration: durationMinutes.toString(), // Convert to string to fix type mismatch
     calories: workout.caloriesBurned,
     date: new Date().toISOString().split('T')[0],
     time: new Date().toTimeString().slice(0, 5)

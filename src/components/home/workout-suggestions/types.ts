@@ -7,12 +7,15 @@ export interface Exercise {
 }
 
 export interface WorkoutSuggestion {
+  id: string;
   name: string;
   description: string;
-  exercises: string[] | Exercise[];
+  exercises: Exercise[];
   caloriesBurned: number;
   difficulty: string;
   duration: string;
+  level?: FitnessLevel; // Added to make WorkoutSuggestion compatible with Workout
+  category?: string;    // Added to make WorkoutSuggestion compatible with Workout
 }
 
 export interface WorkoutSuggestionsResponse {
@@ -30,6 +33,7 @@ export interface Workout {
   duration: string;
   caloriesBurned: number;
   exercises: Exercise[];
+  difficulty?: string; // Added to make Workout compatible with WorkoutSuggestion
 }
 
 export interface FitnessLevelInfo {

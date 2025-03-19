@@ -6,19 +6,22 @@ import { Dumbbell, ChevronRight, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { WorkoutCard } from "./WorkoutCard";
 import { SuggestionsDialog } from "./SuggestionsDialog";
-import { FitnessLevel, Workout, fitnessLevels } from "./types";
+import { FitnessLevel, FitnessLevelInfo, Workout, WorkoutSuggestion, fitnessLevels } from "./types";
 import { suggestedWorkouts } from "./utils";
 
 const WorkoutSuggestions = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [fitnessLevel, setFitnessLevel] = useState<FitnessLevel>("intermediate");
-  const [recommendations, setRecommendations] = useState<Workout[]>(
+  const [recommendations, setRecommendations] = useState<WorkoutSuggestion[]>(
     suggestedWorkouts.filter((workout) => 
       workout.level === "beginner" || workout.level === "intermediate"
-    ).slice(0, 2)
+    ).slice(0, 2).map(workout => ({
+      ...workout,
+      difficulty: workout.level, // Map level to difficulty
+    }))
   );
 
-  const handleTrackWorkout = (workout: Workout) => {
+  const handleTrackWorkout = (workout: WorkoutSuggestion) => {
     console.log("Tracking workout:", workout);
     // Here you would implement the logic to add this workout to the user's tracker
   };
@@ -68,7 +71,12 @@ const WorkoutSuggestions = () => {
       
       {showDialog && (
         <SuggestionsDialog 
-          suggestions={suggestedWorkouts.filter(workout => workout.level === fitnessLevel)}
+          suggestions={suggestedWorkouts
+            .filter(workout => workout.level === fitnessLevel)
+            .map(workout => ({
+              ...workout,
+              difficulty: workout.level, // Map level to difficulty
+            }))}
           currentFitnessLevel={fitnessLevels.find(level => level.id === fitnessLevel)?.label || ""}
           onTrackWorkout={handleTrackWorkout}
         />

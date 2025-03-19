@@ -3,12 +3,12 @@ import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button-custom";
 import { ArrowRight } from "lucide-react";
-import { FitnessLevel } from "./types";
+import { FitnessLevel, FitnessLevelInfo } from "./types";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FitnessLevelSelectorProps {
-  fitnessLevels: FitnessLevel[];
+  fitnessLevels: FitnessLevelInfo[];
   activeTab: string;
   loading: boolean;
   onTabChange: (value: string) => void;

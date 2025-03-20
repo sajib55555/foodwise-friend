@@ -143,6 +143,7 @@ const WorkoutSuggestions = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      id="workout-suggestions"
     >
       <Card variant="glass" className="border border-blue-300/30 dark:border-blue-800/20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-indigo-50/20 dark:from-blue-900/10 dark:to-indigo-900/5 z-0"></div>

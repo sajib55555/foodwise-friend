@@ -12,7 +12,10 @@ import {
   Target,
   Brain,
   Droplets,
-  Moon
+  Moon,
+  Bell,
+  Utensils,
+  Activity
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -21,9 +24,9 @@ const ActionButtons = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  // Button sizing - increased by 25% from previous values
-  const buttonSize = isMobile ? 'w-15 h-15' : 'w-25 h-25';
-  const iconSize = isMobile ? 'h-6 w-6' : 'h-7.5 w-7.5';
+  // Button sizing - increased by 20% from previous values
+  const buttonSize = isMobile ? 'w-18 h-18' : 'w-30 h-30';
+  const iconSize = isMobile ? 'h-7 w-7' : 'h-9 w-9';
 
   const actions = [
     { 
@@ -97,27 +100,51 @@ const ActionButtons = () => {
       gradient: "bg-gradient-to-br from-teal-400 to-teal-600",
       textColor: "text-white",
       shadow: "shadow-teal"
+    },
+    { 
+      icon: <Bell className={iconSize} />, 
+      label: "Meal Reminders", 
+      onClick: () => document.getElementById('meal-reminders')?.scrollIntoView({ behavior: 'smooth' }),
+      gradient: "bg-gradient-to-br from-orange-400 to-orange-600",
+      textColor: "text-white",
+      shadow: "shadow-orange"
+    },
+    { 
+      icon: <Utensils className={iconSize} />, 
+      label: "Meal Recommendations", 
+      onClick: () => document.getElementById('meal-recommendations')?.scrollIntoView({ behavior: 'smooth' }),
+      gradient: "bg-gradient-to-br from-emerald-400 to-emerald-600",
+      textColor: "text-white",
+      shadow: "shadow-emerald"
+    },
+    { 
+      icon: <Activity className={iconSize} />, 
+      label: "Workout Suggestions", 
+      onClick: () => document.getElementById('workout-suggestions')?.scrollIntoView({ behavior: 'smooth' }),
+      gradient: "bg-gradient-to-br from-violet-400 to-violet-600",
+      textColor: "text-white",
+      shadow: "shadow-violet"
     }
   ];
 
   return (
-    <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20 pb-4">
-      <CardContent className="p-2 md:p-6">
-        <div className={`grid ${isMobile ? 'grid-cols-3 gap-3' : 'grid-cols-3 gap-4'} md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3`}>
+    <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20 pb-6">
+      <CardContent className="p-3 md:p-8">
+        <div className={`grid ${isMobile ? 'grid-cols-3 gap-4' : 'grid-cols-4 gap-6'} md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4`}>
           {actions.map((action, index) => (
             <motion.div
               key={action.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
               className="flex flex-col items-center"
             >
               <Button 
                 variant="ghost"
                 size="icon"
-                className={`${isMobile ? 'w-15 h-15' : 'w-25 h-25'} rounded-full mb-2 md:mb-3 ${action.textColor} ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
+                className={`rounded-full mb-2 md:mb-3 ${action.textColor} ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
-                style={{ width: isMobile ? '4rem' : '6.25rem', height: isMobile ? '4rem' : '6.25rem' }}
+                style={{ width: isMobile ? '4.5rem' : '7rem', height: isMobile ? '4.5rem' : '7rem' }}
               >
                 {action.icon}
               </Button>

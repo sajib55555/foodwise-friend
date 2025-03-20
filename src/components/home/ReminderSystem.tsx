@@ -26,6 +26,7 @@ const ReminderSystem = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.2 }}
+      id="meal-reminders"
     >
       <Card variant="glass" className="border border-green-300/30 dark:border-green-800/20 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-green-50/30 to-teal-50/20 dark:from-green-900/10 dark:to-teal-900/5 z-0"></div>

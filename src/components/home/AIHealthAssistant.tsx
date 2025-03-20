@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -55,6 +56,7 @@ const AIHealthAssistant = () => {
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [selectedVoice, setSelectedVoice] = useState("nova");
+  const [audioData, setAudioData] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -90,6 +92,28 @@ const AIHealthAssistant = () => {
     }
   }, [loading, loadingProgress]);
 
+  // Effect to set up audio when audioData changes
+  useEffect(() => {
+    if (audioData && audioRef.current) {
+      try {
+        const audioSrc = `data:audio/mp3;base64,${audioData}`;
+        audioRef.current.src = audioSrc;
+        audioRef.current.volume = volume / 100;
+        
+        // Now we explicitly set onended here to ensure it's available
+        audioRef.current.onended = () => {
+          console.log("Audio playback ended");
+          setPlaying(false);
+        };
+        
+        console.log("Audio element set up with data");
+      } catch (err) {
+        console.error("Error setting up audio:", err);
+        setError("Failed to set up audio playback");
+      }
+    }
+  }, [audioData, volume]);
+
   const handleRequestAssistant = async () => {
     if (!user) {
       toast({
@@ -106,6 +130,7 @@ const AIHealthAssistant = () => {
       setLoadingMessage("Collecting your health data...");
       setAnalysis(null);
       setError(null);
+      setAudioData(null);
       
       if (isMobile) {
         setSheetOpen(true);
@@ -236,32 +261,11 @@ const AIHealthAssistant = () => {
       }
 
       if (data.audioContent) {
-        const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
+        console.log("Audio content received, length:", data.audioContent.length);
+        setAudioData(data.audioContent);
         
-        if (audioRef.current) {
-          audioRef.current.src = audioSrc;
-          audioRef.current.volume = volume / 100;
-          
-          try {
-            const playPromise = audioRef.current.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  setPlaying(true);
-                })
-                .catch(err => {
-                  console.error("Audio playback error:", err);
-                  setError("Audio playback failed. You may need to interact with the page first.");
-                });
-            }
-          } catch (err) {
-            console.error("Audio play error:", err);
-          }
-          
-          audioRef.current.onended = () => {
-            setPlaying(false);
-          };
-        }
+        // We'll play the audio when the user clicks the play button rather than automatically
+        // to avoid autoplay issues in browsers
       } else if (!data.error) {
         toast({
           title: "Voice synthesis unavailable",
@@ -290,22 +294,47 @@ const AIHealthAssistant = () => {
   };
 
   const togglePlayback = () => {
-    if (audioRef.current) {
-      if (playing) {
-        audioRef.current.pause();
-        setPlaying(false);
-      } else {
+    if (!audioRef.current || !audioData) {
+      console.error("Audio reference or data is missing");
+      toast({
+        title: "Playback Error",
+        description: "Unable to play audio. The audio data may be missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      try {
+        console.log("Starting audio playback");
         const playPromise = audioRef.current.play();
+        
         if (playPromise !== undefined) {
           playPromise
             .then(() => {
+              console.log("Audio playback started successfully");
               setPlaying(true);
             })
             .catch(err => {
               console.error("Audio playback error:", err);
               setError("Audio playback failed. You may need to interact with the page first.");
+              toast({
+                title: "Playback Error",
+                description: "Unable to play audio. Try clicking elsewhere on the page first.",
+                variant: "destructive",
+              });
             });
         }
+      } catch (err) {
+        console.error("Audio play error:", err);
+        toast({
+          title: "Playback Error",
+          description: "Failed to play audio: " + err.message,
+          variant: "destructive",
+        });
       }
     }
   };
@@ -325,6 +354,7 @@ const AIHealthAssistant = () => {
     setPlaying(false);
     setAnalysis(null);
     setError(null);
+    setAudioData(null);
     setSheetOpen(false);
     setLoadingProgress(0);
     setLoadingMessage("");
@@ -482,7 +512,7 @@ const AIHealthAssistant = () => {
                       onClick={togglePlayback}
                       className="flex-1 gap-2 shadow-md text-xs"
                       size="sm"
-                      disabled={!audioRef.current?.src}
+                      disabled={!audioData}
                     >
                       {playing ? (
                         <>
@@ -490,7 +520,7 @@ const AIHealthAssistant = () => {
                         </>
                       ) : (
                         <>
-                          <Volume className="h-3 w-3" /> {audioRef.current?.src ? "Play Again" : "Text Only"}
+                          <Volume className="h-3 w-3" /> {audioData ? "Play" : "Text Only"}
                         </>
                       )}
                     </Button>
@@ -584,7 +614,7 @@ const AIHealthAssistant = () => {
                     variant={playing ? "outline" : "purple-gradient"}
                     onClick={togglePlayback}
                     className="flex-1 gap-2 shadow-md"
-                    disabled={!audioRef.current?.src}
+                    disabled={!audioData}
                   >
                     {playing ? (
                       <>
@@ -592,7 +622,7 @@ const AIHealthAssistant = () => {
                       </>
                     ) : (
                       <>
-                        <Volume className="h-4 w-4" /> {audioRef.current?.src ? "Play Again" : "Text Only"}
+                        <Volume className="h-4 w-4" /> {audioData ? "Play" : "Text Only"}
                       </>
                     )}
                   </Button>
@@ -714,7 +744,18 @@ const AIHealthAssistant = () => {
         </motion.div>
       </CardContent>
       
-      <audio ref={audioRef} style={{ display: 'none' }} />
+      <audio 
+        ref={audioRef} 
+        style={{ display: 'none' }} 
+        onError={(e) => {
+          console.error("Audio error:", e);
+          setError("Audio playback error: The audio file might be corrupted or in an unsupported format.");
+        }}
+        onEnded={() => {
+          console.log("Audio playback ended (from onEnded)");
+          setPlaying(false);
+        }}
+      />
     </Card>
   );
 };

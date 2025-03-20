@@ -72,14 +72,14 @@ async function generateSpeech(apiKey: string, text: string, voice: string) {
     // Get the audio as an array buffer
     const arrayBuffer = await speechResponse.arrayBuffer();
     
-    // Convert to base64 safely
+    // Process in smaller chunks to avoid memory issues
     const uint8Array = new Uint8Array(arrayBuffer);
     const chunks = [];
     const chunkSize = 32768; // Process in smaller chunks to avoid call stack issues
     
     for (let i = 0; i < uint8Array.length; i += chunkSize) {
       const chunk = uint8Array.slice(i, i + chunkSize);
-      chunks.push(String.fromCharCode.apply(null, chunk));
+      chunks.push(String.fromCharCode.apply(null, [...chunk]));
     }
     
     const base64Audio = btoa(chunks.join(''));
@@ -208,6 +208,7 @@ serve(async (req) => {
     
     try {
       audioContent = await generateSpeech(OPENAI_API_KEY, analysis, voicePreference);
+      console.log("Audio content generated successfully, length:", audioContent ? audioContent.length : 0);
     } catch (error) {
       console.error("Speech generation error:", error);
       speechError = error.message;

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
@@ -14,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const PREMIUM_MONTHLY_PRICE_ID = "price_monthly_premium"; // Replace with your actual Stripe price ID
+const PREMIUM_MONTHLY_PRICE_ID = "price_1R4hCCFk4w8hjVcV3CEX2gA5"; 
 
 const Subscription = () => {
   const navigate = useNavigate();
@@ -39,8 +38,6 @@ const Subscription = () => {
   const getNextBillingDate = () => {
     if (!subscription || !isSubscribed) return null;
     
-    // For premium subscribers, we'd get this from Stripe
-    // This is placeholder logic - in a real app, you'd get this from subscription.next_billing_date
     if (subscription.next_billing_date) {
       return format(new Date(subscription.next_billing_date), "MMM d, yyyy");
     }
@@ -74,7 +71,6 @@ const Subscription = () => {
         throw new Error(error.message);
       }
       
-      // Redirect to Stripe Checkout
       window.location.href = data.url;
       
     } catch (error) {
@@ -107,7 +103,6 @@ const Subscription = () => {
         throw new Error(error.message);
       }
       
-      // Redirect to Stripe Customer Portal
       window.location.href = data.url;
       
     } catch (error) {
@@ -122,7 +117,6 @@ const Subscription = () => {
     }
   };
   
-  // Check for success or canceled query params (for Stripe redirect)
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
@@ -134,9 +128,7 @@ const Subscription = () => {
         description: "Your premium subscription is now active. Enjoy all the premium features!",
         variant: "default"
       });
-      // Remove query params from URL
       window.history.replaceState({}, document.title, window.location.pathname);
-      // Refresh subscription data
       getSubscription();
     }
     
@@ -146,7 +138,6 @@ const Subscription = () => {
         description: "You have canceled the subscription process.",
         variant: "default"
       });
-      // Remove query params from URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, [toast, getSubscription]);

@@ -13,6 +13,7 @@ import BarcodeScanner from "@/components/scan/BarcodeScanner";
 import ScanResult from "@/components/scan/ScanResult";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
 const Scan = () => {
   const [scanMode, setScanMode] = useState<"camera" | "barcode">("camera");
@@ -21,6 +22,7 @@ const Scan = () => {
   const [detectedBarcode, setDetectedBarcode] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(true);
   const { toast } = useToast();
+  const { logActivity } = useActivityLog();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Reset when changing scan mode
@@ -37,6 +39,9 @@ const Scan = () => {
     setCapturedImage(imageSrc);
     setScanComplete(true);
     setShowCamera(false);
+    
+    logActivity('scan_food', 'Captured food image for analysis');
+    
     toast({
       title: "Photo captured",
       description: "Analyzing your food...",
@@ -49,6 +54,7 @@ const Scan = () => {
     setDetectedBarcode(barcode);
     setScanComplete(true);
     setShowCamera(false);
+    
     toast({
       title: "Barcode detected",
       description: `Found barcode: ${barcode}`,
@@ -89,6 +95,18 @@ const Scan = () => {
   const triggerFileUpload = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+
+  // Handle tab change to reinitialize components
+  const handleTabChange = (value: string) => {
+    if (value === "camera" || value === "barcode") {
+      setScanMode(value);
+      // Force component remount by toggling showCamera
+      setShowCamera(false);
+      setTimeout(() => {
+        setShowCamera(true);
+      }, 100);
     }
   };
 
@@ -134,7 +152,7 @@ const Scan = () => {
                 <Tabs 
                   defaultValue="camera" 
                   value={scanMode}
-                  onValueChange={(value) => setScanMode(value as "camera" | "barcode")}
+                  onValueChange={handleTabChange}
                   className="w-full"
                 >
                   <TabsList className="w-full mb-5 bg-gradient-to-r from-purple-50/80 to-blue-50/80 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-100/50 dark:border-purple-900/20 rounded-full p-1">
@@ -209,7 +227,7 @@ const Scan = () => {
                     variant="purple-gradient"
                     size="pill-sm"  
                     hover="scale"
-                    onClick={() => setScanMode(scanMode === "camera" ? "barcode" : "camera")}
+                    onClick={() => handleTabChange(scanMode === "camera" ? "barcode" : "camera")}
                     className="w-auto px-6 shadow-purple"
                   >
                     {scanMode === "camera" ? (

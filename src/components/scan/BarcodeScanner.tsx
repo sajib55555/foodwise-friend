@@ -6,6 +6,7 @@ import { AlertCircle, RefreshCw, Barcode } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Quagga from 'quagga';
 import { useToast } from "@/hooks/use-toast";
+import { useActivityLog } from '@/contexts/ActivityLogContext';
 
 const BarcodeScanner: React.FC<{
   onDetected: (code: string) => void;
@@ -16,6 +17,7 @@ const BarcodeScanner: React.FC<{
   const [scanning, setScanning] = useState(false);
   const [lastResults, setLastResults] = useState<string[]>([]);
   const { toast } = useToast();
+  const { logActivity } = useActivityLog();
   
   // Cleanup function for Quagga
   const stopScanner = () => {
@@ -56,6 +58,59 @@ const BarcodeScanner: React.FC<{
     return maxCount >= 3 ? dominantCode : null;
   };
 
+  const initQuagga = (target: HTMLElement) => {
+    return new Promise<void>((resolve, reject) => {
+      Quagga.init(
+        {
+          inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: target,
+            constraints: {
+              facingMode: "environment", // Use back camera on mobile
+              width: { min: 640 },
+              height: { min: 480 },
+              aspectRatio: { min: 1, max: 2 }
+            },
+            area: { // Only scan the middle area of the camera feed
+              top: "20%",
+              right: "20%",
+              left: "20%",
+              bottom: "20%"
+            }
+          },
+          locator: {
+            patchSize: "medium",
+            halfSample: true,
+          },
+          numOfWorkers: navigator.hardwareConcurrency ? Math.max(navigator.hardwareConcurrency - 1, 1) : 2,
+          frequency: 10, // Increase scan frequency
+          decoder: {
+            readers: [
+              "ean_reader",
+              "ean_8_reader",
+              "upc_reader",
+              "upc_e_reader",
+              "code_128_reader"
+            ],
+            multiple: false
+          },
+          locate: true,
+        },
+        (err) => {
+          if (err) {
+            console.error("Quagga initialization error:", err);
+            reject(err);
+            return;
+          }
+          
+          console.log("Quagga initialized successfully");
+          resolve();
+        }
+      );
+    });
+  };
+
   useEffect(() => {
     // Start barcode scanner
     const startScanner = async () => {
@@ -67,55 +122,8 @@ const BarcodeScanner: React.FC<{
         setLastResults([]);
         
         // Initialize Quagga with enhanced settings
-        Quagga.init(
-          {
-            inputStream: {
-              name: "Live",
-              type: "LiveStream",
-              target: scannerRef.current,
-              constraints: {
-                facingMode: "environment", // Use back camera on mobile
-                width: { min: 640 },
-                height: { min: 480 },
-                aspectRatio: { min: 1, max: 2 }
-              },
-              area: { // Only scan the middle area of the camera feed
-                top: "20%",
-                right: "20%",
-                left: "20%",
-                bottom: "20%"
-              }
-            },
-            locator: {
-              patchSize: "medium",
-              halfSample: true,
-            },
-            numOfWorkers: navigator.hardwareConcurrency ? Math.max(navigator.hardwareConcurrency - 1, 1) : 2,
-            frequency: 10, // Increase scan frequency
-            decoder: {
-              readers: [
-                "ean_reader",
-                "ean_8_reader",
-                "upc_reader",
-                "upc_e_reader",
-                "code_128_reader"
-              ],
-              multiple: false
-            },
-            locate: true,
-          },
-          (err) => {
-            if (err) {
-              console.error("Quagga initialization error:", err);
-              setError("Could not initialize barcode scanner. Please try again or check camera permissions.");
-              setScanning(false);
-              return;
-            }
-            
-            console.log("Quagga initialized successfully");
-            Quagga.start();
-          }
-        );
+        await initQuagga(scannerRef.current);
+        Quagga.start();
         
         // Set up barcode detection handlers with improved filtering
         Quagga.onDetected((result) => {
@@ -133,6 +141,9 @@ const BarcodeScanner: React.FC<{
               stopScanner();
               setScanning(false);
               
+              // Log activity
+              logActivity('scan_food', `Scanned barcode: ${validCode}`, { barcode: validCode });
+              
               // Notify success
               toast({
                 title: "Barcode Detected",
@@ -144,9 +155,9 @@ const BarcodeScanner: React.FC<{
             }
           }
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error accessing camera for barcode scanning:", err);
-        setError("Could not access camera. Please make sure you've granted camera permissions.");
+        setError("Could not access camera. Please ensure you've granted camera permissions and no other app is using your camera.");
         setScanning(false);
       }
     };
@@ -158,7 +169,7 @@ const BarcodeScanner: React.FC<{
     return () => {
       stopScanner();
     };
-  }, [onDetected, toast]);
+  }, [onDetected, toast, logActivity]);
 
   const handleReset = () => {
     stopScanner();
@@ -169,51 +180,15 @@ const BarcodeScanner: React.FC<{
     setTimeout(() => {
       if (scannerRef.current) {
         setScanning(true);
-        Quagga.init(
-          {
-            inputStream: {
-              name: "Live",
-              type: "LiveStream",
-              target: scannerRef.current,
-              constraints: {
-                facingMode: "environment",
-                width: { min: 640 },
-                height: { min: 480 }
-              },
-              area: { 
-                top: "20%",
-                right: "20%",
-                left: "20%",
-                bottom: "20%"
-              }
-            },
-            locator: {
-              patchSize: "medium",
-              halfSample: true,
-            },
-            numOfWorkers: 2,
-            decoder: {
-              readers: [
-                "ean_reader",
-                "ean_8_reader",
-                "upc_reader",
-                "upc_e_reader",
-                "code_128_reader"
-              ],
-              multiple: false
-            },
-            locate: true,
-          },
-          (err) => {
-            if (err) {
-              console.error("Quagga re-initialization error:", err);
-              setError("Could not restart barcode scanner. Please try again.");
-              setScanning(false);
-              return;
-            }
+        initQuagga(scannerRef.current)
+          .then(() => {
             Quagga.start();
-          }
-        );
+          })
+          .catch((err) => {
+            console.error("Quagga re-initialization error:", err);
+            setError("Could not restart barcode scanner. Please try again.");
+            setScanning(false);
+          });
       }
     }, 500);
   };

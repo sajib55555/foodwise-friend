@@ -117,7 +117,7 @@ const ActionButtons = () => {
                 size="icon"
                 className={`${isMobile ? 'w-15 h-15' : 'w-25 h-25'} rounded-full mb-2 md:mb-3 ${action.textColor} ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
-                style={{ width: isMobile ? '4rem', height: '4rem' : '6.25rem', height: '6.25rem' }}
+                style={{ width: isMobile ? '4rem' : '6.25rem', height: isMobile ? '4rem' : '6.25rem' }}
               >
                 {action.icon}
               </Button>

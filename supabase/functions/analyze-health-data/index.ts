@@ -41,6 +41,57 @@ async function generateAnalysisWithTimeout(openai: OpenAI, prompt: string, timeo
   }
 }
 
+// Function to generate speech with dedicated error handling
+async function generateSpeech(apiKey: string, text: string, voice: string) {
+  try {
+    console.log("Generating speech for text length:", text.length, "with voice:", voice);
+    
+    // Limit the text length to prevent potential buffer issues
+    const truncatedText = text.slice(0, 4000);
+    
+    const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'tts-1',
+        input: truncatedText,
+        voice: voice,
+        response_format: 'mp3',
+      }),
+    });
+
+    if (!speechResponse.ok) {
+      const errorText = await speechResponse.text();
+      console.error("OpenAI speech API error. Status:", speechResponse.status, "Response:", errorText);
+      throw new Error(`Speech generation failed with status ${speechResponse.status}`);
+    }
+
+    // Get the audio as an array buffer
+    const arrayBuffer = await speechResponse.arrayBuffer();
+    
+    // Convert to base64 safely
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const chunks = [];
+    const chunkSize = 32768; // Process in smaller chunks to avoid call stack issues
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      chunks.push(String.fromCharCode.apply(null, chunk));
+    }
+    
+    const base64Audio = btoa(chunks.join(''));
+    console.log("Successfully generated audio, length:", base64Audio.length);
+    
+    return base64Audio;
+  } catch (error) {
+    console.error("Speech generation error:", error);
+    throw error;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -147,78 +198,33 @@ serve(async (req) => {
       );
     }
 
+    // Process voice generation
     const voicePreference = healthData.voicePreference || 'nova';
     console.log("Voice preference:", voicePreference);
-
-    // Process speech generation in background
-    const textAnalysisResponse = {
-      textAnalysis: analysis
-    };
-
-    // Create a controller to handle the speech generation separately
-    const backgroundTask = async () => {
-      try {
-        // Limit the text length to prevent potential buffer issues
-        const truncatedAnalysis = analysis.slice(0, 4000); // Limit to 4000 characters to prevent potential issues
-        
-        console.log("Sending text to OpenAI TTS API, length:", truncatedAnalysis.length);
-        
-        const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'tts-1',
-            input: truncatedAnalysis,
-            voice: voicePreference,
-            response_format: 'mp3',
-          }),
-        });
-
-        if (!speechResponse.ok) {
-          const errorText = await speechResponse.text();
-          console.error("OpenAI speech API error. Status:", speechResponse.status, "Response:", errorText);
-          return;
-        }
-
-        // Get the audio as an array buffer
-        const arrayBuffer = await speechResponse.arrayBuffer();
-        
-        // Convert to base64 safely
-        const uint8Array = new Uint8Array(arrayBuffer);
-        const chunks = [];
-        const chunkSize = 32768; // Process in smaller chunks to avoid call stack issues
-        
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-          const chunk = uint8Array.slice(i, i + chunkSize);
-          chunks.push(String.fromCharCode.apply(null, chunk));
-        }
-        
-        const base64Audio = btoa(chunks.join(''));
-        
-        console.log("Successfully generated audio, length:", base64Audio.length);
-        
-        // Store the audio in a temporary cache or database for later retrieval
-        // For now, we're not implementing this part as it would require additional Supabase setup
-      } catch (error) {
-        console.error("Speech generation error:", error);
-      }
-    };
     
-    // First respond with just the text analysis quickly
+    // Generate speech from text
+    let audioContent = null;
+    let speechError = null;
+    
+    try {
+      audioContent = await generateSpeech(OPENAI_API_KEY, analysis, voicePreference);
+    } catch (error) {
+      console.error("Speech generation error:", error);
+      speechError = error.message;
+    }
+
+    // Return the response with text analysis and audio if available
     return new Response(
-      JSON.stringify(textAnalysisResponse),
+      JSON.stringify({
+        textAnalysis: analysis,
+        audioContent: audioContent,
+        error: speechError // Will be null if speech generation succeeded
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
-    
-    // Note: Background processing would be implemented here in a production environment
-    // EdgeRuntime.waitUntil(backgroundTask());
-    
   } catch (error) {
     console.error("Unhandled error:", error.message, error.stack);
     return new Response(

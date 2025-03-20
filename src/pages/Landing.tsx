@@ -3,6 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent } from "@/components/ui/card-custom";
+import Header from "@/components/layout/Header";
 import { 
   CheckCircle, 
   Utensils, 
@@ -133,6 +134,8 @@ const Landing = () => {
   return (
     <PageTransition>
       <main className="flex flex-col min-h-screen">
+        <Header transparent={true} />
+        
         {/* Hero Section */}
         <section className="relative py-20 px-4 lg:px-8 bg-gradient-to-b from-background to-secondary/20">
           <div className="max-w-5xl mx-auto text-center">

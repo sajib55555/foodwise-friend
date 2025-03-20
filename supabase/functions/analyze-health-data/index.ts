@@ -270,9 +270,10 @@ function generateAnalysisPrompt(healthData: any, userName: string): string {
     3. Provides insights on exercise activity
     4. Mentions sleep quality if data is available
     5. Comments on weight trends if data is available
-    6. Gives specific, actionable recommendations for improvement
-    7. References their goals and progress towards them
-    8. Uses an encouraging tone
+    6. Analyzes water intake and hydration status
+    7. Reviews progress toward their health and fitness goals
+    8. Gives specific, actionable recommendations for improvement
+    9. Uses an encouraging tone
     
     Keep the response under 300 words and make it conversational as it will be read aloud.
   `;

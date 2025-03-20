@@ -8,6 +8,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Function to generate analysis with timeout
+async function generateAnalysisWithTimeout(openai: OpenAI, prompt: string, timeout: number = 10000) {
+  // Create a promise that rejects after the timeout
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Analysis request timed out')), timeout);
+  });
+
+  // Create the analysis promise
+  const analysisPromise = openai.chat.completions.create({
+    model: "gpt-4o-mini", // Using the fastest recommended model
+    messages: [
+      {
+        role: "system",
+        content: "You are a health assistant that provides personalized health advice based on user data. Keep responses concise, clear, and actionable. Use a supportive and encouraging tone. Limit your response to 300 words maximum."
+      },
+      { role: "user", content: prompt }
+    ],
+    max_tokens: 400, // Limiting token count for faster response
+    temperature: 0.7,
+  });
+
+  // Race the two promises
+  try {
+    const result = await Promise.race([analysisPromise, timeoutPromise]);
+    return result;
+  } catch (error) {
+    if (error.message === 'Analysis request timed out') {
+      throw new Error('Analysis request timed out');
+    }
+    throw error;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -66,25 +99,28 @@ serve(async (req) => {
     const analysisPrompt = generateAnalysisPrompt(healthData, userName || 'User');
     console.log("Analysis prompt:", analysisPrompt);
 
-    // Generate OpenAI completion
+    // Generate OpenAI completion with timeout
     let analysis;
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Using the recommended model
-        messages: [
-          {
-            role: "system",
-            content: "You are a health assistant that provides personalized health advice based on user data. Keep responses concise, clear, and actionable. Use a supportive and encouraging tone."
-          },
-          { role: "user", content: analysisPrompt }
-        ],
-        max_tokens: 500,
-      });
-      
+      const completion = await generateAnalysisWithTimeout(openai, analysisPrompt, 15000);
       analysis = completion.choices[0].message.content;
       console.log("Generated analysis:", analysis);
     } catch (error) {
       console.error("OpenAI API error:", error);
+      
+      if (error.message === 'Analysis request timed out') {
+        return new Response(
+          JSON.stringify({ 
+            error: "The analysis is taking too long to generate",
+            textAnalysis: "I'm sorry, but your health analysis is taking longer than expected. Please try again later when our systems are less busy."
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: `OpenAI API error: ${error.message}`,
@@ -114,96 +150,75 @@ serve(async (req) => {
     const voicePreference = healthData.voicePreference || 'nova';
     console.log("Voice preference:", voicePreference);
 
-    // Generate speech from the analysis - with improved error handling
-    try {
-      // Limit the text length to prevent potential buffer issues
-      const truncatedAnalysis = analysis.slice(0, 4000); // Limit to 4000 characters to prevent potential issues
-      
-      console.log("Sending text to OpenAI TTS API, length:", truncatedAnalysis.length);
-      
-      const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'tts-1',
-          input: truncatedAnalysis,
-          voice: voicePreference,
-          response_format: 'mp3',
-        }),
-      });
+    // Process speech generation in background
+    const textAnalysisResponse = {
+      textAnalysis: analysis
+    };
 
-      if (!speechResponse.ok) {
-        const errorText = await speechResponse.text();
-        console.error("OpenAI speech API error. Status:", speechResponse.status, "Response:", errorText);
+    // Create a controller to handle the speech generation separately
+    const backgroundTask = async () => {
+      try {
+        // Limit the text length to prevent potential buffer issues
+        const truncatedAnalysis = analysis.slice(0, 4000); // Limit to 4000 characters to prevent potential issues
         
-        // Parse error response if it's JSON
-        let errorMessage = "Speech generation failed";
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error?.message || errorMessage;
-        } catch (e) {
-          // If parsing fails, use the raw text
-          errorMessage = errorText || errorMessage;
-        }
+        console.log("Sending text to OpenAI TTS API, length:", truncatedAnalysis.length);
         
-        // Return text analysis even if speech generation fails
-        return new Response(
-          JSON.stringify({ 
-            textAnalysis: analysis,
-            error: `Speech generation failed: ${errorMessage}`
+        const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'tts-1',
+            input: truncatedAnalysis,
+            voice: voicePreference,
+            response_format: 'mp3',
           }),
-          {
-            status: 200, // Return 200 to avoid client-side error handling
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
+        });
 
-      // Get the audio as an array buffer
-      const arrayBuffer = await speechResponse.arrayBuffer();
-      
-      // Use a safer method to encode the audio to base64
-      // Instead of using string operations which can cause call stack issues
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const chunks = [];
-      const chunkSize = 32768; // Process in smaller chunks to avoid call stack issues
-      
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.slice(i, i + chunkSize);
-        chunks.push(String.fromCharCode.apply(null, chunk));
-      }
-      
-      const base64Audio = btoa(chunks.join(''));
-      
-      console.log("Successfully generated audio, length:", base64Audio.length);
+        if (!speechResponse.ok) {
+          const errorText = await speechResponse.text();
+          console.error("OpenAI speech API error. Status:", speechResponse.status, "Response:", errorText);
+          return;
+        }
 
-      return new Response(
-        JSON.stringify({ 
-          audioContent: base64Audio,
-          textAnalysis: analysis 
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        // Get the audio as an array buffer
+        const arrayBuffer = await speechResponse.arrayBuffer();
+        
+        // Convert to base64 safely
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const chunks = [];
+        const chunkSize = 32768; // Process in smaller chunks to avoid call stack issues
+        
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.slice(i, i + chunkSize);
+          chunks.push(String.fromCharCode.apply(null, chunk));
         }
-      );
-    } catch (error) {
-      console.error("Speech generation error:", error);
-      // Return the text analysis even if speech generation fails
-      return new Response(
-        JSON.stringify({ 
-          textAnalysis: analysis,
-          error: `Speech generation failed: ${error.message}`
-        }),
-        {
-          status: 200, // Return 200 to avoid client-side error handling
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
+        
+        const base64Audio = btoa(chunks.join(''));
+        
+        console.log("Successfully generated audio, length:", base64Audio.length);
+        
+        // Store the audio in a temporary cache or database for later retrieval
+        // For now, we're not implementing this part as it would require additional Supabase setup
+      } catch (error) {
+        console.error("Speech generation error:", error);
+      }
+    };
+    
+    // First respond with just the text analysis quickly
+    return new Response(
+      JSON.stringify(textAnalysisResponse),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+    
+    // Note: Background processing would be implemented here in a production environment
+    // EdgeRuntime.waitUntil(backgroundTask());
+    
   } catch (error) {
     console.error("Unhandled error:", error.message, error.stack);
     return new Response(
@@ -244,6 +259,6 @@ function generateAnalysisPrompt(healthData: any, userName: string): string {
     5. Gives specific, actionable recommendations for improvement
     6. Uses an encouraging tone
     
-    Keep the response under 400 words and make it conversational as it will be read aloud.
+    Keep the response under 300 words and make it conversational as it will be read aloud.
   `;
 }

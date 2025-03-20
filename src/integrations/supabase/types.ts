@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      device_tokens: {
+        Row: {
+          created_at: string | null
+          id: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       goal_progress: {
         Row: {
           created_at: string
@@ -44,6 +65,48 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          app_updates: boolean | null
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+          meal_reminders: boolean | null
+          push_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+          water_reminders: boolean | null
+          weekly_summary: boolean | null
+          workout_reminders: boolean | null
+        }
+        Insert: {
+          app_updates?: boolean | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          meal_reminders?: boolean | null
+          push_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          water_reminders?: boolean | null
+          weekly_summary?: boolean | null
+          workout_reminders?: boolean | null
+        }
+        Update: {
+          app_updates?: boolean | null
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          meal_reminders?: boolean | null
+          push_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          water_reminders?: boolean | null
+          weekly_summary?: boolean | null
+          workout_reminders?: boolean | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -68,6 +131,39 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          active: boolean | null
+          body: string
+          created_at: string | null
+          days: string[]
+          id: number
+          time: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          body: string
+          created_at?: string | null
+          days: string[]
+          id?: number
+          time: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          body?: string
+          created_at?: string | null
+          days?: string[]
+          id?: number
+          time?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -170,6 +266,75 @@ export type Database = {
           unit?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_macros: {
+        Row: {
+          calculation_method: string | null
+          calories: number
+          carbs: number
+          created_at: string | null
+          fat: number
+          id: string
+          protein: number
+          user_id: string
+        }
+        Insert: {
+          calculation_method?: string | null
+          calories: number
+          carbs: number
+          created_at?: string | null
+          fat: number
+          id?: string
+          protein: number
+          user_id: string
+        }
+        Update: {
+          calculation_method?: string | null
+          calories?: number
+          carbs?: number
+          created_at?: string | null
+          fat?: number
+          id?: string
+          protein?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          activity_level: string | null
+          age: number | null
+          created_at: string | null
+          fitness_goal: string | null
+          gender: string | null
+          height: number | null
+          id: string
+          updated_at: string | null
+          weight: number | null
+        }
+        Insert: {
+          activity_level?: string | null
+          age?: number | null
+          created_at?: string | null
+          fitness_goal?: string | null
+          gender?: string | null
+          height?: number | null
+          id: string
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Update: {
+          activity_level?: string | null
+          age?: number | null
+          created_at?: string | null
+          fitness_goal?: string | null
+          gender?: string | null
+          height?: number | null
+          id?: string
+          updated_at?: string | null
+          weight?: number | null
         }
         Relationships: []
       }

@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { 
@@ -17,10 +17,10 @@ import {
   DrawerTitle, 
   DrawerDescription,
   DrawerFooter,
-  DrawerTrigger,
-  DrawerClose
+  DrawerClose,
+  DrawerTrigger
 } from "@/components/ui/drawer";
-import { Mic, VolumeX, Volume, Loader2, Brain, Sparkles, AlertCircle, X } from "lucide-react";
+import { Mic, VolumeX, Volume, Loader2, Brain, Sparkles, AlertCircle, X, Info } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +31,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
+import { Progress } from "@/components/ui/progress";
 
 const voices = [
   { id: "alloy", name: "Alloy", description: "Neutral" },
@@ -48,12 +49,51 @@ const AIHealthAssistant = () => {
   const [open, setOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [selectedVoice, setSelectedVoice] = useState("nova");
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+  
+  // Simulate progress updates during analysis
+  useEffect(() => {
+    if (loading) {
+      const interval = setInterval(() => {
+        setLoadingProgress(prev => {
+          // Cap at 90% until actually complete
+          return prev < 90 ? prev + 10 : prev;
+        });
+        
+        // Update loading messages
+        if (loadingProgress < 20) {
+          setLoadingMessage("Collecting your health data...");
+        } else if (loadingProgress < 40) {
+          setLoadingMessage("Analyzing nutrition patterns...");
+        } else if (loadingProgress < 60) {
+          setLoadingMessage("Evaluating exercise activity...");
+        } else if (loadingProgress < 80) {
+          setLoadingMessage("Generating personalized insights...");
+        } else {
+          setLoadingMessage("Finalizing your health analysis...");
+        }
+      }, 800);
+      
+      return () => clearInterval(interval);
+    }
+  }, [loading, loadingProgress]);
 
   const handleRequestAssistant = async () => {
     if (!user) {
@@ -67,8 +107,30 @@ const AIHealthAssistant = () => {
 
     try {
       setLoading(true);
+      setLoadingProgress(10);
+      setLoadingMessage("Collecting your health data...");
       setAnalysis(null);
       setError(null);
+      
+      // Open the dialog/sheet to show loading state
+      if (isMobile) {
+        setSheetOpen(true);
+      } else {
+        setOpen(true);
+      }
+
+      // Set a timeout to handle long-running requests
+      timeoutRef.current = setTimeout(() => {
+        if (loading) {
+          setError("The analysis is taking longer than expected. You may want to try again later.");
+          setLoading(false);
+          toast({
+            title: "Analysis timeout",
+            description: "The request is taking too long. Please try again later.",
+            variant: "destructive",
+          });
+        }
+      }, 20000); // 20 seconds timeout
 
       // Create a mock dataset since we don't have the actual tables in our database schema
       const mockHealthData = {
@@ -87,6 +149,9 @@ const AIHealthAssistant = () => {
         ],
         goals: []
       };
+      
+      setLoadingProgress(30);
+      setLoadingMessage("Processing nutrition and exercise data...");
 
       // Fetch user goals
       const { data: goalsData, error: goalsError } = await supabase
@@ -100,6 +165,9 @@ const AIHealthAssistant = () => {
       } else {
         mockHealthData.goals = goalsData || [];
       }
+      
+      setLoadingProgress(50);
+      setLoadingMessage("Retrieving your profile information...");
 
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
@@ -111,6 +179,9 @@ const AIHealthAssistant = () => {
       if (profileError) {
         console.error("Error fetching profile:", profileError);
       }
+      
+      setLoadingProgress(70);
+      setLoadingMessage("Generating health insights...");
 
       // Call the Edge Function to analyze the data and generate voice response
       const healthData = {
@@ -131,18 +202,28 @@ const AIHealthAssistant = () => {
         }
       });
 
+      // Clear the timeout since we got a response
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
       if (functionError) {
         console.error("Edge function error:", functionError);
         setError(`Failed to analyze health data: ${functionError.message}`);
+        setLoading(false);
         return;
       }
 
       if (!data) {
         setError("No response from server");
+        setLoading(false);
         return;
       }
 
       console.log("Received response from edge function:", data);
+      setLoadingProgress(90);
+      setLoadingMessage("Processing analysis results...");
 
       // Handle the text analysis
       if (data.textAnalysis) {
@@ -154,6 +235,7 @@ const AIHealthAssistant = () => {
         }
       } else {
         setError("No analysis was generated");
+        setLoading(false);
         return;
       }
 
@@ -206,6 +288,8 @@ const AIHealthAssistant = () => {
           variant: "default",
         });
       }
+      
+      setLoadingProgress(100);
     } catch (error: any) {
       console.error("Error fetching data or analyzing:", error);
       setError(error.message || "Failed to generate health insights");
@@ -214,6 +298,12 @@ const AIHealthAssistant = () => {
         description: error.message || "Failed to generate health insights",
         variant: "destructive",
       });
+      
+      // Clear the timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     } finally {
       setLoading(false);
     }
@@ -256,7 +346,27 @@ const AIHealthAssistant = () => {
     setAnalysis(null);
     setError(null);
     setSheetOpen(false);
+    setLoadingProgress(0);
+    setLoadingMessage("");
   };
+
+  // Loading State Component
+  const LoadingState = () => (
+    <div className="space-y-4 py-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-purple-800 dark:text-purple-300 font-medium">{loadingMessage}</p>
+        <span className="text-xs text-purple-600 dark:text-purple-400">{loadingProgress}%</span>
+      </div>
+      <Progress value={loadingProgress} className="h-2 bg-purple-100 dark:bg-purple-900/30" indicatorColor="bg-purple-600" />
+      <Alert className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/40 mt-2">
+        <Info className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+        <AlertTitle className="text-purple-800 dark:text-purple-300 text-sm">Analyzing Your Health Data</AlertTitle>
+        <AlertDescription className="text-xs text-purple-700/80 dark:text-purple-400/80">
+          We're analyzing your nutrition, exercise, water intake, and sleep patterns to provide personalized insights.
+        </AlertDescription>
+      </Alert>
+    </div>
+  );
 
   // Voice Settings Panel Component
   const VoiceSettings = () => (
@@ -366,11 +476,32 @@ const AIHealthAssistant = () => {
               </SheetHeader>
               
               <div className="py-4 overflow-y-auto">
-                <AnalysisResults />
+                {loading ? (
+                  <LoadingState />
+                ) : (
+                  <AnalysisResults />
+                )}
               </div>
               
               <SheetFooter className="flex items-center justify-between gap-2">
-                {analysis ? (
+                {loading ? (
+                  <Button
+                    variant="outline"
+                    size="sm" 
+                    className="text-xs border-purple-200 dark:border-purple-800/40"
+                    onClick={() => {
+                      setSheetOpen(false);
+                      // Clear the timeout if user cancels
+                      if (timeoutRef.current) {
+                        clearTimeout(timeoutRef.current);
+                        timeoutRef.current = null;
+                      }
+                      setLoading(false);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                ) : analysis ? (
                   <>
                     <Button
                       variant={playing ? "outline" : "purple-gradient"}
@@ -426,14 +557,20 @@ const AIHealthAssistant = () => {
             size="sm" 
             className="shadow-md hover:shadow-lg transition-all"
             onClick={() => {
-              if (analysis) {
+              if (loading) {
+                setSheetOpen(true);
+              } else if (analysis) {
                 setSheetOpen(true);
               } else {
                 handleRequestAssistant();
               }
             }}
           >
-            {analysis ? (
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" /> Analyzing...
+              </>
+            ) : analysis ? (
               <>
                 <Sparkles className="h-4 w-4 mr-1" /> View Insights
               </>
@@ -469,20 +606,37 @@ const AIHealthAssistant = () => {
             <p className="text-muted-foreground text-sm mt-4 max-w-md">
               Get personalized health insights and recommendations with our AI voice assistant
             </p>
+            <Alert className="mt-4 bg-blue-50/50 border border-blue-200/50 dark:bg-blue-900/10 dark:border-blue-800/20">
+              <Info className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
+                Analysis uses your nutrition, exercise, and sleep data to provide personalized insights.
+              </AlertDescription>
+            </Alert>
             <Button
               variant="purple-outline"
               size="sm"
               className="mt-4 shadow-sm hover:shadow hover:translate-y-[-2px] transition-all duration-200"
               onClick={() => {
-                if (analysis) {
+                if (loading) {
+                  setSheetOpen(true);
+                } else if (analysis) {
                   setSheetOpen(true);
                 } else {
                   handleRequestAssistant();
                 }
               }}
+              disabled={loading}
             >
-              <Sparkles className="h-4 w-4 mr-1 text-purple-500" />
-              {analysis ? "View health insights" : "Ask for health advice"}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-1 text-purple-500" />
+                  {analysis ? "View health insights" : "Ask for health advice"}
+                </>
+              )}
             </Button>
           </motion.div>
         </CardContent>
@@ -529,8 +683,21 @@ const AIHealthAssistant = () => {
           }
         }}>
           <DialogTrigger asChild>
-            <Button variant="purple-gradient" size="sm" className="shadow-md hover:shadow-lg transition-all">
-              <Sparkles className="h-4 w-4 mr-1" /> Get Insights
+            <Button 
+              variant="purple-gradient" 
+              size="sm" 
+              className="shadow-md hover:shadow-lg transition-all"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" /> Analyzing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-1" /> Get Insights
+                </>
+              )}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md bg-gradient-to-b from-white to-purple-50 dark:from-slate-900 dark:to-purple-950/20 border-purple-200 dark:border-purple-800/40">
@@ -538,11 +705,32 @@ const AIHealthAssistant = () => {
               <DialogTitle className="text-gradient-purple">AI Health Assistant</DialogTitle>
             </DialogHeader>
 
-            <VoiceSettings />
-            <AnalysisResults />
+            {!loading && <VoiceSettings />}
+            
+            {loading ? (
+              <LoadingState />
+            ) : (
+              <AnalysisResults />
+            )}
 
             <DialogFooter className="flex items-center justify-between">
-              {analysis ? (
+              {loading ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Clear the timeout if user cancels
+                    if (timeoutRef.current) {
+                      clearTimeout(timeoutRef.current);
+                      timeoutRef.current = null;
+                    }
+                    setLoading(false);
+                    setOpen(false);
+                  }}
+                  className="flex-1 gap-2"
+                >
+                  Cancel
+                </Button>
+              ) : analysis ? (
                 <Button
                   variant={playing ? "outline" : "purple-gradient"}
                   onClick={togglePlayback}
@@ -606,14 +794,29 @@ const AIHealthAssistant = () => {
           <p className="text-muted-foreground text-sm mt-4 max-w-md">
             Get personalized health insights and recommendations with our AI voice assistant
           </p>
+          <Alert className="mt-4 bg-blue-50/50 border border-blue-200/50 dark:bg-blue-900/10 dark:border-blue-800/20">
+            <Info className="h-4 w-4 text-blue-500" />
+            <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
+              Analysis uses your nutrition, exercise, and sleep data to provide personalized insights.
+            </AlertDescription>
+          </Alert>
           <Button
             variant="purple-outline"
             size="sm"
             className="mt-4 shadow-sm hover:shadow hover:translate-y-[-2px] transition-all duration-200"
             onClick={() => setOpen(true)}
+            disabled={loading}
           >
-            <Sparkles className="h-4 w-4 mr-1 text-purple-500" />
-            Ask for health advice
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Analyzing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-1 text-purple-500" />
+                Ask for health advice
+              </>
+            )}
           </Button>
         </motion.div>
       </CardContent>

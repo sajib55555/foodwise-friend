@@ -42,7 +42,7 @@ export const ReminderProvider: React.FC<{children: React.ReactNode}> = ({ childr
       setLoading(true);
       setError(null);
       const data = await getUserReminders();
-      setReminders(data);
+      setReminders(data as Reminder[]);
     } catch (err) {
       setError("Failed to load reminders");
       console.error("Error fetching reminders:", err);

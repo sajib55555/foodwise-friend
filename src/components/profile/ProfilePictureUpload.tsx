@@ -1,189 +1,226 @@
 
-import React, { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button-custom";
-import { Camera, Upload, X, Image, Loader2 } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useActivityLog } from "@/contexts/ActivityLogContext";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState } from 'react';
+import { Upload, X } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button-custom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
-interface ProfilePictureUploadProps {
-  onClose: () => void;
-  onSuccess: () => void;
+export interface ProfilePictureUploadProps {
+  onClose?: () => void;
+  onSuccess?: () => void;
 }
 
-const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ onClose, onSuccess }) => {
-  const { user } = useAuth();
-  const { logActivity } = useActivityLog();
+const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ 
+  onClose = () => {},
+  onSuccess = () => {}
+}) => {
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
-  const [uploading, setUploading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
   };
-  
+
   const handleUpload = async () => {
-    if (!user || !preview) return;
+    if (!file || !user) return;
     
     try {
-      setUploading(true);
+      setIsUploading(true);
+      console.log('Starting upload...');
       
-      // Convert the preview to a Blob
-      const response = await fetch(preview);
-      const blob = await response.blob();
+      // Upload file to Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}_${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `profiles/${fileName}`;
       
-      // Create a unique filename
-      const fileExt = '.jpg';
-      const fileName = `${user.id}${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      console.log('Uploading to path:', filePath);
       
-      console.log("Uploading avatar to path:", filePath);
-      
-      // Upload to Supabase Storage
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, blob, {
-          upsert: true,
-          contentType: 'image/jpeg'
-        });
-        
+        .upload(filePath, file);
+      
       if (uploadError) {
-        console.error("Upload error:", uploadError);
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
       
-      console.log("Upload successful:", uploadData);
+      console.log('Upload successful');
       
-      // Get the public URL
+      // Get public URL
       const { data } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
-        
-      console.log("Public URL:", data.publicUrl);
-        
-      // Update user profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: data.publicUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-        
+      
+      const avatarUrl = data.publicUrl;
+      console.log('Avatar URL:', avatarUrl);
+      
+      // Update user metadata
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarUrl }
+      });
+      
       if (updateError) {
-        console.error("Profile update error:", updateError);
+        console.error('Update user error:', updateError);
         throw updateError;
       }
       
-      console.log("Profile updated successfully");
+      console.log('User updated successfully');
       
-      // Log activity
-      await logActivity('profile_updated', 'Updated profile picture');
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+      
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        throw profileError;
+      }
+      
+      await refreshUser();
       
       toast({
-        title: "Success!",
-        description: "Your profile picture has been updated.",
+        title: 'Success',
+        description: 'Profile picture updated successfully'
       });
       
+      setFile(null);
+      setPreview(null);
+      setShowDialog(false);
       onSuccess();
-    } catch (error: any) {
-      console.error('Error uploading avatar:', error.message);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
       toast({
-        variant: "destructive",
-        title: "Upload failed",
-        description: error.message,
+        title: 'Upload Failed',
+        description: 'There was a problem uploading your profile picture',
+        variant: 'destructive'
       });
     } finally {
-      setUploading(false);
+      setIsUploading(false);
     }
   };
-  
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
+
+  const handleCancel = () => {
+    setFile(null);
+    setPreview(null);
+    setShowDialog(false);
+    onClose();
   };
-  
+
+  const handleOpenDialog = () => {
+    setShowDialog(true);
+  };
+
+  const containerStyles = { cursor: 'pointer' };
+
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Update Profile Picture</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <div className="flex justify-center">
-            {preview ? (
-              <div className="relative w-32 h-32">
-                <img 
-                  src={preview} 
-                  alt="Preview" 
-                  className="w-32 h-32 rounded-full object-cover border-4 border-purple-200"
-                />
-                <button 
-                  onClick={() => setPreview(null)}
-                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ) : (
-              <div 
-                onClick={triggerFileInput}
-                className="w-32 h-32 rounded-full bg-muted flex flex-col items-center justify-center cursor-pointer border-2 border-dashed border-muted-foreground/50 hover:border-primary/50 transition-colors"
-              >
-                <Camera size={24} className="text-muted-foreground mb-2" />
-                <span className="text-xs text-muted-foreground">Select Photo</span>
-              </div>
-            )}
-          </div>
-          
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileSelect}
+    <>
+      <div 
+        className="relative" 
+        style={containerStyles} 
+        onClick={handleOpenDialog}
+      >
+        <Avatar className="h-24 w-24 border-2 border-primary/10">
+          <AvatarImage 
+            src={user?.user_metadata?.avatar_url} 
+            alt={user?.user_metadata?.full_name || "User"} 
           />
-          
-          <div className="flex justify-center gap-4">
-            {!preview ? (
-              <Button
-                onClick={triggerFileInput}
-                variant="outline"
-                className="gap-2"
-              >
-                <Upload size={16} />
-                Upload Photo
-              </Button>
-            ) : (
-              <Button
-                onClick={handleUpload}
-                variant="purple-gradient"
-                className="gap-2"
-                disabled={uploading}
-              >
-                {uploading ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Image size={16} />
-                )}
-                Save Profile Picture
-              </Button>
-            )}
-          </div>
+          <AvatarFallback className="bg-primary/10">
+            {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+          </AvatarFallback>
+        </Avatar>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 hover:opacity-100 transition-opacity">
+          <Upload className="h-6 w-6 text-white" />
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Profile Picture</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center space-y-4">
+            {preview ? (
+              <div className="relative">
+                <Avatar className="h-32 w-32">
+                  <AvatarImage src={preview} alt="Preview" />
+                </Avatar>
+                <Button 
+                  size="icon" 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 rounded-full h-6 w-6 p-0"
+                  onClick={() => {
+                    setFile(null);
+                    setPreview(null);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <Avatar className="h-32 w-32 bg-muted">
+                <AvatarFallback>
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                </AvatarFallback>
+              </Avatar>
+            )}
+            
+            {!preview && (
+              <div className="mt-2">
+                <label 
+                  htmlFor="avatar-upload" 
+                  className="cursor-pointer inline-flex items-center px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+                >
+                  Select Image
+                </label>
+                <input 
+                  id="avatar-upload" 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={handleFileChange}
+                />
+              </div>
+            )}
+            
+            <div className="flex gap-2 mt-4">
+              <Button 
+                variant="outline" 
+                onClick={handleCancel}
+              >
+                Cancel
+              </Button>
+              {preview && (
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={isUploading}
+                >
+                  {isUploading ? 'Uploading...' : 'Upload'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 

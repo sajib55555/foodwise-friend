@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -84,7 +83,16 @@ const EditProfile = () => {
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="flex justify-center mb-6">
-                    <ProfilePictureUpload />
+                    <ProfilePictureUpload 
+                      onClose={() => {}} 
+                      onSuccess={() => {
+                        refreshUser();
+                        toast({
+                          title: "Profile Picture Updated",
+                          description: "Your profile picture has been updated successfully."
+                        });
+                      }} 
+                    />
                   </div>
                   
                   <div className="space-y-4">

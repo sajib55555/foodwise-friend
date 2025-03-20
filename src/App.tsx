@@ -1,11 +1,12 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from 'react-query';
-import { ReactQueryDevtools } from 'react-query/devtools';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AnimatePresence } from "framer-motion";
 
+// Import pages
 import Home from './pages/Home';
 import Profile from './pages/profile/Profile';
 import EditProfile from './pages/profile/EditProfile';
@@ -17,8 +18,9 @@ import MacroCalculator from './pages/MacroCalculator';
 import WeeklyMealPlanner from './pages/WeeklyMealPlanner';
 import NotFound from './pages/NotFound';
 
-import AuthProvider from './contexts/AuthContext';
-import ActivityLogProvider from './contexts/ActivityLogContext';
+// Import context providers
+import { AuthProvider } from './contexts/AuthContext';
+import { ActivityLogProvider } from './contexts/ActivityLogContext';
 import { ReminderProvider } from "./contexts/ReminderContext";
 
 const queryClient = new QueryClient();

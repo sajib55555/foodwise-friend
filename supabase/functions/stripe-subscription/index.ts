@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@13.2.0";
 
@@ -103,6 +102,32 @@ serve(async (req) => {
         
         return new Response(
           JSON.stringify({ url: portalSession.url }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      case "get-subscription-details": {
+        // New action to get subscription details from Stripe
+        const { subscriptionId } = data;
+        
+        if (!subscriptionId) {
+          return new Response(
+            JSON.stringify({ error: "Missing subscription ID" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        
+        // Calculate next billing date
+        const currentPeriodEnd = subscription.current_period_end * 1000; // Convert to milliseconds
+        const next_billing_date = new Date(currentPeriodEnd).toISOString();
+        
+        return new Response(
+          JSON.stringify({ 
+            next_billing_date,
+            status: subscription.status
+          }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

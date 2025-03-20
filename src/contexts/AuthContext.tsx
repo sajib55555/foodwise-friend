@@ -9,6 +9,7 @@ interface Subscription {
   trial_ends_at: string | null;
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
+  stripe_price_id?: string | null;
   next_billing_date?: string | null;
 }
 

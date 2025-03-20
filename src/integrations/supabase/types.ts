@@ -171,7 +171,11 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          next_billing_date: string | null
           status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
           trial_ends_at: string | null
           updated_at: string | null
           user_id: string
@@ -179,7 +183,11 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          next_billing_date?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           user_id: string
@@ -187,7 +195,11 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          next_billing_date?: string | null
           status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
           trial_ends_at?: string | null
           updated_at?: string | null
           user_id?: string

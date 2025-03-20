@@ -21,9 +21,9 @@ const ActionButtons = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  // Button sizing - increased by 20%
-  const buttonSize = isMobile ? 'w-12 h-12' : 'w-[19.2px] h-[19.2px]';
-  const iconSize = isMobile ? 'h-5 w-5' : 'h-6 w-6';
+  // Button sizing - increased by 25% from previous values
+  const buttonSize = isMobile ? 'w-15 h-15' : 'w-25 h-25';
+  const iconSize = isMobile ? 'h-6 w-6' : 'h-7.5 w-7.5';
 
   const actions = [
     { 
@@ -101,9 +101,9 @@ const ActionButtons = () => {
   ];
 
   return (
-    <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20">
+    <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20 pb-4">
       <CardContent className="p-2 md:p-6">
-        <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-3 gap-3'} md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3`}>
+        <div className={`grid ${isMobile ? 'grid-cols-3 gap-3' : 'grid-cols-3 gap-4'} md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3`}>
           {actions.map((action, index) => (
             <motion.div
               key={action.label}
@@ -115,12 +115,13 @@ const ActionButtons = () => {
               <Button 
                 variant="ghost"
                 size="icon"
-                className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} rounded-full mb-1 md:mb-2 ${action.textColor} ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
+                className={`${isMobile ? 'w-15 h-15' : 'w-25 h-25'} rounded-full mb-2 md:mb-3 ${action.textColor} ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
+                style={{ width: isMobile ? '4rem', height: '4rem' : '6.25rem', height: '6.25rem' }}
               >
                 {action.icon}
               </Button>
-              <span className="text-[9px] md:text-xs font-medium text-center">{action.label}</span>
+              <span className="text-[10px] md:text-sm font-medium text-center mt-1">{action.label}</span>
             </motion.div>
           ))}
         </div>

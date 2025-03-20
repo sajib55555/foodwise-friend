@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Loader2, Calendar, ChefHat, Filter, Download, AlertTriangle } from "lucide-react";
@@ -41,6 +40,17 @@ interface MealPlan {
   };
 }
 
+interface CachedMealPlan {
+  preferences: string;
+  restrictions: string;
+  goals: string;
+  days: string;
+  mealPlan: MealPlan;
+  timestamp: number;
+}
+
+const CACHE_EXPIRY_TIME = 1000 * 60 * 60; // 1 hour cache validity
+
 const WeeklyMealPlanner: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -53,30 +63,95 @@ const WeeklyMealPlanner: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [apiTimeout, setApiTimeout] = useState<NodeJS.Timeout | null>(null);
+  const mealPlanCache = useRef<CachedMealPlan[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
       if (apiTimeout) {
         clearTimeout(apiTimeout);
       }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, [apiTimeout]);
 
+  const getCachedPlan = (): MealPlan | null => {
+    const cacheKey = `${preferences}-${restrictions}-${goals}-${days}`;
+    const cachedItem = mealPlanCache.current.find(
+      item => 
+        item.preferences === preferences && 
+        item.restrictions === restrictions && 
+        item.goals === goals && 
+        item.days === days &&
+        (Date.now() - item.timestamp) < CACHE_EXPIRY_TIME
+    );
+    
+    if (cachedItem) {
+      console.log("Using cached meal plan");
+      return cachedItem.mealPlan;
+    }
+    
+    return null;
+  };
+
+  const cacheMealPlan = (newMealPlan: MealPlan) => {
+    mealPlanCache.current.push({
+      preferences,
+      restrictions,
+      goals,
+      days,
+      mealPlan: newMealPlan,
+      timestamp: Date.now()
+    });
+    
+    if (mealPlanCache.current.length > 10) {
+      mealPlanCache.current.shift();
+    }
+  };
+
   const generateMealPlan = useCallback(async () => {
-    setLoading(true);
     setError(null);
+    
+    const cachedPlan = getCachedPlan();
+    if (cachedPlan) {
+      setMealPlan(cachedPlan);
+      setActiveDay("day1");
+      toast({
+        title: "Meal Plan Ready",
+        description: `Your ${days}-day meal plan is ready!`,
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
     
     const timeout = setTimeout(() => {
       if (loading) {
-        setLoading(false);
-        setError("The meal plan generation is taking longer than expected. Please try again.");
         toast({
-          title: "Request Timeout",
-          description: "The meal plan generation took too long. Please try again.",
-          variant: "destructive",
+          title: "Still Working",
+          description: "We're still generating your meal plan. Please wait a moment longer.",
         });
       }
-    }, 15000);
+    }, 5000);
+    
+    const maxTimeout = setTimeout(() => {
+      if (loading) {
+        setLoading(false);
+        toast({
+          title: "Using Fallback Plan",
+          description: "The custom plan is taking too long, so we're using a pre-generated plan for now.",
+        });
+        fetchFallbackMealPlan();
+      }
+    }, 8000);
     
     setApiTimeout(timeout);
     
@@ -91,22 +166,28 @@ const WeeklyMealPlanner: React.FC = () => {
       });
       
       clearTimeout(timeout);
+      clearTimeout(maxTimeout);
       setApiTimeout(null);
       
       if (error) {
         console.error("Supabase function error:", error);
         setError("Failed to call meal plan generation function. Please try again.");
-        throw error;
+        fetchFallbackMealPlan();
+        return;
       }
       
       if (!data || !data.days) {
         console.error("Invalid response format:", data);
         setError("Received invalid meal plan data. Please try again.");
-        throw new Error("Invalid meal plan data");
+        fetchFallbackMealPlan();
+        return;
       }
       
-      setMealPlan(data as MealPlan);
+      const newMealPlan = data as MealPlan;
+      setMealPlan(newMealPlan);
       setActiveDay("day1");
+      
+      cacheMealPlan(newMealPlan);
       
       toast({
         title: "Meal Plan Generated",
@@ -114,18 +195,31 @@ const WeeklyMealPlanner: React.FC = () => {
       });
     } catch (error) {
       clearTimeout(timeout);
+      clearTimeout(maxTimeout);
       setApiTimeout(null);
       
       console.error("Error generating meal plan:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to generate your meal plan. Please try again.",
-        variant: "destructive",
-      });
+      fetchFallbackMealPlan();
     } finally {
       setLoading(false);
     }
   }, [preferences, restrictions, goals, days, toast, loading]);
+
+  const fetchFallbackMealPlan = async () => {
+    try {
+      const fallbackPlan = generateLocalFallbackPlan(
+        parseInt(days, 10), 
+        preferences, 
+        goals
+      );
+      
+      setMealPlan(fallbackPlan);
+      setActiveDay("day1");
+    } catch (error) {
+      console.error("Error generating fallback meal plan:", error);
+      setError("Failed to generate any meal plan. Please try again later.");
+    }
+  };
 
   const saveMealPlan = () => {
     toast({
@@ -137,6 +231,175 @@ const WeeklyMealPlanner: React.FC = () => {
   const getDayName = (index: number) => {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     return days[index % 7];
+  };
+
+  const generateLocalFallbackPlan = (daysCount = 7, userPreferences = 'Balanced', userGoals = 'Weight maintenance'): MealPlan => {
+    const fallbackPlan: MealPlan = {
+      days: {}
+    };
+    
+    let proteinEmphasis = 1.0;
+    if (userPreferences === 'High Protein') proteinEmphasis = 1.5;
+    if (userPreferences === 'Low Carb') proteinEmphasis = 1.3;
+    
+    let calorieMultiplier = 1.0;
+    if (userGoals === 'Weight loss') calorieMultiplier = 0.8;
+    if (userGoals === 'Muscle gain') calorieMultiplier = 1.2;
+    
+    const breakfastOptions = [
+      {
+        name: "Protein Oatmeal Bowl",
+        description: "Hearty oatmeal with added protein powder and fruits",
+        ingredients: ["Rolled oats", "Protein powder", "Banana", "Berries", "Almond milk", "Honey"],
+        calories: Math.round(350 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(18 * proteinEmphasis)}g`, 
+          carbs: "45g", 
+          fat: "8g" 
+        }
+      },
+      {
+        name: "Greek Yogurt Parfait",
+        description: "Creamy yogurt layered with fruits and granola",
+        ingredients: ["Greek yogurt", "Mixed berries", "Granola", "Honey", "Chia seeds"],
+        calories: Math.round(320 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(20 * proteinEmphasis)}g`, 
+          carbs: "40g", 
+          fat: "10g" 
+        }
+      },
+      {
+        name: "Veggie Egg Scramble",
+        description: "Fluffy eggs with fresh vegetables and herbs",
+        ingredients: ["Eggs", "Spinach", "Bell peppers", "Onions", "Feta cheese", "Whole grain toast"],
+        calories: Math.round(380 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(22 * proteinEmphasis)}g`, 
+          carbs: "30g", 
+          fat: "20g" 
+        }
+      }
+    ];
+    
+    const lunchOptions = [
+      {
+        name: "Mediterranean Salad Bowl",
+        description: "Fresh salad with quinoa, chickpeas and feta",
+        ingredients: ["Mixed greens", "Quinoa", "Chickpeas", "Cucumber", "Cherry tomatoes", "Feta cheese", "Olive oil dressing"],
+        calories: Math.round(420 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(15 * proteinEmphasis)}g`, 
+          carbs: "50g", 
+          fat: "18g" 
+        }
+      },
+      {
+        name: "Grilled Chicken Wrap",
+        description: "Lean protein with vegetables in a whole grain wrap",
+        ingredients: ["Grilled chicken breast", "Whole grain wrap", "Avocado", "Lettuce", "Tomato", "Greek yogurt sauce"],
+        calories: Math.round(450 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(30 * proteinEmphasis)}g`, 
+          carbs: "40g", 
+          fat: "15g" 
+        }
+      },
+      {
+        name: "Lentil Soup with Side Salad",
+        description: "Hearty lentil soup with a fresh side salad",
+        ingredients: ["Red lentils", "Carrots", "Celery", "Onions", "Vegetable broth", "Mixed greens", "Balsamic vinaigrette"],
+        calories: Math.round(380 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(18 * proteinEmphasis)}g`, 
+          carbs: "55g", 
+          fat: "10g" 
+        }
+      }
+    ];
+    
+    const dinnerOptions = [
+      {
+        name: "Baked Salmon with Vegetables",
+        description: "Omega-rich salmon with roasted seasonal vegetables",
+        ingredients: ["Salmon fillet", "Asparagus", "Sweet potatoes", "Olive oil", "Lemon", "Herbs"],
+        calories: Math.round(460 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(35 * proteinEmphasis)}g`, 
+          carbs: "30g", 
+          fat: "22g" 
+        }
+      },
+      {
+        name: "Turkey Chili",
+        description: "Lean turkey with beans and vegetables in a spicy stew",
+        ingredients: ["Ground turkey", "Kidney beans", "Black beans", "Tomatoes", "Bell peppers", "Onions", "Spices"],
+        calories: Math.round(420 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(32 * proteinEmphasis)}g`, 
+          carbs: "40g", 
+          fat: "12g" 
+        }
+      },
+      {
+        name: "Stir-Fried Tofu with Brown Rice",
+        description: "Plant-based protein with vegetables and whole grains",
+        ingredients: ["Tofu", "Brown rice", "Broccoli", "Carrots", "Snow peas", "Soy sauce", "Ginger"],
+        calories: Math.round(400 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(20 * proteinEmphasis)}g`, 
+          carbs: "50g", 
+          fat: "12g" 
+        }
+      }
+    ];
+    
+    const snackOptions = [
+      {
+        name: "Apple with Almond Butter",
+        description: "Fresh fruit with protein-rich nut butter",
+        ingredients: ["Apple", "Almond butter"],
+        calories: Math.round(180 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(5 * proteinEmphasis)}g`, 
+          carbs: "20g", 
+          fat: "9g" 
+        }
+      },
+      {
+        name: "Protein Smoothie",
+        description: "Refreshing fruit smoothie with added protein",
+        ingredients: ["Banana", "Berries", "Protein powder", "Almond milk", "Ice"],
+        calories: Math.round(200 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(20 * proteinEmphasis)}g`, 
+          carbs: "25g", 
+          fat: "3g" 
+        }
+      },
+      {
+        name: "Trail Mix",
+        description: "Energizing mix of nuts, seeds and dried fruits",
+        ingredients: ["Almonds", "Walnuts", "Pumpkin seeds", "Dried cranberries", "Dark chocolate chips"],
+        calories: Math.round(190 * calorieMultiplier),
+        macros: { 
+          protein: `${Math.round(6 * proteinEmphasis)}g`, 
+          carbs: "15g", 
+          fat: "12g" 
+        }
+      }
+    ];
+    
+    for (let i = 1; i <= daysCount; i++) {
+      fallbackPlan.days[`day${i}`] = {
+        breakfast: breakfastOptions[i % breakfastOptions.length],
+        lunch: lunchOptions[i % lunchOptions.length],
+        dinner: dinnerOptions[i % dinnerOptions.length],
+        snack: snackOptions[i % snackOptions.length]
+      };
+    }
+    
+    return fallbackPlan;
   };
 
   return (

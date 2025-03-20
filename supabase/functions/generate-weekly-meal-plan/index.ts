@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 
@@ -28,7 +27,17 @@ serve(async (req) => {
     // This ensures users get a response even if the API call fails
     const fallbackMealPlan = generateFallbackMealPlan(numberOfDays || 7, preferences, nutritionalGoals)
     
+    // Start a timer to track request duration
+    const startTime = Date.now()
+    
     try {
+      // Set a faster timeout for the OpenAI API call
+      const controller = new AbortController()
+      const timeout = setTimeout(() => {
+        controller.abort()
+        console.log("OpenAI request timeout")
+      }, 5000) // 5 second timeout
+      
       console.log("Sending request to OpenAI API")
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -37,7 +46,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o-mini', // Use the faster model
           messages: [
             {
               role: 'system',
@@ -46,6 +55,7 @@ serve(async (req) => {
               For each day, include breakfast, lunch, dinner, and an optional snack.
               For each meal, include a name, brief description, list of ingredients, approximate calories, and key macronutrients (protein, carbs, fat).
               Format your response as a JSON object with days as keys and meal objects for each day.
+              Be concise and efficient - focus on providing accurate nutrition information without lengthy descriptions.
               Example structure:
               {
                 "days": {
@@ -75,10 +85,15 @@ serve(async (req) => {
               - Number of days: ${numberOfDays || 7}`
             }
           ],
-          response_format: { type: "json_object" }
+          response_format: { type: "json_object" },
+          temperature: 0.7, // Lower temperature for faster, more predictable responses
+          max_tokens: 1500 // Limit token usage for faster response
         }),
+        signal: controller.signal
       })
-
+      
+      clearTimeout(timeout)
+      
       if (!response.ok) {
         const errorData = await response.text()
         console.error("OpenAI API Error:", response.status, errorData)
@@ -86,7 +101,7 @@ serve(async (req) => {
       }
 
       const data = await response.json()
-      console.log("Received response from OpenAI API")
+      console.log("Received response from OpenAI API in", Date.now() - startTime, "ms")
       
       let mealPlan
       try {

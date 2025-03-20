@@ -1,14 +1,23 @@
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Utensils, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button-custom";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Meal {
+  id: number;
+  title: string;
+  description: string;
+  calories: number;
+  image: string;
+}
 
 const MealRecommendations = () => {
   const navigate = useNavigate();
-  const recommendations = [
+  const [recommendations, setRecommendations] = useState<Meal[]>([
     {
       id: 1,
       title: "Mediterranean Salad Bowl",
@@ -30,7 +39,58 @@ const MealRecommendations = () => {
       calories: 410,
       image: "https://images.unsplash.com/photo-1512003867696-6d5ce6835040?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
     },
-  ];
+  ]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch meal recommendations from API
+  const fetchRecommendations = useCallback(async () => {
+    // Only fetch if we don't already have recommendations
+    if (recommendations.length === 3 && !loading) return;
+    
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meal-recommendations', {
+        body: {
+          preferences: "Balanced",
+          restrictions: "",
+          nutritionalGoals: "Weight maintenance"
+        }
+      });
+      
+      if (error) {
+        console.error("Error fetching meal recommendations:", error);
+        return;
+      }
+      
+      if (data && data.meals && Array.isArray(data.meals)) {
+        // Transform the API response into our meal format
+        const newRecommendations = data.meals.slice(0, 3).map((meal, index) => ({
+          id: index + 1,
+          title: meal.name,
+          description: meal.description,
+          calories: meal.calories,
+          // Use existing images to avoid loading delays
+          image: recommendations[index % recommendations.length].image
+        }));
+        
+        setRecommendations(newRecommendations);
+      }
+    } catch (error) {
+      console.error("Failed to fetch recommendations:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [recommendations, loading]);
+
+  // Load recommendations on component mount, but use setTimeout to not block initial render
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchRecommendations();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [fetchRecommendations]);
 
   return (
     <motion.div

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,8 +20,6 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   getProfile: () => Promise<void>;
   getSubscription: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,15 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
     } catch (error: any) {
       console.error('Error logging auth activity:', error.message);
-    }
-  };
-
-  const refreshUser = async () => {
-    const { data } = await supabase.auth.getUser();
-    if (data?.user) {
-      setUser(data.user);
-      await getProfile();
-      await getSubscription();
     }
   };
 
@@ -259,8 +249,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     getProfile,
     getSubscription,
-    refreshUser,
-    setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -31,6 +31,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
+import { format, startOfDay, endOfDay, subDays } from "date-fns";
 
 const voices = [
   { id: "alloy", name: "Alloy", description: "Neutral" },
@@ -113,6 +114,277 @@ const AIHealthAssistant = () => {
     }
   }, [audioData, volume]);
 
+  const fetchNutritionData = async () => {
+    try {
+      const today = new Date();
+      const start = startOfDay(today);
+      const end = endOfDay(today);
+      const weekStart = startOfDay(subDays(today, 7));
+      
+      const { data, error } = await supabase
+        .from('user_activity_logs')
+        .select('*')
+        .eq('activity_type', 'meal_logged')
+        .gte('created_at', weekStart.toISOString())
+        .lte('created_at', end.toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      const processedMeals = data ? data.map(item => {
+        const metadata = item.metadata || {};
+        const scannedFood = metadata.scanned_food || {};
+        
+        return {
+          date: format(new Date(item.created_at), 'yyyy-MM-dd'),
+          meal_type: metadata.meal_type || 'snack',
+          calories: scannedFood.calories || 0,
+          protein: scannedFood.protein || 0,
+          carbs: scannedFood.carbs || 0,
+          fat: scannedFood.fat || 0,
+          food_items: metadata.food_items || []
+        };
+      }) : [];
+      
+      const groupedByDate = processedMeals.reduce((acc, meal) => {
+        if (!acc[meal.date]) {
+          acc[meal.date] = [];
+        }
+        acc[meal.date].push(meal);
+        return acc;
+      }, {});
+      
+      const dailyTotals = Object.keys(groupedByDate).map(date => {
+        const meals = groupedByDate[date];
+        const totals = meals.reduce((acc, meal) => {
+          return {
+            calories: acc.calories + Number(meal.calories),
+            protein: acc.protein + Number(meal.protein),
+            carbs: acc.carbs + Number(meal.carbs),
+            fat: acc.fat + Number(meal.fat)
+          };
+        }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
+        
+        return {
+          date,
+          ...totals,
+          meal_count: meals.length
+        };
+      });
+      
+      return {
+        meals: processedMeals,
+        dailyTotals
+      };
+      
+    } catch (error) {
+      console.error("Error fetching nutrition data:", error);
+      return { meals: [], dailyTotals: [] };
+    }
+  };
+  
+  const fetchWaterData = async () => {
+    try {
+      const today = new Date();
+      const weekStart = startOfDay(subDays(today, 7));
+      
+      const { data, error } = await supabase
+        .from('user_activity_logs')
+        .select('*')
+        .eq('activity_type', 'water_logged')
+        .gte('created_at', weekStart.toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      const waterData = data ? data.map(item => {
+        const metadata = item.metadata || {};
+        return {
+          date: format(new Date(item.created_at), 'yyyy-MM-dd'),
+          amount: metadata.amount || 0,
+          unit: metadata.unit || 'ml'
+        };
+      }) : [];
+      
+      const dailyTotals = waterData.reduce((acc, record) => {
+        if (!acc[record.date]) {
+          acc[record.date] = { total: 0, count: 0 };
+        }
+        acc[record.date].total += Number(record.amount);
+        acc[record.date].count += 1;
+        return acc;
+      }, {});
+      
+      return Object.keys(dailyTotals).map(date => ({
+        date,
+        total: dailyTotals[date].total,
+        count: dailyTotals[date].count
+      }));
+      
+    } catch (error) {
+      console.error("Error fetching water data:", error);
+      return [];
+    }
+  };
+  
+  const fetchExerciseData = async () => {
+    try {
+      const today = new Date();
+      const weekStart = startOfDay(subDays(today, 7));
+      
+      const { data, error } = await supabase
+        .from('user_activity_logs')
+        .select('*')
+        .eq('activity_type', 'exercise_logged')
+        .gte('created_at', weekStart.toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data ? data.map(item => {
+        const metadata = item.metadata || {};
+        return {
+          date: format(new Date(item.created_at), 'yyyy-MM-dd'),
+          type: metadata.exercise_type || 'other',
+          duration: metadata.duration || 0,
+          calories_burned: metadata.calories_burned || 0,
+          intensity: metadata.intensity || 'medium'
+        };
+      }) : [];
+      
+    } catch (error) {
+      console.error("Error fetching exercise data:", error);
+      return [];
+    }
+  };
+  
+  const fetchSleepData = async () => {
+    try {
+      const today = new Date();
+      const weekStart = startOfDay(subDays(today, 7));
+      
+      const { data, error } = await supabase
+        .from('user_activity_logs')
+        .select('*')
+        .eq('activity_type', 'sleep_logged')
+        .gte('created_at', weekStart.toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data ? data.map(item => {
+        const metadata = item.metadata || {};
+        return {
+          date: format(new Date(item.created_at), 'yyyy-MM-dd'),
+          duration: metadata.duration || 0,
+          quality: metadata.quality || 'medium',
+          start_time: metadata.start_time,
+          end_time: metadata.end_time
+        };
+      }) : [];
+      
+    } catch (error) {
+      console.error("Error fetching sleep data:", error);
+      return [];
+    }
+  };
+  
+  const fetchWeightData = async () => {
+    try {
+      const today = new Date();
+      const monthStart = startOfDay(subDays(today, 30));
+      
+      const { data, error } = await supabase
+        .from('user_activity_logs')
+        .select('*')
+        .eq('activity_type', 'weight_logged')
+        .gte('created_at', monthStart.toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data ? data.map(item => {
+        const metadata = item.metadata || {};
+        return {
+          date: format(new Date(item.created_at), 'yyyy-MM-dd'),
+          weight: metadata.weight || 0,
+          unit: metadata.unit || 'kg'
+        };
+      }) : [];
+      
+    } catch (error) {
+      console.error("Error fetching weight data:", error);
+      return [];
+    }
+  };
+  
+  const fetchGoals = async () => {
+    try {
+      if (!user) return [];
+      
+      const { data, error } = await supabase
+        .from('user_goals')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return data || [];
+      
+    } catch (error) {
+      console.error("Error fetching goals:", error);
+      return [];
+    }
+  };
+  
+  const fetchUserProfile = async () => {
+    try {
+      if (!user) return null;
+      
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) {
+        throw profileError;
+      }
+      
+      const { data: userProfileData, error: userProfileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (userProfileError && userProfileError.code !== 'PGRST116') {
+        throw userProfileError;
+      }
+      
+      return {
+        ...profileData,
+        healthData: userProfileData || {}
+      };
+      
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      return null;
+    }
+  };
+
   const handleRequestAssistant = async () => {
     if (!user) {
       toast({
@@ -149,69 +421,47 @@ const AIHealthAssistant = () => {
         }
       }, 20000);
 
-      const mockHealthData = {
-        nutrition: [
-          { calories: 2100, protein: 120, carbs: 200, fat: 70 }
-        ],
-        exercise: [
-          { type: "cardio", duration: 30, calories_burned: 300 },
-          { type: "strength", duration: 45, calories_burned: 250 }
-        ],
-        water: [
-          { amount: 2000, unit: "ml" }
-        ],
-        sleep: [
-          { duration: 7.5, quality: "good" }
-        ],
-        goals: []
-      };
-      
-      setLoadingProgress(30);
-      setLoadingMessage("Processing nutrition and exercise data...");
-
-      const { data: goalsData, error: goalsError } = await supabase
-        .from("user_goals")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (goalsError) {
-        console.error("Error fetching goals:", goalsError);
-      } else {
-        mockHealthData.goals = goalsData || [];
-      }
+      const [
+        nutritionData,
+        waterData,
+        exerciseData,
+        sleepData,
+        weightData,
+        goalsData,
+        userProfile
+      ] = await Promise.all([
+        fetchNutritionData(),
+        fetchWaterData(),
+        fetchExerciseData(),
+        fetchSleepData(),
+        fetchWeightData(),
+        fetchGoals(),
+        fetchUserProfile()
+      ]);
       
       setLoadingProgress(50);
-      setLoadingMessage("Retrieving your profile information...");
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-      }
+      setLoadingMessage("Processing your health information...");
       
-      setLoadingProgress(70);
-      setLoadingMessage("Generating health insights...");
-
       const healthData = {
-        nutrition: mockHealthData.nutrition,
-        exercise: mockHealthData.exercise,
-        water: mockHealthData.water,
-        sleep: mockHealthData.sleep,
-        goals: mockHealthData.goals,
+        nutrition: nutritionData,
+        water: waterData,
+        exercise: exerciseData,
+        sleep: sleepData,
+        weight: weightData,
+        goals: goalsData,
+        userProfile: userProfile?.healthData || {},
         voicePreference: selectedVoice
       };
 
       console.log("Sending health data to edge function:", JSON.stringify(healthData));
       
+      setLoadingProgress(70);
+      setLoadingMessage("Generating health insights...");
+
       const { data, error: functionError } = await supabase.functions.invoke('analyze-health-data', {
         body: { 
           healthData, 
-          userName: profileData?.full_name || user.email?.split('@')[0] || 'there'
+          userName: userProfile?.full_name || user.email?.split('@')[0] || 'there'
         }
       });
 
@@ -262,9 +512,6 @@ const AIHealthAssistant = () => {
       if (data.audioContent) {
         console.log("Audio content received, length:", data.audioContent.length);
         setAudioData(data.audioContent);
-        
-        // We'll play the audio when the user clicks the play button rather than automatically
-        // to avoid autoplay issues in browsers
       } else if (!data.error) {
         toast({
           title: "Voice synthesis unavailable",

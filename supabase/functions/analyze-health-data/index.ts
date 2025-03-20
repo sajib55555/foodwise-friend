@@ -250,14 +250,18 @@ function generateAnalysisPrompt(healthData: any, userName: string): string {
   const water = healthData.water || [];
   const sleep = healthData.sleep || [];
   const goals = healthData.goals || [];
+  const weight = healthData.weight || [];
+  const userProfile = healthData.userProfile || {};
 
   return `
     Analyze the following health data for ${userName} and provide personalized health advice and recommendations:
     
+    User Profile: ${JSON.stringify(userProfile)}
     Nutrition data: ${JSON.stringify(nutrition)}
     Exercise data: ${JSON.stringify(exercise)}
     Water intake: ${JSON.stringify(water)}
     Sleep data: ${JSON.stringify(sleep)}
+    Weight data: ${JSON.stringify(weight)}
     Goals: ${JSON.stringify(goals)}
     
     Provide a concise, personalized health update that:
@@ -265,8 +269,10 @@ function generateAnalysisPrompt(healthData: any, userName: string): string {
     2. Comments on their nutritional intake (calories, protein, carbs, fat)
     3. Provides insights on exercise activity
     4. Mentions sleep quality if data is available
-    5. Gives specific, actionable recommendations for improvement
-    6. Uses an encouraging tone
+    5. Comments on weight trends if data is available
+    6. Gives specific, actionable recommendations for improvement
+    7. References their goals and progress towards them
+    8. Uses an encouraging tone
     
     Keep the response under 300 words and make it conversational as it will be read aloud.
   `;

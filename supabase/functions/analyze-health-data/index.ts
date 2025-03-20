@@ -207,6 +207,7 @@ serve(async (req) => {
     let speechError = null;
     
     try {
+      // Prioritize speech generation for better user experience
       audioContent = await generateSpeech(OPENAI_API_KEY, analysis, voicePreference);
       console.log("Audio content generated successfully, length:", audioContent ? audioContent.length : 0);
     } catch (error) {
@@ -219,7 +220,8 @@ serve(async (req) => {
       JSON.stringify({
         textAnalysis: analysis,
         audioContent: audioContent,
-        error: speechError // Will be null if speech generation succeeded
+        error: speechError, // Will be null if speech generation succeeded
+        autoPlay: true // Added flag to indicate auto-play preference
       }),
       {
         status: 200,

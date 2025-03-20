@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -92,7 +91,6 @@ const AIHealthAssistant = () => {
     }
   }, [loading, loadingProgress]);
 
-  // Effect to set up audio when audioData changes
   useEffect(() => {
     if (audioData && audioRef.current) {
       try {
@@ -100,13 +98,14 @@ const AIHealthAssistant = () => {
         audioRef.current.src = audioSrc;
         audioRef.current.volume = volume / 100;
         
-        // Now we explicitly set onended here to ensure it's available
         audioRef.current.onended = () => {
           console.log("Audio playback ended");
           setPlaying(false);
         };
         
         console.log("Audio element set up with data");
+        
+        playAudio();
       } catch (err) {
         console.error("Error setting up audio:", err);
         setError("Failed to set up audio playback");
@@ -293,6 +292,32 @@ const AIHealthAssistant = () => {
     }
   };
 
+  const playAudio = () => {
+    if (!audioRef.current || !audioData) {
+      console.error("Cannot play audio: Audio reference or data is missing");
+      return;
+    }
+
+    try {
+      console.log("Starting automatic audio playback");
+      const playPromise = audioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("Audio playback started successfully");
+            setPlaying(true);
+          })
+          .catch(err => {
+            console.error("Automatic audio playback error:", err);
+            console.log("Will require manual play due to browser restrictions");
+          });
+      }
+    } catch (err) {
+      console.error("Audio play error:", err);
+    }
+  };
+
   const togglePlayback = () => {
     if (!audioRef.current || !audioData) {
       console.error("Audio reference or data is missing");
@@ -309,7 +334,7 @@ const AIHealthAssistant = () => {
       setPlaying(false);
     } else {
       try {
-        console.log("Starting audio playback");
+        console.log("Starting manual audio playback");
         const playPromise = audioRef.current.play();
         
         if (playPromise !== undefined) {

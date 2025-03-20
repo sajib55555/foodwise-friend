@@ -23,10 +23,12 @@ const Scan = () => {
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Reset camera visibility when changing scan mode
+  // Reset when changing scan mode
   useEffect(() => {
     if (!scanComplete) {
       setShowCamera(true);
+      setCapturedImage(null);
+      setDetectedBarcode(null);
     }
   }, [scanMode, scanComplete]);
 
@@ -43,6 +45,7 @@ const Scan = () => {
   };
 
   const handleBarcodeDetected = (barcode: string) => {
+    console.log("Barcode detected:", barcode);
     setDetectedBarcode(barcode);
     setScanComplete(true);
     setShowCamera(false);
@@ -128,7 +131,12 @@ const Scan = () => {
           >
             <Card variant="glass" className="border-purple-100/30 dark:border-purple-800/20 rounded-3xl shadow-lg">
               <CardContent className="p-5">
-                <Tabs defaultValue="camera" className="w-full" onValueChange={(value) => setScanMode(value as "camera" | "barcode")}>
+                <Tabs 
+                  defaultValue="camera" 
+                  value={scanMode}
+                  onValueChange={(value) => setScanMode(value as "camera" | "barcode")}
+                  className="w-full"
+                >
                   <TabsList className="w-full mb-5 bg-gradient-to-r from-purple-50/80 to-blue-50/80 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-100/50 dark:border-purple-900/20 rounded-full p-1">
                     <TabsTrigger 
                       value="camera" 
@@ -182,7 +190,9 @@ const Scan = () => {
                   </TabsContent>
                   
                   <TabsContent value="barcode" className="mt-4">
-                    <BarcodeScanner onDetected={handleBarcodeDetected} onReset={handleReset} />
+                    {showCamera && (
+                      <BarcodeScanner onDetected={handleBarcodeDetected} onReset={handleReset} />
+                    )}
                     
                     <div className="mt-5 p-4 bg-gradient-to-r from-purple-50/80 to-blue-50/80 dark:from-purple-900/10 dark:to-blue-900/10 rounded-3xl border border-purple-100/50 dark:border-purple-800/20">
                       <p className="text-sm text-purple-700 dark:text-purple-300 flex items-center">

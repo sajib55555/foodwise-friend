@@ -67,7 +67,7 @@ const BarcodeScanner: React.FC<{
         setLastResults([]);
         
         // Initialize Quagga with enhanced settings
-        await Quagga.init(
+        Quagga.init(
           {
             inputStream: {
               name: "Live",
@@ -90,7 +90,7 @@ const BarcodeScanner: React.FC<{
               patchSize: "medium",
               halfSample: true,
             },
-            numOfWorkers: navigator.hardwareConcurrency || 2,
+            numOfWorkers: navigator.hardwareConcurrency ? Math.max(navigator.hardwareConcurrency - 1, 1) : 2,
             frequency: 10, // Increase scan frequency
             decoder: {
               readers: [
@@ -98,21 +98,9 @@ const BarcodeScanner: React.FC<{
                 "ean_8_reader",
                 "upc_reader",
                 "upc_e_reader",
-                "code_128_reader",
-                "code_39_reader",
-                "code_93_reader",
-                "i2of5_reader"
+                "code_128_reader"
               ],
-              multiple: false,
-              debug: {
-                showCanvas: true,
-                showPatches: true,
-                showFoundPatches: true,
-                showSkeleton: true,
-                showLabels: true,
-                showPatchLabels: true,
-                showRemainingPatchLabels: true,
-              }
+              multiple: false
             },
             locate: true,
           },
@@ -156,47 +144,6 @@ const BarcodeScanner: React.FC<{
             }
           }
         });
-        
-        // Debug logging
-        Quagga.onProcessed((result) => {
-          const drawingCtx = Quagga.canvas.ctx.overlay;
-          const drawingCanvas = Quagga.canvas.dom.overlay;
-          
-          if (result) {
-            // Highlight successful scans
-            if (result.boxes) {
-              drawingCtx.clearRect(
-                0,
-                0,
-                parseInt(drawingCanvas.getAttribute("width") || "0"),
-                parseInt(drawingCanvas.getAttribute("height") || "0")
-              );
-              result.boxes.filter((box) => box !== result.box).forEach((box) => {
-                Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, {
-                  color: "green",
-                  lineWidth: 2,
-                });
-              });
-            }
-            
-            // Draw a thicker line around successful decoded box
-            if (result.box) {
-              Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, {
-                color: "#00F",
-                lineWidth: 2,
-              });
-            }
-            
-            // Highlight successful decoded barcode
-            if (result.codeResult && result.codeResult.code) {
-              Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, {
-                color: 'red',
-                lineWidth: 3,
-              });
-            }
-          }
-        });
-        
       } catch (err) {
         console.error("Error accessing camera for barcode scanning:", err);
         setError("Could not access camera. Please make sure you've granted camera permissions.");
@@ -231,10 +178,9 @@ const BarcodeScanner: React.FC<{
               constraints: {
                 facingMode: "environment",
                 width: { min: 640 },
-                height: { min: 480 },
-                aspectRatio: { min: 1, max: 2 }
+                height: { min: 480 }
               },
-              area: { // Only scan the middle area of the camera feed
+              area: { 
                 top: "20%",
                 right: "20%",
                 left: "20%",
@@ -245,29 +191,16 @@ const BarcodeScanner: React.FC<{
               patchSize: "medium",
               halfSample: true,
             },
-            numOfWorkers: navigator.hardwareConcurrency || 2,
-            frequency: 10,
+            numOfWorkers: 2,
             decoder: {
               readers: [
                 "ean_reader",
                 "ean_8_reader",
                 "upc_reader",
                 "upc_e_reader",
-                "code_128_reader",
-                "code_39_reader",
-                "code_93_reader",
-                "i2of5_reader"
+                "code_128_reader"
               ],
-              multiple: false,
-              debug: {
-                showCanvas: true,
-                showPatches: true,
-                showFoundPatches: true,
-                showSkeleton: true,
-                showLabels: true,
-                showPatchLabels: true,
-                showRemainingPatchLabels: true,
-              }
+              multiple: false
             },
             locate: true,
           },

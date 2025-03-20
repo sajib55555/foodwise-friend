@@ -14,6 +14,7 @@ const BarcodeScanner: React.FC<{
   const scannerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [lastResults, setLastResults] = useState<string[]>([]);
   const { toast } = useToast();
   
   // Cleanup function for Quagga
@@ -28,6 +29,33 @@ const BarcodeScanner: React.FC<{
     }
   };
 
+  // Result filtering function - helps reduce false positives
+  const filterResults = (code: string) => {
+    // Add the new result to our array
+    const newResults = [...lastResults, code].slice(-5);
+    setLastResults(newResults);
+    
+    // Check if we have enough consistent results to consider it valid
+    const resultCounts: Record<string, number> = {};
+    newResults.forEach(result => {
+      resultCounts[result] = (resultCounts[result] || 0) + 1;
+    });
+    
+    // Find the most frequent code
+    let maxCount = 0;
+    let dominantCode = '';
+    
+    for (const [code, count] of Object.entries(resultCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        dominantCode = code;
+      }
+    }
+    
+    // Only consider it valid if it appears in at least 3 out of 5 scans
+    return maxCount >= 3 ? dominantCode : null;
+  };
+
   useEffect(() => {
     // Start barcode scanner
     const startScanner = async () => {
@@ -36,8 +64,9 @@ const BarcodeScanner: React.FC<{
       try {
         setError(null);
         setScanning(true);
+        setLastResults([]);
         
-        // Initialize Quagga
+        // Initialize Quagga with enhanced settings
         await Quagga.init(
           {
             inputStream: {
@@ -46,15 +75,23 @@ const BarcodeScanner: React.FC<{
               target: scannerRef.current,
               constraints: {
                 facingMode: "environment", // Use back camera on mobile
-                width: { min: 450 },
-                height: { min: 300 },
+                width: { min: 640 },
+                height: { min: 480 },
+                aspectRatio: { min: 1, max: 2 }
               },
+              area: { // Only scan the middle area of the camera feed
+                top: "20%",
+                right: "20%",
+                left: "20%",
+                bottom: "20%"
+              }
             },
             locator: {
               patchSize: "medium",
               halfSample: true,
             },
-            numOfWorkers: navigator.hardwareConcurrency || 4,
+            numOfWorkers: navigator.hardwareConcurrency || 2,
+            frequency: 10, // Increase scan frequency
             decoder: {
               readers: [
                 "ean_reader",
@@ -64,7 +101,18 @@ const BarcodeScanner: React.FC<{
                 "code_128_reader",
                 "code_39_reader",
                 "code_93_reader",
+                "i2of5_reader"
               ],
+              multiple: false,
+              debug: {
+                showCanvas: true,
+                showPatches: true,
+                showFoundPatches: true,
+                showSkeleton: true,
+                showLabels: true,
+                showPatchLabels: true,
+                showRemainingPatchLabels: true,
+              }
             },
             locate: true,
           },
@@ -81,24 +129,31 @@ const BarcodeScanner: React.FC<{
           }
         );
         
-        // Set up barcode detection handlers
+        // Set up barcode detection handlers with improved filtering
         Quagga.onDetected((result) => {
           if (result && result.codeResult && result.codeResult.code) {
             const code = result.codeResult.code;
-            console.log("Barcode detected:", code);
+            console.log("Barcode candidate detected:", code);
             
-            // Stop scanner after detection
-            stopScanner();
-            setScanning(false);
+            // Use our filter to verify consistent results
+            const validCode = filterResults(code);
             
-            // Notify success
-            toast({
-              title: "Barcode Detected",
-              description: `Found barcode: ${code}`,
-            });
-            
-            // Pass code to parent component
-            onDetected(code);
+            if (validCode) {
+              console.log("Valid barcode confirmed:", validCode);
+              
+              // Stop scanner after detection
+              stopScanner();
+              setScanning(false);
+              
+              // Notify success
+              toast({
+                title: "Barcode Detected",
+                description: `Found barcode: ${validCode}`,
+              });
+              
+              // Pass code to parent component
+              onDetected(validCode);
+            }
           }
         });
         
@@ -161,6 +216,7 @@ const BarcodeScanner: React.FC<{
   const handleReset = () => {
     stopScanner();
     setError(null);
+    setLastResults([]);
     onReset();
     // After a slight delay, restart the scanner
     setTimeout(() => {
@@ -174,15 +230,23 @@ const BarcodeScanner: React.FC<{
               target: scannerRef.current,
               constraints: {
                 facingMode: "environment",
-                width: { min: 450 },
-                height: { min: 300 },
+                width: { min: 640 },
+                height: { min: 480 },
+                aspectRatio: { min: 1, max: 2 }
               },
+              area: { // Only scan the middle area of the camera feed
+                top: "20%",
+                right: "20%",
+                left: "20%",
+                bottom: "20%"
+              }
             },
             locator: {
               patchSize: "medium",
               halfSample: true,
             },
-            numOfWorkers: navigator.hardwareConcurrency || 4,
+            numOfWorkers: navigator.hardwareConcurrency || 2,
+            frequency: 10,
             decoder: {
               readers: [
                 "ean_reader",
@@ -192,7 +256,18 @@ const BarcodeScanner: React.FC<{
                 "code_128_reader",
                 "code_39_reader",
                 "code_93_reader",
+                "i2of5_reader"
               ],
+              multiple: false,
+              debug: {
+                showCanvas: true,
+                showPatches: true,
+                showFoundPatches: true,
+                showSkeleton: true,
+                showLabels: true,
+                showPatchLabels: true,
+                showRemainingPatchLabels: true,
+              }
             },
             locate: true,
           },
@@ -259,7 +334,7 @@ const BarcodeScanner: React.FC<{
           
           <div className="mt-4 p-4 bg-gradient-to-r from-purple-50/50 to-blue-50/50 dark:from-purple-900/10 dark:to-blue-900/10 rounded-xl border border-purple-100/50 dark:border-purple-800/20">
             <p className="text-sm text-purple-700 dark:text-purple-300 flex items-center justify-center">
-              Position the barcode within the frame to scan
+              Position the barcode within the frame and hold steady for scanning
             </p>
           </div>
         </CardContent>

@@ -4,57 +4,211 @@ import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { AlertCircle, RefreshCw, Barcode } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Quagga from 'quagga';
+import { useToast } from "@/hooks/use-toast";
 
-// This is a simplified barcode scanner. In a production app, you would use
-// a library like quagga.js or zxing for more robust barcode recognition
 const BarcodeScanner: React.FC<{
   onDetected: (code: string) => void;
   onReset: () => void;
 }> = ({ onDetected, onReset }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const scannerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+  const { toast } = useToast();
+  
+  // Cleanup function for Quagga
+  const stopScanner = () => {
+    if (Quagga) {
+      try {
+        Quagga.stop();
+        console.log("Quagga scanner stopped");
+      } catch (err) {
+        console.error("Error stopping Quagga:", err);
+      }
+    }
+  };
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
-
-    const startCamera = async () => {
+    // Start barcode scanner
+    const startScanner = async () => {
+      if (!scannerRef.current) return;
+      
       try {
         setError(null);
-        const constraints = {
-          video: { facingMode: 'environment' }
-        };
+        setScanning(true);
         
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        // Initialize Quagga
+        await Quagga.init(
+          {
+            inputStream: {
+              name: "Live",
+              type: "LiveStream",
+              target: scannerRef.current,
+              constraints: {
+                facingMode: "environment", // Use back camera on mobile
+                width: { min: 450 },
+                height: { min: 300 },
+              },
+            },
+            locator: {
+              patchSize: "medium",
+              halfSample: true,
+            },
+            numOfWorkers: navigator.hardwareConcurrency || 4,
+            decoder: {
+              readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "upc_e_reader",
+                "code_128_reader",
+                "code_39_reader",
+                "code_93_reader",
+              ],
+            },
+            locate: true,
+          },
+          (err) => {
+            if (err) {
+              console.error("Quagga initialization error:", err);
+              setError("Could not initialize barcode scanner. Please try again or check camera permissions.");
+              setScanning(false);
+              return;
+            }
+            
+            console.log("Quagga initialized successfully");
+            Quagga.start();
+          }
+        );
         
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setScanning(true);
-          
-          // In a real app, this is where you would initialize barcode detection
-          // For this demo, we'll simulate a barcode detection after 5 seconds
-          setTimeout(() => {
-            // Simulate detecting a barcode
-            const mockBarcode = "5901234123457";
-            onDetected(mockBarcode);
+        // Set up barcode detection handlers
+        Quagga.onDetected((result) => {
+          if (result && result.codeResult && result.codeResult.code) {
+            const code = result.codeResult.code;
+            console.log("Barcode detected:", code);
+            
+            // Stop scanner after detection
+            stopScanner();
             setScanning(false);
-          }, 5000);
-        }
+            
+            // Notify success
+            toast({
+              title: "Barcode Detected",
+              description: `Found barcode: ${code}`,
+            });
+            
+            // Pass code to parent component
+            onDetected(code);
+          }
+        });
+        
+        // Debug logging
+        Quagga.onProcessed((result) => {
+          const drawingCtx = Quagga.canvas.ctx.overlay;
+          const drawingCanvas = Quagga.canvas.dom.overlay;
+          
+          if (result) {
+            // Highlight successful scans
+            if (result.boxes) {
+              drawingCtx.clearRect(
+                0,
+                0,
+                parseInt(drawingCanvas.getAttribute("width") || "0"),
+                parseInt(drawingCanvas.getAttribute("height") || "0")
+              );
+              result.boxes.filter((box) => box !== result.box).forEach((box) => {
+                Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, {
+                  color: "green",
+                  lineWidth: 2,
+                });
+              });
+            }
+            
+            // Draw a thicker line around successful decoded box
+            if (result.box) {
+              Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, {
+                color: "#00F",
+                lineWidth: 2,
+              });
+            }
+            
+            // Highlight successful decoded barcode
+            if (result.codeResult && result.codeResult.code) {
+              Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, {
+                color: 'red',
+                lineWidth: 3,
+              });
+            }
+          }
+        });
+        
       } catch (err) {
-        console.error("Error accessing camera:", err);
+        console.error("Error accessing camera for barcode scanning:", err);
         setError("Could not access camera. Please make sure you've granted camera permissions.");
         setScanning(false);
       }
     };
-
-    startCamera();
-
+    
+    // Start scanner
+    startScanner();
+    
+    // Clean up when component unmounts
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      stopScanner();
     };
-  }, [onDetected]);
+  }, [onDetected, toast]);
+
+  const handleReset = () => {
+    stopScanner();
+    setError(null);
+    onReset();
+    // After a slight delay, restart the scanner
+    setTimeout(() => {
+      if (scannerRef.current) {
+        setScanning(true);
+        Quagga.init(
+          {
+            inputStream: {
+              name: "Live",
+              type: "LiveStream",
+              target: scannerRef.current,
+              constraints: {
+                facingMode: "environment",
+                width: { min: 450 },
+                height: { min: 300 },
+              },
+            },
+            locator: {
+              patchSize: "medium",
+              halfSample: true,
+            },
+            numOfWorkers: navigator.hardwareConcurrency || 4,
+            decoder: {
+              readers: [
+                "ean_reader",
+                "ean_8_reader",
+                "upc_reader",
+                "upc_e_reader",
+                "code_128_reader",
+                "code_39_reader",
+                "code_93_reader",
+              ],
+            },
+            locate: true,
+          },
+          (err) => {
+            if (err) {
+              console.error("Quagga re-initialization error:", err);
+              setError("Could not restart barcode scanner. Please try again.");
+              setScanning(false);
+              return;
+            }
+            Quagga.start();
+          }
+        );
+      }
+    }, 500);
+  };
 
   return (
     <motion.div
@@ -74,7 +228,7 @@ const BarcodeScanner: React.FC<{
                   variant="purple-gradient" 
                   size="sm" 
                   className="mt-4 rounded-full"
-                  onClick={onReset}
+                  onClick={handleReset}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Try Again
@@ -82,16 +236,15 @@ const BarcodeScanner: React.FC<{
               </div>
             ) : (
               <>
-                <video 
-                  ref={videoRef}
-                  className="h-full w-full object-cover"
-                  autoPlay
-                  playsInline
-                  muted
-                />
+                <div 
+                  ref={scannerRef} 
+                  className="h-full w-full bg-black"
+                >
+                  {/* Quagga will inject the video stream here */}
+                </div>
                 
                 {scanning && (
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-3/4 h-1/3 border-2 border-dashed border-purple-500 rounded-[32px] flex items-center justify-center">
                       <span className="text-purple-100 text-xs font-medium px-4 py-2 bg-purple-500/80 rounded-full flex items-center">
                         <Barcode className="h-3 w-3 mr-1" />

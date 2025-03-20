@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
@@ -7,19 +7,25 @@ import PageTransition from "@/components/layout/PageTransition";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, AlertCircle, Crown, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, AlertCircle, Crown, XCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+const PREMIUM_MONTHLY_PRICE_ID = "price_monthly_premium"; // Replace with your actual Stripe price ID
 
 const Subscription = () => {
   const navigate = useNavigate();
-  const { subscription } = useAuth();
+  const { subscription, getSubscription } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   
   const isSubscribed = subscription?.status === "active";
   const isTrial = subscription?.status === "trial";
   const isExpired = subscription?.status === "expired" || subscription?.status === "canceled";
-  
+
   const getExpiryDate = () => {
     if (!subscription) return null;
     
@@ -27,20 +33,123 @@ const Subscription = () => {
       return format(new Date(subscription.trial_ends_at), "MMM d, yyyy");
     }
     
-    // For non-trial subscriptions, we don't have an ends_at property,
-    // so we'll only display the trial_ends_at date for trial subscriptions
     return null;
   };
   
   const getNextBillingDate = () => {
     if (!subscription || !isSubscribed) return null;
     
-    // This is placeholder logic - in a real app, you'd get this from the subscription object
+    // For premium subscribers, we'd get this from Stripe
+    // This is placeholder logic - in a real app, you'd get this from subscription.next_billing_date
+    if (subscription.next_billing_date) {
+      return format(new Date(subscription.next_billing_date), "MMM d, yyyy");
+    }
+    
     const nextBillingDate = new Date();
     nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
     
     return format(nextBillingDate, "MMM d, yyyy");
   };
+
+  const handleStartCheckout = async () => {
+    try {
+      setIsLoading(true);
+      
+      const origin = window.location.origin;
+      const successUrl = `${origin}/profile/subscription?success=true`;
+      const cancelUrl = `${origin}/profile/subscription?canceled=true`;
+      
+      const { data, error } = await supabase.functions.invoke('stripe-subscription', {
+        body: {
+          action: 'create-checkout-session',
+          data: {
+            priceId: PREMIUM_MONTHLY_PRICE_ID,
+            successUrl,
+            cancelUrl
+          }
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+      
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      toast({
+        variant: "destructive",
+        title: "Subscription Error",
+        description: error.message || "Failed to start the subscription process. Please try again."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleManageSubscription = async () => {
+    try {
+      setIsLoading(true);
+      
+      const origin = window.location.origin;
+      const returnUrl = `${origin}/profile/subscription`;
+      
+      const { data, error } = await supabase.functions.invoke('stripe-subscription', {
+        body: {
+          action: 'create-customer-portal',
+          data: { returnUrl }
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      // Redirect to Stripe Customer Portal
+      window.location.href = data.url;
+      
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
+      toast({
+        variant: "destructive",
+        title: "Subscription Error",
+        description: error.message || "Failed to access subscription management. Please try again."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Check for success or canceled query params (for Stripe redirect)
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    const canceled = urlParams.get('canceled');
+    
+    if (success === 'true') {
+      toast({
+        title: "Subscription Successful",
+        description: "Your premium subscription is now active. Enjoy all the premium features!",
+        variant: "default"
+      });
+      // Remove query params from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Refresh subscription data
+      getSubscription();
+    }
+    
+    if (canceled === 'true') {
+      toast({
+        title: "Subscription Canceled",
+        description: "You have canceled the subscription process.",
+        variant: "default"
+      });
+      // Remove query params from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [toast, getSubscription]);
 
   return (
     <>
@@ -144,18 +253,59 @@ const Subscription = () => {
                       <span>Unlimited Food Scanning</span>
                     </div>
                   </div>
+                  
+                  {isSubscribed && (
+                    <div className="mt-2 text-sm">
+                      <p className="text-center text-muted-foreground">
+                        Your premium subscription is active. You have access to all premium features.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {isTrial && (
+                    <div className="mt-2 text-sm">
+                      <p className="text-center text-muted-foreground">
+                        Your trial ends on {getExpiryDate()}. Subscribe to continue enjoying premium features.
+                      </p>
+                    </div>
+                  )}
                 </div>
                 
                 {!isSubscribed && (
-                  <Button className="w-full btn-premium">
-                    <Crown className="mr-2 h-4 w-4" />
-                    {isExpired ? "Renew Subscription" : "Upgrade to Premium"}
+                  <Button 
+                    className="w-full btn-premium" 
+                    onClick={handleStartCheckout}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="mr-2 h-4 w-4" />
+                        {isExpired ? "Renew Subscription" : "Upgrade to Premium"}
+                      </>
+                    )}
                   </Button>
                 )}
                 
                 {isSubscribed && (
-                  <Button variant="outline" className="w-full">
-                    Manage Subscription
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleManageSubscription}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      "Manage Subscription"
+                    )}
                   </Button>
                 )}
                 

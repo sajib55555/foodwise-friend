@@ -7,6 +7,9 @@ import { useToast } from '@/hooks/use-toast';
 interface Subscription {
   status: string;
   trial_ends_at: string | null;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  next_billing_date?: string | null;
 }
 
 interface AuthContextType {
@@ -133,6 +136,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setSubscription(data);
+      
+      // If subscription is active, check for next billing date from Stripe
+      if (data && data.status === 'active' && data.stripe_subscription_id) {
+        try {
+          const { data: stripeData, error: stripeError } = await supabase.functions.invoke('stripe-subscription', {
+            body: {
+              action: 'get-subscription-details',
+              data: { subscriptionId: data.stripe_subscription_id }
+            }
+          });
+          
+          if (!stripeError && stripeData && stripeData.next_billing_date) {
+            setSubscription(prev => ({
+              ...prev,
+              next_billing_date: stripeData.next_billing_date
+            }));
+          }
+        } catch (stripeError) {
+          console.error('Error fetching Stripe subscription details:', stripeError);
+        }
+      }
     } catch (error) {
       console.error('Error fetching subscription:', error);
     }

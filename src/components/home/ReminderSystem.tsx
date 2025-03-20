@@ -3,10 +3,24 @@ import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Bell, Plus, Clock, X } from "lucide-react";
 import { Button } from "@/components/ui/button-custom";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+
+// Define the form schema with Zod
+const reminderFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  time: z.string().min(1, "Time is required"),
+  repeatPattern: z.string().min(1, "Repeat pattern is required"),
+});
+
+type ReminderFormValues = z.infer<typeof reminderFormSchema>;
 
 const ReminderSystem = () => {
   const [reminders, setReminders] = useState([
@@ -17,8 +31,59 @@ const ReminderSystem = () => {
   
   const [dialogOpen, setDialogOpen] = useState(false);
   
+  const form = useForm<ReminderFormValues>({
+    resolver: zodResolver(reminderFormSchema),
+    defaultValues: {
+      title: "",
+      time: "",
+      repeatPattern: "everyday",
+    },
+  });
+
+  const handleAddReminder = (values: ReminderFormValues) => {
+    // Convert the repeat pattern to days format
+    let days;
+    switch (values.repeatPattern) {
+      case "everyday":
+        days = ["Every day"];
+        break;
+      case "weekdays":
+        days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+        break;
+      case "weekends":
+        days = ["Sat", "Sun"];
+        break;
+      case "custom":
+        days = ["Custom days"];
+        break;
+      default:
+        days = ["Every day"];
+    }
+
+    // Create a new reminder with a unique ID
+    const newReminder = {
+      id: Date.now(), // Use timestamp as a simple unique ID
+      title: values.title,
+      time: values.time,
+      days: days,
+    };
+
+    // Add the new reminder to the state
+    setReminders([...reminders, newReminder]);
+    
+    // Show success toast
+    toast.success("Reminder added", {
+      description: `${values.title} at ${values.time}`,
+    });
+    
+    // Reset form and close dialog
+    form.reset();
+    setDialogOpen(false);
+  };
+  
   const handleDeleteReminder = (id: number) => {
     setReminders(reminders.filter(reminder => reminder.id !== id));
+    toast.success("Reminder deleted");
   };
   
   return (
@@ -50,50 +115,99 @@ const ReminderSystem = () => {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add Meal Reminder</DialogTitle>
+                  <DialogDescription>
+                    Set up reminders for your daily meals
+                  </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Reminder Title</label>
-                    <Input placeholder="e.g., Breakfast, Snack, etc." />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Time</label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="7:00 AM">7:00 AM</SelectItem>
-                        <SelectItem value="8:00 AM">8:00 AM</SelectItem>
-                        <SelectItem value="12:00 PM">12:00 PM</SelectItem>
-                        <SelectItem value="1:00 PM">1:00 PM</SelectItem>
-                        <SelectItem value="6:00 PM">6:00 PM</SelectItem>
-                        <SelectItem value="7:00 PM">7:00 PM</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Repeat</label>
-                    <Select defaultValue="everyday">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyday">Every day</SelectItem>
-                        <SelectItem value="weekdays">Weekdays</SelectItem>
-                        <SelectItem value="weekends">Weekends</SelectItem>
-                        <SelectItem value="custom">Custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="flex justify-end space-x-2 pt-2">
-                    <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                    <Button variant="green-gradient" onClick={() => setDialogOpen(false)}>Add Reminder</Button>
-                  </div>
-                </div>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(handleAddReminder)} className="space-y-4 pt-4">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Reminder Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Breakfast, Snack, etc." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="time"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Time</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select time" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="7:00 AM">7:00 AM</SelectItem>
+                              <SelectItem value="8:00 AM">8:00 AM</SelectItem>
+                              <SelectItem value="12:00 PM">12:00 PM</SelectItem>
+                              <SelectItem value="1:00 PM">1:00 PM</SelectItem>
+                              <SelectItem value="6:00 PM">6:00 PM</SelectItem>
+                              <SelectItem value="7:00 PM">7:00 PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="repeatPattern"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Repeat</FormLabel>
+                          <Select 
+                            onValueChange={field.onChange} 
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="everyday">Every day</SelectItem>
+                              <SelectItem value="weekdays">Weekdays</SelectItem>
+                              <SelectItem value="weekends">Weekends</SelectItem>
+                              <SelectItem value="custom">Custom</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="flex justify-end space-x-2 pt-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          form.reset();
+                          setDialogOpen(false);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" variant="green-gradient">
+                        Add Reminder
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
               </DialogContent>
             </Dialog>
           </div>

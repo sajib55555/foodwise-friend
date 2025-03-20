@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
@@ -10,13 +10,38 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 const Notifications = () => {
   const navigate = useNavigate();
   
+  // Track the notification settings state
+  const [notificationSettings, setNotificationSettings] = useState({
+    pushAll: true,
+    mealReminders: true,
+    waterReminders: true,
+    workoutReminders: true,
+    emailAll: false,
+    weeklySummary: false,
+    appUpdates: true
+  });
+  
+  const handleToggle = (setting: keyof typeof notificationSettings) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      [setting]: !prev[setting]
+    }));
+  };
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Save notification settings and navigate back
+    
+    // Save notification settings - in a real app would call an API here
+    toast.success("Notification settings saved", {
+      description: "Your preferences have been updated"
+    });
+    
+    // Navigate back to profile
     navigate("/profile");
   };
 
@@ -46,7 +71,11 @@ const Notifications = () => {
                           Enable all push notifications
                         </p>
                       </div>
-                      <Switch id="push-all" defaultChecked={true} />
+                      <Switch 
+                        id="push-all" 
+                        checked={notificationSettings.pushAll}
+                        onCheckedChange={() => handleToggle('pushAll')}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -56,7 +85,11 @@ const Notifications = () => {
                           Get reminders for meal tracking
                         </p>
                       </div>
-                      <Switch id="meal-reminders" defaultChecked={true} />
+                      <Switch 
+                        id="meal-reminders" 
+                        checked={notificationSettings.mealReminders}
+                        onCheckedChange={() => handleToggle('mealReminders')}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -66,7 +99,11 @@ const Notifications = () => {
                           Get reminders to drink water
                         </p>
                       </div>
-                      <Switch id="water-reminders" defaultChecked={true} />
+                      <Switch 
+                        id="water-reminders" 
+                        checked={notificationSettings.waterReminders}
+                        onCheckedChange={() => handleToggle('waterReminders')}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -76,7 +113,11 @@ const Notifications = () => {
                           Get reminders for scheduled workouts
                         </p>
                       </div>
-                      <Switch id="workout-reminders" defaultChecked={true} />
+                      <Switch 
+                        id="workout-reminders" 
+                        checked={notificationSettings.workoutReminders}
+                        onCheckedChange={() => handleToggle('workoutReminders')}
+                      />
                     </div>
                   </div>
                   
@@ -90,7 +131,11 @@ const Notifications = () => {
                           Enable all email notifications
                         </p>
                       </div>
-                      <Switch id="email-all" defaultChecked={false} />
+                      <Switch 
+                        id="email-all" 
+                        checked={notificationSettings.emailAll}
+                        onCheckedChange={() => handleToggle('emailAll')}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -100,7 +145,11 @@ const Notifications = () => {
                           Receive weekly progress reports via email
                         </p>
                       </div>
-                      <Switch id="weekly-summary" defaultChecked={false} />
+                      <Switch 
+                        id="weekly-summary" 
+                        checked={notificationSettings.weeklySummary}
+                        onCheckedChange={() => handleToggle('weeklySummary')}
+                      />
                     </div>
                     
                     <div className="flex items-center justify-between">
@@ -110,7 +159,11 @@ const Notifications = () => {
                           Receive notifications about new features
                         </p>
                       </div>
-                      <Switch id="app-updates" defaultChecked={true} />
+                      <Switch 
+                        id="app-updates" 
+                        checked={notificationSettings.appUpdates}
+                        onCheckedChange={() => handleToggle('appUpdates')}
+                      />
                     </div>
                   </div>
                   

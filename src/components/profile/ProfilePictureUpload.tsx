@@ -46,7 +46,7 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ onClose, on
       // Create a unique filename
       const fileExt = '.jpg';
       const fileName = `${user.id}${fileExt}`;
-      const filePath = `${fileName}`;
+      const filePath = `${user.id}/${fileName}`;
       
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage

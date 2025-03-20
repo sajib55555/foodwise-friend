@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -34,7 +33,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose }
 import { Progress } from "@/components/ui/progress";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
 
-// Define interfaces for the data structures
 interface ScannedFood {
   calories?: number;
   protein?: number;
@@ -72,7 +70,6 @@ interface WeightMetadata {
   unit?: string;
 }
 
-// Helper function to safely access metadata with type checking
 const getMetadataObject = (metadata: any): Record<string, any> => {
   if (typeof metadata === 'object' && metadata !== null) {
     return metadata;
@@ -1004,7 +1001,7 @@ const AIHealthAssistant = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex flex-col items-center p-4 text-center"
+          className="flex flex-col items-center p-2 md:p-3 text-center"
         >
           <div className="relative">
             <motion.div 
@@ -1019,21 +1016,21 @@ const AIHealthAssistant = () => {
                 repeatType: "reverse"
               }}
             />
-            <Brain className="h-16 w-16 text-purple-600/80 dark:text-purple-400/80 relative z-10" />
+            <Brain className="h-12 w-12 text-purple-600/80 dark:text-purple-400/80 relative z-10" />
           </div>
-          <p className="text-muted-foreground text-sm mt-4 max-w-md">
+          <p className="text-muted-foreground text-xs md:text-sm mt-3 max-w-md">
             Get personalized health insights and recommendations with our AI voice assistant
           </p>
-          <Alert className="mt-4 bg-blue-50/50 border border-blue-200/50 dark:bg-blue-900/10 dark:border-blue-800/20">
-            <Info className="h-4 w-4 text-blue-500" />
+          <Alert className="mt-3 bg-blue-50/50 border border-blue-200/50 dark:bg-blue-900/10 dark:border-blue-800/20">
+            <Info className="h-3 w-3 text-blue-500" />
             <AlertDescription className="text-xs text-blue-700 dark:text-blue-300">
               Analysis uses your nutrition, exercise, and sleep data to provide personalized insights.
             </AlertDescription>
           </Alert>
           <Button
-            variant="purple-outline"
+            variant="purple-gradient"
             size="sm"
-            className="mt-4 shadow-sm hover:shadow hover:translate-y-[-2px] transition-all duration-200"
+            className="mt-3 shadow-sm hover:shadow hover:translate-y-[-2px] transition-all duration-200"
             onClick={() => {
               if (isMobile) {
                 if (loading) {
@@ -1055,7 +1052,7 @@ const AIHealthAssistant = () => {
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4 mr-1 text-purple-500" />
+                <Sparkles className="h-4 w-4 mr-1 text-white" />
                 {analysis ? "View health insights" : "Ask for health advice"}
               </>
             )}

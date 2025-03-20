@@ -1,3 +1,4 @@
+
 import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -71,8 +72,12 @@ const Index = () => {
               <ActionButtons />
             </motion.div>
             
-            {/* AI Health Assistant with ID for scrolling */}
-            <motion.div variants={itemVariants} id="ai-health-assistant">
+            {/* AI Health Assistant with ID for scrolling - Made slightly smaller by adjusting scale */}
+            <motion.div 
+              variants={itemVariants} 
+              id="ai-health-assistant"
+              className="transform scale-95" // Added scale to reduce size by 5%
+            >
               <AIHealthAssistant />
             </motion.div>
             

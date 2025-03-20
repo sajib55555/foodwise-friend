@@ -31,6 +31,7 @@ const ActionButtons = () => {
       label: "Log Meal", 
       onClick: () => navigate("/log-meal"),
       gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
+      textColor: "text-white",
       shadow: "shadow-purple"
     },
     { 
@@ -38,6 +39,7 @@ const ActionButtons = () => {
       label: "Food Scanner", 
       onClick: () => navigate("/scan"),
       gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
+      textColor: "text-white",
       shadow: "shadow-blue"
     },
     { 
@@ -45,6 +47,7 @@ const ActionButtons = () => {
       label: "Meal Plans", 
       onClick: () => navigate("/plans"),
       gradient: "bg-gradient-to-br from-green-400 to-green-600",
+      textColor: "text-white",
       shadow: "shadow-green"
     },
     { 
@@ -52,6 +55,7 @@ const ActionButtons = () => {
       label: "AI Assistant", 
       onClick: () => document.getElementById('ai-health-assistant')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
+      textColor: "text-white",
       shadow: "shadow-indigo"
     },
     { 
@@ -59,6 +63,7 @@ const ActionButtons = () => {
       label: "Water Intake", 
       onClick: () => document.getElementById('water-tracker')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-cyan-400 to-cyan-600",
+      textColor: "text-white",
       shadow: "shadow-cyan"
     },
     { 
@@ -66,6 +71,7 @@ const ActionButtons = () => {
       label: "Sleep Tracker", 
       onClick: () => document.getElementById('sleep-tracker')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
+      textColor: "text-white",
       shadow: "shadow-indigo"
     },
     { 
@@ -73,6 +79,7 @@ const ActionButtons = () => {
       label: "Weight", 
       onClick: () => navigate("/weight"),
       gradient: "bg-gradient-to-br from-amber-400 to-amber-600",
+      textColor: "text-white",
       shadow: "shadow-amber"
     },
     { 
@@ -80,6 +87,7 @@ const ActionButtons = () => {
       label: "Workouts", 
       onClick: () => navigate("/workout"),
       gradient: "bg-gradient-to-br from-pink-400 to-pink-600",
+      textColor: "text-white",
       shadow: "shadow-pink"
     },
     { 
@@ -87,6 +95,7 @@ const ActionButtons = () => {
       label: "Goals", 
       onClick: () => navigate("/goals"),
       gradient: "bg-gradient-to-br from-teal-400 to-teal-600",
+      textColor: "text-white",
       shadow: "shadow-teal"
     }
   ];
@@ -106,7 +115,7 @@ const ActionButtons = () => {
               <Button 
                 variant="ghost"
                 size="icon"
-                className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} rounded-full mb-1 md:mb-2 text-white ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
+                className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} rounded-full mb-1 md:mb-2 ${action.textColor} ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
               >
                 {action.icon}

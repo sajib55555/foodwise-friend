@@ -21,7 +21,9 @@ const MobileNavbar: React.FC = () => {
       icon: Home, 
       label: "Home",
       activeColor: "text-purple-600",
+      inactiveColor: "text-purple-500",
       gradientClass: "bg-gradient-to-br from-purple-400 to-purple-600",
+      inactiveGradient: "bg-gradient-to-br from-purple-300 to-purple-400",
       indicatorClass: "bg-purple-600"
     },
     { 
@@ -29,7 +31,9 @@ const MobileNavbar: React.FC = () => {
       icon: Camera, 
       label: "Scan",
       activeColor: "text-blue-600",
+      inactiveColor: "text-blue-500",
       gradientClass: "bg-gradient-to-br from-blue-400 to-blue-600",
+      inactiveGradient: "bg-gradient-to-br from-blue-300 to-blue-400",
       indicatorClass: "bg-blue-600"
     },
     { 
@@ -37,7 +41,9 @@ const MobileNavbar: React.FC = () => {
       icon: Target, 
       label: "Goals",
       activeColor: "text-teal-600",
+      inactiveColor: "text-teal-500",
       gradientClass: "bg-gradient-to-br from-teal-400 to-teal-600", 
+      inactiveGradient: "bg-gradient-to-br from-teal-300 to-teal-400",
       indicatorClass: "bg-teal-600"
     },
     { 
@@ -45,7 +51,9 @@ const MobileNavbar: React.FC = () => {
       icon: BarChart3, 
       label: "Nutrition",
       activeColor: "text-green-600",
+      inactiveColor: "text-green-500",
       gradientClass: "bg-gradient-to-br from-green-400 to-green-600", 
+      inactiveGradient: "bg-gradient-to-br from-green-300 to-green-400",
       indicatorClass: "bg-green-600"
     },
     { 
@@ -53,7 +61,9 @@ const MobileNavbar: React.FC = () => {
       icon: Settings, 
       label: "Profile",
       activeColor: "text-amber-600",
+      inactiveColor: "text-amber-500",
       gradientClass: "bg-gradient-to-br from-amber-400 to-amber-600",
+      inactiveGradient: "bg-gradient-to-br from-amber-300 to-amber-400",
       indicatorClass: "bg-amber-600"
     }
   ];
@@ -75,7 +85,9 @@ const MobileNavbar: React.FC = () => {
               label={item.label}
               isActive={isActive(item.path)}
               activeColor={item.activeColor}
+              inactiveColor={item.inactiveColor}
               gradientClass={item.gradientClass}
+              inactiveGradient={item.inactiveGradient}
               indicatorClass={item.indicatorClass}
             />
           ))}
@@ -91,7 +103,9 @@ interface NavItemProps {
   label: string;
   isActive: boolean;
   activeColor: string;
+  inactiveColor: string;
   gradientClass: string;
+  inactiveGradient: string;
   indicatorClass: string;
 }
 
@@ -101,7 +115,9 @@ const NavItem: React.FC<NavItemProps> = ({
   label, 
   isActive,
   activeColor,
+  inactiveColor,
   gradientClass,
+  inactiveGradient,
   indicatorClass
 }) => {
   return (
@@ -111,7 +127,7 @@ const NavItem: React.FC<NavItemProps> = ({
         "flex flex-col items-center justify-center py-2 px-4 text-xs transition-colors duration-200",
         isActive 
           ? activeColor
-          : "text-muted-foreground hover:text-foreground"
+          : inactiveColor
       )}
     >
       <div className="relative">
@@ -120,7 +136,9 @@ const NavItem: React.FC<NavItemProps> = ({
             <Icon className="h-5 w-5 text-white stroke-[2.5px]" />
           </div>
         ) : (
-          <Icon className="h-6 w-6 mb-1" />
+          <div className={`p-2 rounded-full ${inactiveGradient}`}>
+            <Icon className="h-5 w-5 text-white stroke-[2px]" />
+          </div>
         )}
         {isActive && (
           <motion.div

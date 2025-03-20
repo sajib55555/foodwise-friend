@@ -48,20 +48,29 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ onClose, on
       const fileName = `${user.id}${fileExt}`;
       const filePath = `${user.id}/${fileName}`;
       
+      console.log("Uploading avatar to path:", filePath);
+      
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('avatars')
         .upload(filePath, blob, {
           upsert: true,
           contentType: 'image/jpeg'
         });
         
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
+      
+      console.log("Upload successful:", uploadData);
       
       // Get the public URL
       const { data } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+        
+      console.log("Public URL:", data.publicUrl);
         
       // Update user profile
       const { error: updateError } = await supabase
@@ -72,7 +81,12 @@ const ProfilePictureUpload: React.FC<ProfilePictureUploadProps> = ({ onClose, on
         })
         .eq('id', user.id);
         
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        throw updateError;
+      }
+      
+      console.log("Profile updated successfully");
       
       // Log activity
       await logActivity('profile_updated', 'Updated profile picture');

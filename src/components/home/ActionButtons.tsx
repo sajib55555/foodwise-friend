@@ -3,7 +3,17 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { PlusCircle, UtensilsCrossed, Salad, Scale, Dumbbell, Target } from "lucide-react";
+import { 
+  PlusCircle, 
+  UtensilsCrossed, 
+  Salad, 
+  Scale, 
+  Dumbbell, 
+  Target,
+  Brain,
+  Droplets,
+  Moon
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -11,44 +21,69 @@ const ActionButtons = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
+  // Button sizing - increased by 20%
+  const buttonSize = isMobile ? 'w-12 h-12' : 'w-[19.2px] h-[19.2px]';
+  const iconSize = isMobile ? 'h-5 w-5' : 'h-6 w-6';
+
   const actions = [
     { 
-      icon: <PlusCircle className="h-4 w-4 md:h-5 md:w-5" />, 
+      icon: <PlusCircle className={iconSize} />, 
       label: "Log Meal", 
       onClick: () => navigate("/log-meal"),
       gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
       shadow: "shadow-purple"
     },
     { 
-      icon: <UtensilsCrossed className="h-4 w-4 md:h-5 md:w-5" />, 
+      icon: <UtensilsCrossed className={iconSize} />, 
       label: "Food Scanner", 
       onClick: () => navigate("/scan"),
       gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
       shadow: "shadow-blue"
     },
     { 
-      icon: <Salad className="h-4 w-4 md:h-5 md:w-5" />, 
+      icon: <Salad className={iconSize} />, 
       label: "Meal Plans", 
       onClick: () => navigate("/plans"),
       gradient: "bg-gradient-to-br from-green-400 to-green-600",
       shadow: "shadow-green"
     },
     { 
-      icon: <Scale className="h-4 w-4 md:h-5 md:w-5" />, 
+      icon: <Brain className={iconSize} />, 
+      label: "AI Assistant", 
+      onClick: () => document.getElementById('ai-health-assistant')?.scrollIntoView({ behavior: 'smooth' }),
+      gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
+      shadow: "shadow-indigo"
+    },
+    { 
+      icon: <Droplets className={iconSize} />, 
+      label: "Water Intake", 
+      onClick: () => document.getElementById('water-tracker')?.scrollIntoView({ behavior: 'smooth' }),
+      gradient: "bg-gradient-to-br from-cyan-400 to-cyan-600",
+      shadow: "shadow-cyan"
+    },
+    { 
+      icon: <Moon className={iconSize} />, 
+      label: "Sleep Tracker", 
+      onClick: () => document.getElementById('sleep-tracker')?.scrollIntoView({ behavior: 'smooth' }),
+      gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
+      shadow: "shadow-indigo"
+    },
+    { 
+      icon: <Scale className={iconSize} />, 
       label: "Weight", 
       onClick: () => navigate("/weight"),
       gradient: "bg-gradient-to-br from-amber-400 to-amber-600",
       shadow: "shadow-amber"
     },
     { 
-      icon: <Dumbbell className="h-4 w-4 md:h-5 md:w-5" />, 
+      icon: <Dumbbell className={iconSize} />, 
       label: "Workouts", 
       onClick: () => navigate("/workout"),
       gradient: "bg-gradient-to-br from-pink-400 to-pink-600",
       shadow: "shadow-pink"
     },
     { 
-      icon: <Target className="h-4 w-4 md:h-5 md:w-5" />, 
+      icon: <Target className={iconSize} />, 
       label: "Goals", 
       onClick: () => navigate("/goals"),
       gradient: "bg-gradient-to-br from-teal-400 to-teal-600",
@@ -59,7 +94,7 @@ const ActionButtons = () => {
   return (
     <Card variant="glass" className="border border-purple-200/30 dark:border-purple-800/20">
       <CardContent className="p-2 md:p-6">
-        <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-6 gap-3'}`}>
+        <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-3 gap-3'} md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3`}>
           {actions.map((action, index) => (
             <motion.div
               key={action.label}
@@ -71,7 +106,7 @@ const ActionButtons = () => {
               <Button 
                 variant="ghost"
                 size="icon"
-                className={`${isMobile ? 'w-10 h-10' : 'w-16 h-16'} rounded-full mb-1 md:mb-2 text-white ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
+                className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} rounded-full mb-1 md:mb-2 text-white ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
               >
                 {action.icon}

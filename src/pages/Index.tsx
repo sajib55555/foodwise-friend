@@ -1,4 +1,3 @@
-
 import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -72,8 +71,8 @@ const Index = () => {
               <ActionButtons />
             </motion.div>
             
-            {/* AI Health Assistant moved to just after ActionButtons */}
-            <motion.div variants={itemVariants}>
+            {/* AI Health Assistant with ID for scrolling */}
+            <motion.div variants={itemVariants} id="ai-health-assistant">
               <AIHealthAssistant />
             </motion.div>
             
@@ -110,7 +109,8 @@ const Index = () => {
             {/* Responsive grid layout with consistent styling */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <motion.div 
-                variants={itemVariants} 
+                variants={itemVariants}
+                id="water-tracker" 
                 className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
               >
                 <WaterTracker />
@@ -126,6 +126,7 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <motion.div 
                 variants={itemVariants}
+                id="sleep-tracker"
                 className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
               >
                 <SleepTracker />

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -59,15 +58,14 @@ const Onboarding = () => {
     try {
       // Save onboarding data to user profile
       const { error } = await supabase.from('user_profiles').upsert({
-        user_id: user?.id,
+        id: user?.id,
         age: parseInt(formData.age),
         gender: formData.gender,
         height: parseFloat(formData.height),
         weight: parseFloat(formData.weight),
         fitness_goal: formData.goal,
-        diet_type: formData.dietType,
         activity_level: formData.activityLevel,
-        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
       });
       
       if (error) throw error;

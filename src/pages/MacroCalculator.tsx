@@ -42,22 +42,26 @@ const MacroCalculator = () => {
     const loadUserData = async () => {
       if (!user) return;
       
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (error || !data) return;
-      
-      setFormData({
-        gender: data.gender || 'male',
-        age: data.age ? data.age.toString() : '',
-        weight: data.weight ? data.weight.toString() : '',
-        height: data.height ? data.height.toString() : '',
-        activityLevel: data.activity_level || 'moderate',
-        goal: data.fitness_goal || 'maintain',
-      });
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error || !data) return;
+        
+        setFormData({
+          gender: data.gender || 'male',
+          age: data.age ? data.age.toString() : '',
+          weight: data.weight ? data.weight.toString() : '',
+          height: data.height ? data.height.toString() : '',
+          activityLevel: data.activity_level || 'moderate',
+          goal: data.fitness_goal || 'maintain',
+        });
+      } catch (err) {
+        console.error('Error loading user data:', err);
+      }
     };
     
     loadUserData();

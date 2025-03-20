@@ -65,6 +65,7 @@ const WeeklyMealPlanner: React.FC = () => {
   const [apiTimeout, setApiTimeout] = useState<NodeJS.Timeout | null>(null);
   const mealPlanCache = useRef<CachedMealPlan[]>([]);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const mealPlanSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return () => {
@@ -122,6 +123,11 @@ const WeeklyMealPlanner: React.FC = () => {
         title: "Meal Plan Ready",
         description: `Your ${days}-day meal plan is ready!`,
       });
+      
+      setTimeout(() => {
+        mealPlanSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+      
       return;
     }
     
@@ -193,6 +199,11 @@ const WeeklyMealPlanner: React.FC = () => {
         title: "Meal Plan Generated",
         description: `Your ${days}-day meal plan is ready!`,
       });
+      
+      setTimeout(() => {
+        mealPlanSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+      
     } catch (error) {
       clearTimeout(timeout);
       clearTimeout(maxTimeout);
@@ -215,6 +226,10 @@ const WeeklyMealPlanner: React.FC = () => {
       
       setMealPlan(fallbackPlan);
       setActiveDay("day1");
+      
+      setTimeout(() => {
+        mealPlanSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
     } catch (error) {
       console.error("Error generating fallback meal plan:", error);
       setError("Failed to generate any meal plan. Please try again later.");
@@ -521,6 +536,7 @@ const WeeklyMealPlanner: React.FC = () => {
           
           {mealPlan && (
             <motion.div
+              ref={mealPlanSectionRef}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -32,6 +33,52 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetClose } from "@/components/ui/sheet";
 import { Progress } from "@/components/ui/progress";
 import { format, startOfDay, endOfDay, subDays } from "date-fns";
+
+// Define interfaces for the data structures
+interface ScannedFood {
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+}
+
+interface MealMetadata {
+  meal_type?: string;
+  scanned_food?: ScannedFood;
+  food_items?: any[];
+}
+
+interface WaterMetadata {
+  amount?: number;
+  unit?: string;
+}
+
+interface ExerciseMetadata {
+  exercise_type?: string;
+  duration?: number;
+  calories_burned?: number;
+  intensity?: string;
+}
+
+interface SleepMetadata {
+  duration?: number;
+  quality?: string;
+  start_time?: string;
+  end_time?: string;
+}
+
+interface WeightMetadata {
+  weight?: number;
+  unit?: string;
+}
+
+// Helper function to safely access metadata with type checking
+const getMetadataObject = (metadata: any): Record<string, any> => {
+  if (typeof metadata === 'object' && metadata !== null) {
+    return metadata;
+  }
+  return {};
+};
 
 const voices = [
   { id: "alloy", name: "Alloy", description: "Neutral" },
@@ -134,17 +181,17 @@ const AIHealthAssistant = () => {
       }
       
       const processedMeals = data ? data.map(item => {
-        const metadata = item.metadata || {};
-        const scannedFood = metadata.scanned_food || {};
+        const metadataObj = getMetadataObject(item.metadata);
+        const scannedFood = getMetadataObject(metadataObj.scanned_food);
         
         return {
           date: format(new Date(item.created_at), 'yyyy-MM-dd'),
-          meal_type: metadata.meal_type || 'snack',
+          meal_type: metadataObj.meal_type || 'snack',
           calories: scannedFood.calories || 0,
           protein: scannedFood.protein || 0,
           carbs: scannedFood.carbs || 0,
           fat: scannedFood.fat || 0,
-          food_items: metadata.food_items || []
+          food_items: metadataObj.food_items || []
         };
       }) : [];
       
@@ -202,11 +249,11 @@ const AIHealthAssistant = () => {
       }
       
       const waterData = data ? data.map(item => {
-        const metadata = item.metadata || {};
+        const metadataObj = getMetadataObject(item.metadata);
         return {
           date: format(new Date(item.created_at), 'yyyy-MM-dd'),
-          amount: metadata.amount || 0,
-          unit: metadata.unit || 'ml'
+          amount: metadataObj.amount || 0,
+          unit: metadataObj.unit || 'ml'
         };
       }) : [];
       
@@ -248,13 +295,13 @@ const AIHealthAssistant = () => {
       }
       
       return data ? data.map(item => {
-        const metadata = item.metadata || {};
+        const metadataObj = getMetadataObject(item.metadata);
         return {
           date: format(new Date(item.created_at), 'yyyy-MM-dd'),
-          type: metadata.exercise_type || 'other',
-          duration: metadata.duration || 0,
-          calories_burned: metadata.calories_burned || 0,
-          intensity: metadata.intensity || 'medium'
+          type: metadataObj.exercise_type || 'other',
+          duration: metadataObj.duration || 0,
+          calories_burned: metadataObj.calories_burned || 0,
+          intensity: metadataObj.intensity || 'medium'
         };
       }) : [];
       
@@ -281,13 +328,13 @@ const AIHealthAssistant = () => {
       }
       
       return data ? data.map(item => {
-        const metadata = item.metadata || {};
+        const metadataObj = getMetadataObject(item.metadata);
         return {
           date: format(new Date(item.created_at), 'yyyy-MM-dd'),
-          duration: metadata.duration || 0,
-          quality: metadata.quality || 'medium',
-          start_time: metadata.start_time,
-          end_time: metadata.end_time
+          duration: metadataObj.duration || 0,
+          quality: metadataObj.quality || 'medium',
+          start_time: metadataObj.start_time,
+          end_time: metadataObj.end_time
         };
       }) : [];
       
@@ -314,11 +361,11 @@ const AIHealthAssistant = () => {
       }
       
       return data ? data.map(item => {
-        const metadata = item.metadata || {};
+        const metadataObj = getMetadataObject(item.metadata);
         return {
           date: format(new Date(item.created_at), 'yyyy-MM-dd'),
-          weight: metadata.weight || 0,
-          unit: metadata.unit || 'kg'
+          weight: metadataObj.weight || 0,
+          unit: metadataObj.unit || 'kg'
         };
       }) : [];
       

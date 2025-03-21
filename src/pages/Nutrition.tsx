@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +9,7 @@ import NutritionInsights from "@/components/nutrition/NutritionInsights";
 import DetailedNutritionAnalysis from "@/components/nutrition/DetailedNutritionAnalysis";
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { Heart, Leaf, Utensils, ArrowUpCircle, Sparkles } from "lucide-react";
+import { Heart, Leaf, Utensils, ArrowUpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -396,38 +395,6 @@ const Nutrition = () => {
             )}
           </TabsContent>
         </Tabs>
-        
-        {/* Premium feature banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-8 rounded-2xl overflow-hidden shadow-xl border border-green-200/50 dark:border-green-800/20"
-        >
-          <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-white rounded-full opacity-20"></div>
-              <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white rounded-full opacity-20"></div>
-            </div>
-            <div className="flex flex-col md:flex-row justify-between items-center relative z-10">
-              <div className="text-white mb-4 md:mb-0">
-                <h3 className="text-xl font-bold flex items-center">
-                  <Sparkles className="mr-2 h-5 w-5" /> Advanced Nutrition Analysis
-                </h3>
-                <p className="text-white/80 max-w-md mt-2">
-                  Get personalized recommendations and detailed insights about your nutrition
-                </p>
-              </div>
-              <Button
-                variant="premium"
-                size="lg"
-                className="shadow-xl hover:shadow-green-500/20 transition-all"
-              >
-                Upgrade Now
-              </Button>
-            </div>
-          </div>
-        </motion.div>
       </main>
       <MobileNavbar />
     </PageTransition>

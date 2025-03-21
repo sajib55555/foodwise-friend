@@ -15,7 +15,7 @@ import SleepTracker from "@/components/home/SleepTracker";
 import GoalTracker from "@/components/home/GoalTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";
 import { Button } from "@/components/ui/button-custom";
-import { Calendar, Dumbbell, Sparkles } from "lucide-react";
+import { Calendar, Dumbbell } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
@@ -160,35 +160,7 @@ const Index = () => {
               <ReminderSystem />
             </motion.div>
             
-            {/* Premium feature banner with the same purple-to-blue gradient */}
-            <motion.div
-              variants={itemVariants}
-              className="rounded-2xl overflow-hidden shadow-xl border border-purple-200/50 dark:border-purple-800/20 hover:shadow-purple transition-all duration-300 mb-8"
-            >
-              <div className="bg-gradient-to-r from-purple-500 via-indigo-500 to-blue-500 p-3 md:p-6 relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10">
-                  <div className="absolute -right-10 -top-10 w-40 h-40 bg-white rounded-full opacity-20"></div>
-                  <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-white rounded-full opacity-20"></div>
-                </div>
-                <div className="flex flex-col md:flex-row justify-between items-center relative z-10">
-                  <div className="text-white mb-3 md:mb-0">
-                    <h3 className="text-sm md:text-xl font-bold flex items-center">
-                      <Sparkles className="mr-1 md:mr-2 h-3 w-3 md:h-5 md:w-5" /> Unlock Premium Features
-                    </h3>
-                    <p className="text-white/80 text-xs md:text-sm max-w-md mt-1 md:mt-2">
-                      Get personalized meal plans, advanced analytics, and exclusive workouts
-                    </p>
-                  </div>
-                  <Button
-                    variant="premium"
-                    size={isMobile ? "sm" : "lg"}
-                    className="shadow-xl hover:shadow-purple-500/20 transition-all text-xs md:text-sm"
-                  >
-                    Upgrade Now
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
+            {/* Removed premium feature banner */}
           </motion.div>
         </main>
         <MobileNavbar />

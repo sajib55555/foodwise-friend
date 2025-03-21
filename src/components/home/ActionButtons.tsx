@@ -120,7 +120,7 @@ const ActionButtons = () => {
     { 
       icon: <Activity className={iconSize} />, 
       label: "Workout Suggestions", 
-      onClick: () => document.getElementById('workout-suggestions')?.scrollIntoView({ behavior: 'smooth' }),
+      onClick: () => navigate("/workout-suggestions"),
       gradient: "bg-gradient-to-br from-violet-400 to-violet-600",
       textColor: "text-white",
       shadow: "shadow-violet"

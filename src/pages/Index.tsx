@@ -11,7 +11,6 @@ import WaterTracker from "@/components/home/WaterTracker";
 import ExerciseTracker from "@/components/home/ExerciseTracker";
 import ReminderSystem from "@/components/home/ReminderSystem";
 import MealRecommendations from "@/components/home/MealRecommendations";
-import WorkoutSuggestions from "@/components/home/workout-suggestions";
 import SleepTracker from "@/components/home/SleepTracker";
 import GoalTracker from "@/components/home/GoalTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";
@@ -151,12 +150,7 @@ const Index = () => {
               >
                 <MealRecommendations />
               </motion.div>
-              <motion.div 
-                variants={itemVariants}
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <WorkoutSuggestions />
-              </motion.div>
+              {/* Removed WorkoutSuggestions component */}
             </div>
             
             <motion.div 

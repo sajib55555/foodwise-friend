@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -77,119 +76,132 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         
         setTimeoutId(timeout);
 
-        // Call the Supabase Edge Function
-        const { data, error } = await supabase.functions.invoke("analyze-food", {
-          body: {
-            imageData: imageUrl,
-            barcode: barcode
-          },
-          // Set a custom timeout for the Supabase function call
-          requestInit: {
-            signal: AbortSignal.timeout(25000) // 25 second timeout on the request
-          }
-        });
-
-        // Clear the timeout as we got a response
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          setTimeoutId(null);
-        }
-
-        if (error) {
-          console.error("Supabase function error:", error);
-          throw new Error(error.message || "Failed to analyze food");
-        }
-
-        // If no data is returned at all, handle it as an error
-        if (!data) {
-          console.error("No data returned from analysis");
-          throw new Error("No analysis data returned. Please try again.");
-        }
-
-        console.log("Received analysis data:", data ? "success" : "no data");
+        // Call the Supabase Edge Function with a timeout using AbortController
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
         
-        if (data.rawAnalysis) {
-          console.log("Raw analysis available");
-          setRawAnalysis(data.rawAnalysis);
+        try {
+          // Call the Supabase Edge Function
+          const { data, error } = await supabase.functions.invoke("analyze-food", {
+            body: {
+              imageData: imageUrl,
+              barcode: barcode
+            },
+            // The signal option is supported in FunctionInvokeOptions
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId); // Clear the timeout if the call completes
           
-          // Try to manually parse the raw analysis if it looks like JSON
-          try {
-            if (data.rawAnalysis.includes('{') && data.rawAnalysis.includes('}')) {
-              // Extract JSON from potential markdown code blocks
-              let jsonStr = data.rawAnalysis;
-              
-              // Handle markdown code blocks
-              if (jsonStr.includes('```json')) {
-                jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
-              } else if (jsonStr.includes('```')) {
-                jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
-              }
-              
-              // Fix common issues before parsing - replace unquoted values
-              jsonStr = jsonStr
-                .replace(/"healthy"\s*:\s*moderate/g, '"healthy": false')
-                .replace(/"healthy"\s*:\s*high/g, '"healthy": false')
-                .replace(/"healthy"\s*:\s*low/g, '"healthy": true');
-              
-              console.log("Attempting to parse cleaned JSON");
-              
-              const parsedData = JSON.parse(jsonStr);
-              if (parsedData && typeof parsedData === 'object') {
-                console.log("Successfully parsed raw JSON data");
+          // Clear the timeout as we got a response
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            setTimeoutId(null);
+          }
+
+          if (error) {
+            console.error("Supabase function error:", error);
+            throw new Error(error.message || "Failed to analyze food");
+          }
+
+          // If no data is returned at all, handle it as an error
+          if (!data) {
+            console.error("No data returned from analysis");
+            throw new Error("No analysis data returned. Please try again.");
+          }
+
+          console.log("Received analysis data:", data ? "success" : "no data");
+          
+          if (data.rawAnalysis) {
+            console.log("Raw analysis available");
+            setRawAnalysis(data.rawAnalysis);
+            
+            // Try to manually parse the raw analysis if it looks like JSON
+            try {
+              if (data.rawAnalysis.includes('{') && data.rawAnalysis.includes('}')) {
+                // Extract JSON from potential markdown code blocks
+                let jsonStr = data.rawAnalysis;
                 
-                // Ensure all ingredients have a healthy property as boolean
-                if (parsedData.ingredients && Array.isArray(parsedData.ingredients)) {
-                  parsedData.ingredients = parsedData.ingredients.map(ingredient => {
-                    if (typeof ingredient.healthy === 'undefined') {
-                      ingredient.healthy = true;
-                    }
-                    // Convert non-boolean healthy values to boolean
-                    if (typeof ingredient.healthy !== 'boolean') {
-                      const originalValue = ingredient.healthy;
-                      ingredient.healthy = false;
-                      if (!ingredient.warning && originalValue) {
-                        ingredient.warning = `Moderate (${originalValue})`;
-                      }
-                    }
-                    return ingredient;
-                  });
+                // Handle markdown code blocks
+                if (jsonStr.includes('```json')) {
+                  jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+                } else if (jsonStr.includes('```')) {
+                  jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
                 }
                 
-                setAnalysis(parsedData);
-                setError(null);
+                // Fix common issues before parsing - replace unquoted values
+                jsonStr = jsonStr
+                  .replace(/"healthy"\s*:\s*moderate/g, '"healthy": false')
+                  .replace(/"healthy"\s*:\s*high/g, '"healthy": false')
+                  .replace(/"healthy"\s*:\s*low/g, '"healthy": true');
                 
-                toast({
-                  title: "Food Analysis Complete",
-                  description: `Analyzed: ${parsedData.name}`,
-                });
+                console.log("Attempting to parse cleaned JSON");
                 
-                return;
+                const parsedData = JSON.parse(jsonStr);
+                if (parsedData && typeof parsedData === 'object') {
+                  console.log("Successfully parsed raw JSON data");
+                  
+                  // Ensure all ingredients have a healthy property as boolean
+                  if (parsedData.ingredients && Array.isArray(parsedData.ingredients)) {
+                    parsedData.ingredients = parsedData.ingredients.map(ingredient => {
+                      if (typeof ingredient.healthy === 'undefined') {
+                        ingredient.healthy = true;
+                      }
+                      // Convert non-boolean healthy values to boolean
+                      if (typeof ingredient.healthy !== 'boolean') {
+                        const originalValue = ingredient.healthy;
+                        ingredient.healthy = false;
+                        if (!ingredient.warning && originalValue) {
+                          ingredient.warning = `Moderate (${originalValue})`;
+                        }
+                      }
+                      return ingredient;
+                    });
+                  }
+                  
+                  setAnalysis(parsedData);
+                  setError(null);
+                  
+                  toast({
+                    title: "Food Analysis Complete",
+                    description: `Analyzed: ${parsedData.name}`,
+                  });
+                  
+                  return;
+                }
               }
+            } catch (jsonErr) {
+              console.error("Error parsing raw JSON:", jsonErr);
+              // Continue to use productInfo if available
             }
-          } catch (jsonErr) {
-            console.error("Error parsing raw JSON:", jsonErr);
-            // Continue to use productInfo if available
           }
-        }
 
-        // If we reach here, use the standard productInfo
-        if (data.productInfo) {
-          setAnalysis(data.productInfo);
-          
-          if (data.productInfo.name !== "Food Analysis Result") {
-            toast({
-              title: "Food Analysis Complete",
-              description: `Analyzed: ${data.productInfo.name}`,
-            });
+          // If we reach here, use the standard productInfo
+          if (data.productInfo) {
+            setAnalysis(data.productInfo);
+            
+            if (data.productInfo.name !== "Food Analysis Result") {
+              toast({
+                title: "Food Analysis Complete",
+                description: `Analyzed: ${data.productInfo.name}`,
+              });
+            } else {
+              toast({
+                title: "Analysis Result Limited",
+                description: "Could only get basic information. Try a clearer image.",
+                variant: "default",
+              });
+            }
           } else {
-            toast({
-              title: "Analysis Result Limited",
-              description: "Could only get basic information. Try a clearer image.",
-              variant: "default",
-            });
+            throw new Error('No analysis data returned');
           }
-        } else {
-          throw new Error('No analysis data returned');
+        } catch (fetchError) {
+          if (fetchError.name === 'AbortError') {
+            throw new Error('Analysis request timed out');
+          }
+          throw fetchError;
+        } finally {
+          clearTimeout(timeoutId); // Ensure timeout is cleared
         }
       } catch (err: any) {
         console.error('Error analyzing food:', err);
@@ -233,7 +245,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
     };
   }, [imageUrl, barcode, toast]);
 
-  // Handle logging the food to meal journal
   const handleLogFood = () => {
     if (analysis) {
       // Store the analyzed food in session storage to retrieve in LogMeal
@@ -255,7 +266,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
     }
   };
 
-  // Handle using fallback data
   const handleUseFallbackData = () => {
     // Provide sample data for the burger in the image
     const fallbackBurgerData: FoodAnalysis = {
@@ -303,7 +313,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
     });
   };
 
-  // Fallback if analysis fails
   const fallbackAnalysis: FoodAnalysis = {
     name: "Unknown Food Item",
     calories: 0,
@@ -325,7 +334,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
     }
   };
 
-  // Use either the analysis result or fallback
   const displayData = analysis || fallbackAnalysis;
 
   return (
@@ -539,7 +547,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
             </Card>
           </motion.div>
 
-          {/* Only show detailed nutrition when we have good data */}
           {displayData.name !== "Food Analysis Result" && displayData.name !== "Unknown Food Item" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -550,7 +557,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
             </motion.div>
           )}
 
-          {/* If we have raw analysis but couldn't parse it properly, show a message */}
           {rawAnalysis && displayData.name === "Food Analysis Result" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -587,4 +593,3 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
 };
 
 export default ScanResult;
-

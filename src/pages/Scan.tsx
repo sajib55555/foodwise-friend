@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Camera, Sparkles, Zap, Upload } from "lucide-react";
+import { Sparkles, Zap, Upload } from "lucide-react";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";

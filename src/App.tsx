@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,12 +26,15 @@ import WeeklyMealPlanner from "./pages/WeeklyMealPlanner";
 import GoalsTracker from "./pages/GoalsTracker";
 import WorkoutSuggestions from "./pages/WorkoutSuggestions";
 import { ActivityLogProvider } from "@/contexts/ActivityLogContext";
+import { useEffect } from "react";
+import { useToast } from "./hooks/use-toast";
 
 const queryClient = new QueryClient();
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, subscription } = useAuth();
+  const { toast } = useToast();
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -39,12 +43,73 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!user) {
     return <Navigate to="/landing" replace />;
   }
+  
+  // Check if subscription is expired and redirect to subscription page
+  if (subscription?.status === "expired" || subscription?.status === "canceled") {
+    toast({
+      title: "Subscription expired",
+      description: "Your trial or subscription has ended. Please upgrade to continue using premium features.",
+      variant: "destructive",
+    });
+    return <Navigate to="/profile/subscription" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Premium route component for features that require an active subscription (not trial)
+const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, isLoading, subscription } = useAuth();
+  const { toast } = useToast();
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/landing" replace />;
+  }
+  
+  // Check if user doesn't have active subscription
+  if (subscription?.status !== "active") {
+    toast({
+      title: "Premium feature",
+      description: "This feature requires an active premium subscription.",
+      variant: "destructive",
+    });
+    return <Navigate to="/profile/subscription" replace />;
+  }
 
   return <>{children}</>;
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
+  const { user, subscription } = useAuth();
+  const { toast } = useToast();
+  
+  // Check if trial is ending soon (within 3 days)
+  useEffect(() => {
+    if (subscription?.status === "trial" && subscription.trial_ends_at) {
+      const trialEnd = new Date(subscription.trial_ends_at);
+      const now = new Date();
+      const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysLeft <= 3 && daysLeft > 0) {
+        toast({
+          title: `Your trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+          description: "Upgrade to premium to continue enjoying all features.",
+          variant: "default",
+          action: (
+            <div className="flex justify-center w-full mt-2">
+              <a href="/profile/subscription" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                Upgrade Now
+              </a>
+            </div>
+          ),
+        });
+      }
+    }
+  }, [subscription, toast]);
 
   return (
     <AnimatePresence mode="wait">

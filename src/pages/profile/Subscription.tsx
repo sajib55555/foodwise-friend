@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
@@ -12,13 +13,15 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
 const PREMIUM_MONTHLY_PRICE_ID = "price_1R4hCCFk4w8hjVcV3CEX2gA5"; 
 
 const Subscription = () => {
   const navigate = useNavigate();
-  const { subscription, getSubscription } = useAuth();
+  const { subscription, getSubscription, user } = useAuth();
   const { toast } = useToast();
+  const { logActivity } = useActivityLog();
   const [isLoading, setIsLoading] = useState(false);
   
   const isSubscribed = subscription?.status === "active";
@@ -52,6 +55,15 @@ const Subscription = () => {
     try {
       setIsLoading(true);
       
+      // Log this activity
+      if (user) {
+        await logActivity(
+          'subscription_checkout_started',
+          'User started subscription checkout process',
+          { userId: user.id }
+        );
+      }
+      
       const origin = window.location.origin;
       const successUrl = `${origin}/profile/subscription?success=true`;
       const cancelUrl = `${origin}/profile/subscription?canceled=true`;
@@ -71,9 +83,14 @@ const Subscription = () => {
         throw new Error(error.message);
       }
       
-      window.location.href = data.url;
+      if (data && data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url;
+      } else {
+        throw new Error("Failed to create checkout session.");
+      }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating checkout session:', error);
       toast({
         variant: "destructive",
@@ -89,6 +106,15 @@ const Subscription = () => {
     try {
       setIsLoading(true);
       
+      // Log this activity
+      if (user) {
+        await logActivity(
+          'subscription_management',
+          'User accessed subscription management',
+          { userId: user.id }
+        );
+      }
+      
       const origin = window.location.origin;
       const returnUrl = `${origin}/profile/subscription`;
       
@@ -103,9 +129,14 @@ const Subscription = () => {
         throw new Error(error.message);
       }
       
-      window.location.href = data.url;
+      if (data && data.url) {
+        // Redirect to Stripe customer portal
+        window.location.href = data.url;
+      } else {
+        throw new Error("Failed to access subscription management portal.");
+      }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error opening customer portal:', error);
       toast({
         variant: "destructive",
@@ -130,6 +161,15 @@ const Subscription = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
       getSubscription();
+      
+      // Log successful subscription
+      if (user) {
+        logActivity(
+          'subscription_activated',
+          'User successfully activated premium subscription',
+          { userId: user.id }
+        );
+      }
     }
     
     if (canceled === 'true') {
@@ -139,8 +179,17 @@ const Subscription = () => {
         variant: "default"
       });
       window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Log canceled subscription
+      if (user) {
+        logActivity(
+          'subscription_canceled',
+          'User canceled subscription checkout',
+          { userId: user.id }
+        );
+      }
     }
-  }, [toast, getSubscription]);
+  }, [toast, getSubscription, logActivity, user]);
 
   return (
     <>

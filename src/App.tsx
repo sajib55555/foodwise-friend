@@ -28,6 +28,9 @@ import WorkoutSuggestions from "./pages/WorkoutSuggestions";
 import { ActivityLogProvider } from "@/contexts/ActivityLogContext";
 import { useEffect } from "react";
 import { useToast } from "./hooks/use-toast";
+import { Button } from "./components/ui/button-custom";
+import { Crown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +38,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -50,6 +54,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       title: "Subscription expired",
       description: "Your trial or subscription has ended. Please upgrade to continue using premium features.",
       variant: "destructive",
+      action: (
+        <div className="flex justify-center w-full mt-2">
+          <Button 
+            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+            onClick={() => navigate("/profile/subscription")}
+          >
+            <Crown className="h-4 w-4 mr-2" />
+            Upgrade Now
+          </Button>
+        </div>
+      ),
     });
     return <Navigate to="/profile/subscription" replace />;
   }
@@ -61,6 +76,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -76,6 +92,17 @@ const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
       title: "Premium feature",
       description: "This feature requires an active premium subscription.",
       variant: "destructive",
+      action: (
+        <div className="flex justify-center w-full mt-2">
+          <Button 
+            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+            onClick={() => navigate("/profile/subscription")}
+          >
+            <Crown className="h-4 w-4 mr-2" />
+            Upgrade Now
+          </Button>
+        </div>
+      ),
     });
     return <Navigate to="/profile/subscription" replace />;
   }
@@ -86,6 +113,7 @@ const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   const { user, subscription } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Check if trial is ending soon (within 3 days)
   useEffect(() => {
@@ -101,15 +129,19 @@ const AppRoutes = () => {
           variant: "default",
           action: (
             <div className="flex justify-center w-full mt-2">
-              <a href="/profile/subscription" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+              <Button 
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+                onClick={() => navigate("/profile/subscription")}
+              >
+                <Crown className="h-4 w-4 mr-2" />
                 Upgrade Now
-              </a>
+              </Button>
             </div>
           ),
         });
       }
     }
-  }, [subscription, toast]);
+  }, [subscription, toast, navigate]);
 
   return (
     <AnimatePresence mode="wait">

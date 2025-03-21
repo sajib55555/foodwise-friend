@@ -80,14 +80,15 @@ const Subscription = () => {
       });
       
       if (error) {
-        throw new Error(error.message);
+        console.error('Stripe function error:', error);
+        throw new Error(error.message || "Failed to create checkout session");
       }
       
       if (data && data.url) {
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
-        throw new Error("Failed to create checkout session.");
+        throw new Error("Failed to create checkout session. No URL returned.");
       }
       
     } catch (error: any) {
@@ -126,14 +127,15 @@ const Subscription = () => {
       });
       
       if (error) {
-        throw new Error(error.message);
+        console.error('Stripe function error:', error);
+        throw new Error(error.message || "Failed to access subscription management");
       }
       
       if (data && data.url) {
         // Redirect to Stripe customer portal
         window.location.href = data.url;
       } else {
-        throw new Error("Failed to access subscription management portal.");
+        throw new Error("Failed to access subscription management portal. No URL returned.");
       }
       
     } catch (error: any) {

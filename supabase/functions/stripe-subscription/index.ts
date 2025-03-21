@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@13.2.0";
 
@@ -24,13 +25,26 @@ serve(async (req) => {
     
     const { action, data } = await req.json();
     
-    // Get Supabase client
-    const supabaseClient = getSupabaseClient(req);
-    if (!supabaseClient) {
-      throw new Error("User is not authenticated");
+    // Get user ID from JWT token
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Missing authorization header");
     }
     
-    const userId = supabaseClient.auth.userId();
+    let userId;
+    try {
+      // Extract user ID from JWT token
+      const token = authHeader.replace("Bearer ", "");
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      userId = payload.sub;
+      
+      if (!userId) {
+        throw new Error("Invalid authorization token");
+      }
+    } catch (error) {
+      console.error("Error extracting user ID:", error);
+      throw new Error("Invalid authorization token");
+    }
     
     switch (action) {
       case "create-checkout-session": {
@@ -44,11 +58,15 @@ serve(async (req) => {
           );
         }
         
-        // Get customer ID for the user, or create a new one
-        const stripeCustomerId = await getOrCreateStripeCustomer(stripe, supabaseClient, userId);
+        // Create a new customer
+        const customer = await stripe.customers.create({
+          metadata: {
+            user_id: userId,
+          },
+        });
         
         const session = await stripe.checkout.sessions.create({
-          customer: stripeCustomerId,
+          customer: customer.id,
           payment_method_types: ["card"],
           line_items: [
             {
@@ -81,14 +99,29 @@ serve(async (req) => {
           );
         }
         
-        // Get customer ID for the user
-        const { data: subscriptionData } = await supabaseClient
-          .from("subscriptions")
-          .select("stripe_customer_id")
-          .eq("user_id", userId)
-          .single();
-          
-        if (!subscriptionData || !subscriptionData.stripe_customer_id) {
+        // Get customer ID for the user from subscriptions table
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") || `https://${Deno.env.get("SUPABASE_ID")}.supabase.co`;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_KEY");
+        
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error("Missing Supabase credentials");
+        }
+        
+        const response = await fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=stripe_customer_id`, {
+          headers: {
+            "Authorization": `Bearer ${supabaseKey}`,
+            "apikey": supabaseKey,
+            "Content-Type": "application/json",
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error("Failed to fetch customer ID");
+        }
+        
+        const subscriptionData = await response.json();
+        
+        if (!subscriptionData || !subscriptionData[0] || !subscriptionData[0].stripe_customer_id) {
           return new Response(
             JSON.stringify({ error: "No subscription found for this user" }),
             { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -96,7 +129,7 @@ serve(async (req) => {
         }
         
         const portalSession = await stripe.billingPortal.sessions.create({
-          customer: subscriptionData.stripe_customer_id,
+          customer: subscriptionData[0].stripe_customer_id,
           return_url: returnUrl,
         });
         
@@ -107,7 +140,7 @@ serve(async (req) => {
       }
       
       case "get-subscription-details": {
-        // New action to get subscription details from Stripe
+        // Get subscription details from Stripe
         const { subscriptionId } = data;
         
         if (!subscriptionId) {
@@ -161,6 +194,14 @@ serve(async (req) => {
         }
         
         // Handle the event
+        // Update Supabase directly with fetch
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") || `https://${Deno.env.get("SUPABASE_ID")}.supabase.co`;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_KEY");
+        
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error("Missing Supabase credentials");
+        }
+        
         switch (event.type) {
           case "checkout.session.completed": {
             const session = event.data.object;
@@ -168,15 +209,21 @@ serve(async (req) => {
             const subscriptionId = session.subscription;
             
             // Update subscription in database
-            await supabaseClient
-              .from("subscriptions")
-              .update({
+            await fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}`, {
+              method: "PATCH",
+              headers: {
+                "Authorization": `Bearer ${supabaseKey}`,
+                "apikey": supabaseKey,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal",
+              },
+              body: JSON.stringify({
                 status: "active",
                 stripe_subscription_id: subscriptionId,
                 stripe_customer_id: session.customer,
                 updated_at: new Date().toISOString(),
-              })
-              .eq("user_id", userId);
+              }),
+            });
             
             break;
           }
@@ -185,21 +232,33 @@ serve(async (req) => {
             const subscription = event.data.object;
             
             // Find the user with this subscription
-            const { data: subscriptionData } = await supabaseClient
-              .from("subscriptions")
-              .select("user_id")
-              .eq("stripe_subscription_id", subscription.id)
-              .single();
+            const response = await fetch(
+              `${supabaseUrl}/rest/v1/subscriptions?stripe_subscription_id=eq.${subscription.id}&select=user_id`, 
+              {
+                headers: {
+                  "Authorization": `Bearer ${supabaseKey}`,
+                  "apikey": supabaseKey,
+                },
+              }
+            );
+            
+            const subscriptionData = await response.json();
               
-            if (subscriptionData) {
+            if (subscriptionData && subscriptionData[0]) {
               // Update subscription status in database
-              await supabaseClient
-                .from("subscriptions")
-                .update({
+              await fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${subscriptionData[0].user_id}`, {
+                method: "PATCH",
+                headers: {
+                  "Authorization": `Bearer ${supabaseKey}`,
+                  "apikey": supabaseKey,
+                  "Content-Type": "application/json",
+                  "Prefer": "return=minimal",
+                },
+                body: JSON.stringify({
                   status: "canceled",
                   updated_at: new Date().toISOString(),
-                })
-                .eq("user_id", subscriptionData.user_id);
+                }),
+              });
             }
             
             break;
@@ -209,21 +268,33 @@ serve(async (req) => {
             const subscription = event.data.object;
             
             // Find the user with this subscription
-            const { data: subscriptionData } = await supabaseClient
-              .from("subscriptions")
-              .select("user_id")
-              .eq("stripe_subscription_id", subscription.id)
-              .single();
+            const response = await fetch(
+              `${supabaseUrl}/rest/v1/subscriptions?stripe_subscription_id=eq.${subscription.id}&select=user_id`, 
+              {
+                headers: {
+                  "Authorization": `Bearer ${supabaseKey}`,
+                  "apikey": supabaseKey,
+                },
+              }
+            );
+            
+            const subscriptionData = await response.json();
               
-            if (subscriptionData) {
+            if (subscriptionData && subscriptionData[0]) {
               // Update subscription status in database
-              await supabaseClient
-                .from("subscriptions")
-                .update({
+              await fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${subscriptionData[0].user_id}`, {
+                method: "PATCH",
+                headers: {
+                  "Authorization": `Bearer ${supabaseKey}`,
+                  "apikey": supabaseKey,
+                  "Content-Type": "application/json",
+                  "Prefer": "return=minimal",
+                },
+                body: JSON.stringify({
                   status: subscription.status === "active" ? "active" : subscription.status,
                   updated_at: new Date().toISOString(),
-                })
-                .eq("user_id", subscriptionData.user_id);
+                }),
+              });
             }
             
             break;
@@ -251,89 +322,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Helper function to get Supabase client from request
-function getSupabaseClient(req) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return null;
-  
-  const supabaseKey = req.headers.get("apikey");
-  if (!supabaseKey) return null;
-  
-  // In a real implementation, you'd use the Supabase client here
-  // This is a simplified version
-  return {
-    auth: {
-      userId: () => {
-        try {
-          const token = authHeader.replace("Bearer ", "");
-          // In a real implementation, verify the JWT and extract the user ID
-          // This is a simplified version
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          return payload.sub;
-        } catch (error) {
-          return null;
-        }
-      },
-    },
-    from: (table) => {
-      // In a real implementation, you'd create a query builder
-      // This is a simplified version that just returns fake data
-      return {
-        select: () => ({
-          eq: () => ({
-            single: async () => ({ data: null }),
-          }),
-        }),
-        update: () => ({
-          eq: async () => ({ error: null }),
-        }),
-      };
-    },
-  };
-}
-
-// Helper function to get or create a Stripe customer for a user
-async function getOrCreateStripeCustomer(stripe, supabaseClient, userId) {
-  // Check if user already has a customer ID
-  const { data: subscriptionData } = await supabaseClient
-    .from("subscriptions")
-    .select("stripe_customer_id")
-    .eq("user_id", userId)
-    .single();
-    
-  if (subscriptionData && subscriptionData.stripe_customer_id) {
-    return subscriptionData.stripe_customer_id;
-  }
-  
-  // Get user email from profiles
-  const { data: profileData } = await supabaseClient
-    .from("profiles")
-    .select("email, full_name")
-    .eq("id", userId)
-    .single();
-    
-  if (!profileData) {
-    throw new Error("User profile not found");
-  }
-  
-  // Create a new customer
-  const customer = await stripe.customers.create({
-    email: profileData.email,
-    name: profileData.full_name,
-    metadata: {
-      user_id: userId,
-    },
-  });
-  
-  // Save customer ID to user's subscription
-  await supabaseClient
-    .from("subscriptions")
-    .update({
-      stripe_customer_id: customer.id,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
-    
-  return customer.id;
-}

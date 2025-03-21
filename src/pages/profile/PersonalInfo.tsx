@@ -60,10 +60,18 @@ const PersonalInfo = () => {
         })
         .eq('id', user.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
       
       // Log activity
-      await logActivity('profile_updated', 'Updated personal information');
+      try {
+        await logActivity('profile_updated', 'Updated personal information');
+      } catch (logError) {
+        console.error('Error logging activity:', logError);
+        // Continue even if logging fails
+      }
       
       // Update local profile data
       await getProfile();
@@ -79,7 +87,7 @@ const PersonalInfo = () => {
       toast({
         variant: "destructive",
         title: "Update failed",
-        description: "There was a problem updating your profile.",
+        description: "There was a problem updating your profile: " + error.message,
       });
     } finally {
       setLoading(false);

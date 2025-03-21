@@ -1,9 +1,8 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Index from "./pages/Index";
@@ -37,6 +36,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -56,7 +56,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="flex justify-center w-full mt-2">
           <Button 
             className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-            onClick={() => window.location.href = "/profile/subscription"}
+            onClick={() => navigate("/profile/subscription")}
           >
             <Crown className="h-4 w-4 mr-2" />
             Upgrade Now
@@ -74,6 +74,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -93,7 +94,7 @@ const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="flex justify-center w-full mt-2">
           <Button 
             className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-            onClick={() => window.location.href = "/profile/subscription"}
+            onClick={() => navigate("/profile/subscription")}
           >
             <Crown className="h-4 w-4 mr-2" />
             Upgrade Now
@@ -110,6 +111,7 @@ const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   const { user, subscription } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Check if trial is ending soon (within 3 days)
   useEffect(() => {
@@ -127,7 +129,7 @@ const AppRoutes = () => {
             <div className="flex justify-center w-full mt-2">
               <Button 
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-                onClick={() => window.location.href = "/profile/subscription"}
+                onClick={() => navigate("/profile/subscription")}
               >
                 <Crown className="h-4 w-4 mr-2" />
                 Upgrade Now
@@ -137,7 +139,7 @@ const AppRoutes = () => {
         });
       }
     }
-  }, [subscription, toast]);
+  }, [subscription, toast, navigate]);
 
   return (
     <AnimatePresence mode="wait">

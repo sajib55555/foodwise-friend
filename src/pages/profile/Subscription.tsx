@@ -55,13 +55,17 @@ const Subscription = () => {
     try {
       setIsLoading(true);
       
-      // Log this activity
       if (user) {
-        await logActivity(
-          'subscription_checkout_started',
-          'User started subscription checkout process',
-          { userId: user.id }
-        );
+        try {
+          await logActivity(
+            'subscription_checkout_started',
+            'User started subscription checkout process',
+            { userId: user.id }
+          );
+        } catch (logError) {
+          console.error('Error logging activity:', logError);
+          // Continue with checkout even if logging fails
+        }
       }
       
       const origin = window.location.origin;
@@ -196,11 +200,15 @@ const Subscription = () => {
       
       // Log successful subscription
       if (user) {
-        logActivity(
-          'subscription_activated',
-          'User successfully activated premium subscription',
-          { userId: user.id }
-        );
+        try {
+          logActivity(
+            'subscription_activated',
+            'User successfully activated premium subscription',
+            { userId: user.id }
+          );
+        } catch (logError) {
+          console.error('Error logging activity:', logError);
+        }
       }
     }
     
@@ -214,11 +222,15 @@ const Subscription = () => {
       
       // Log canceled subscription
       if (user) {
-        logActivity(
-          'subscription_canceled',
-          'User canceled subscription checkout',
-          { userId: user.id }
-        );
+        try {
+          logActivity(
+            'subscription_canceled',
+            'User canceled subscription checkout',
+            { userId: user.id }
+          );
+        } catch (logError) {
+          console.error('Error logging activity:', logError);
+        }
       }
     }
   }, [toast, getSubscription, logActivity, user]);

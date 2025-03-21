@@ -16,6 +16,7 @@ serve(async (req) => {
   try {
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
     if (!STRIPE_SECRET_KEY) {
+      console.error("Missing Stripe secret key");
       return new Response(
         JSON.stringify({ error: "Missing Stripe secret key" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -31,6 +32,7 @@ serve(async (req) => {
     try {
       body = await req.json();
     } catch (error) {
+      console.error("Invalid request body:", error);
       return new Response(
         JSON.stringify({ error: "Invalid request body" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -40,6 +42,7 @@ serve(async (req) => {
     const { action, data } = body;
     
     if (!action) {
+      console.error("Missing action parameter");
       return new Response(
         JSON.stringify({ error: "Missing action parameter" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -49,6 +52,7 @@ serve(async (req) => {
     // Get user ID from JWT token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("Missing authorization header");
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -82,24 +86,57 @@ serve(async (req) => {
         const { priceId, successUrl, cancelUrl } = data;
         
         if (!priceId || !successUrl || !cancelUrl) {
+          console.error("Missing required parameters:", { priceId, successUrl, cancelUrl });
           return new Response(
-            JSON.stringify({ error: "Missing required parameters" }),
+            JSON.stringify({ error: "Missing required parameters for checkout session" }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
         
         try {
-          // Create a new customer
-          const customer = await stripe.customers.create({
-            metadata: {
-              user_id: userId,
-            },
-          });
+          // Check if user already has a customer ID in the database
+          const supabaseUrl = Deno.env.get("SUPABASE_URL");
+          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
           
-          console.log("Created Stripe customer:", customer.id);
+          if (!supabaseUrl || !supabaseKey) {
+            console.error("Missing Supabase credentials");
+            return new Response(
+              JSON.stringify({ error: "Missing Supabase credentials" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
           
+          const response = await fetch(
+            `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=stripe_customer_id`, 
+            {
+              headers: {
+                "Authorization": `Bearer ${supabaseKey}`,
+                "apikey": supabaseKey,
+              },
+            }
+          );
+          
+          const subscriptionData = await response.json();
+          let customerId;
+          
+          // If user already has a customer ID, use it
+          if (subscriptionData && subscriptionData[0] && subscriptionData[0].stripe_customer_id) {
+            customerId = subscriptionData[0].stripe_customer_id;
+            console.log("Using existing Stripe customer:", customerId);
+          } else {
+            // Create a new customer if none exists
+            const customer = await stripe.customers.create({
+              metadata: {
+                user_id: userId,
+              },
+            });
+            customerId = customer.id;
+            console.log("Created new Stripe customer:", customerId);
+          }
+          
+          // Create checkout session
           const session = await stripe.checkout.sessions.create({
-            customer: customer.id,
+            customer: customerId,
             payment_method_types: ["card"],
             line_items: [
               {
@@ -139,6 +176,7 @@ serve(async (req) => {
         const { returnUrl } = data;
         
         if (!returnUrl) {
+          console.error("Missing return URL");
           return new Response(
             JSON.stringify({ error: "Missing return URL" }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -147,31 +185,36 @@ serve(async (req) => {
         
         try {
           // Get customer ID for the user from subscriptions table
-          const supabaseUrl = Deno.env.get("SUPABASE_URL") || `https://${Deno.env.get("SUPABASE_ID")}.supabase.co`;
-          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_KEY");
+          const supabaseUrl = Deno.env.get("SUPABASE_URL");
+          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
           
           if (!supabaseUrl || !supabaseKey) {
+            console.error("Missing Supabase credentials");
             return new Response(
               JSON.stringify({ error: "Missing Supabase credentials" }),
               { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
           
-          const response = await fetch(`${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=stripe_customer_id`, {
-            headers: {
-              "Authorization": `Bearer ${supabaseKey}`,
-              "apikey": supabaseKey,
-              "Content-Type": "application/json",
-            },
-          });
+          const response = await fetch(
+            `${supabaseUrl}/rest/v1/subscriptions?user_id=eq.${userId}&select=stripe_customer_id`, 
+            {
+              headers: {
+                "Authorization": `Bearer ${supabaseKey}`,
+                "apikey": supabaseKey,
+              },
+            }
+          );
           
           if (!response.ok) {
+            console.error(`Failed to fetch customer ID: ${response.status} ${response.statusText}`);
             throw new Error(`Failed to fetch customer ID: ${response.status} ${response.statusText}`);
           }
           
           const subscriptionData = await response.json();
           
           if (!subscriptionData || !subscriptionData[0] || !subscriptionData[0].stripe_customer_id) {
+            console.error("No subscription found for this user");
             return new Response(
               JSON.stringify({ error: "No subscription found for this user" }),
               { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -210,6 +253,7 @@ serve(async (req) => {
         const { subscriptionId } = data;
         
         if (!subscriptionId) {
+          console.error("Missing subscription ID");
           return new Response(
             JSON.stringify({ error: "Missing subscription ID" }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -247,6 +291,7 @@ serve(async (req) => {
         const signature = req.headers.get("stripe-signature");
         
         if (!signature) {
+          console.error("Missing Stripe signature");
           return new Response(
             JSON.stringify({ error: "Missing Stripe signature" }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -255,6 +300,7 @@ serve(async (req) => {
         
         const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET");
         if (!STRIPE_WEBHOOK_SECRET) {
+          console.error("Missing Stripe webhook secret");
           return new Response(
             JSON.stringify({ error: "Missing Stripe webhook secret" }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -267,6 +313,7 @@ serve(async (req) => {
         try {
           event = stripe.webhooks.constructEvent(body, signature, STRIPE_WEBHOOK_SECRET);
         } catch (err) {
+          console.error(`Webhook signature verification failed: ${err.message}`);
           return new Response(
             JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -275,10 +322,11 @@ serve(async (req) => {
         
         // Handle the event
         // Update Supabase directly with fetch
-        const supabaseUrl = Deno.env.get("SUPABASE_URL") || `https://${Deno.env.get("SUPABASE_ID")}.supabase.co`;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_KEY");
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
         
         if (!supabaseUrl || !supabaseKey) {
+          console.error("Missing Supabase credentials");
           return new Response(
             JSON.stringify({ error: "Missing Supabase credentials" }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -401,6 +449,7 @@ serve(async (req) => {
       }
       
       default:
+        console.error("Invalid action:", action);
         return new Response(
           JSON.stringify({ error: "Invalid action" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -412,8 +461,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: "Internal server error", 
-        message: error.message,
-        stack: error.stack 
+        message: error.message
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -66,7 +66,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
           console.log("Analyzing image data of length:", imageUrl.length);
         }
 
-        // Set a timeout to prevent infinite loading
         const timeout = setTimeout(() => {
           if (isLoading) {
             console.log("Analysis timeout reached");
@@ -76,24 +75,22 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         
         setTimeoutId(timeout);
 
-        // Call the Supabase Edge Function with a timeout using AbortController
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
-        
         try {
-          // Call the Supabase Edge Function
-          const { data, error } = await supabase.functions.invoke("analyze-food", {
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Analysis request timed out')), 25000);
+          });
+
+          const functionPromise = supabase.functions.invoke("analyze-food", {
             body: {
               imageData: imageUrl,
               barcode: barcode
-            },
-            // The signal option is supported in FunctionInvokeOptions
-            signal: controller.signal
+            }
           });
 
-          clearTimeout(timeoutId); // Clear the timeout if the call completes
+          const result = await Promise.race([functionPromise, timeoutPromise]);
           
-          // Clear the timeout as we got a response
+          const { data, error } = result as { data: any, error: any };
+
           if (timeoutId) {
             clearTimeout(timeoutId);
             setTimeoutId(null);
@@ -104,7 +101,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
             throw new Error(error.message || "Failed to analyze food");
           }
 
-          // If no data is returned at all, handle it as an error
           if (!data) {
             console.error("No data returned from analysis");
             throw new Error("No analysis data returned. Please try again.");
@@ -116,20 +112,16 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
             console.log("Raw analysis available");
             setRawAnalysis(data.rawAnalysis);
             
-            // Try to manually parse the raw analysis if it looks like JSON
             try {
               if (data.rawAnalysis.includes('{') && data.rawAnalysis.includes('}')) {
-                // Extract JSON from potential markdown code blocks
                 let jsonStr = data.rawAnalysis;
                 
-                // Handle markdown code blocks
                 if (jsonStr.includes('```json')) {
                   jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
                 } else if (jsonStr.includes('```')) {
                   jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
                 }
                 
-                // Fix common issues before parsing - replace unquoted values
                 jsonStr = jsonStr
                   .replace(/"healthy"\s*:\s*moderate/g, '"healthy": false')
                   .replace(/"healthy"\s*:\s*high/g, '"healthy": false')
@@ -141,13 +133,11 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
                 if (parsedData && typeof parsedData === 'object') {
                   console.log("Successfully parsed raw JSON data");
                   
-                  // Ensure all ingredients have a healthy property as boolean
                   if (parsedData.ingredients && Array.isArray(parsedData.ingredients)) {
                     parsedData.ingredients = parsedData.ingredients.map(ingredient => {
                       if (typeof ingredient.healthy === 'undefined') {
                         ingredient.healthy = true;
                       }
-                      // Convert non-boolean healthy values to boolean
                       if (typeof ingredient.healthy !== 'boolean') {
                         const originalValue = ingredient.healthy;
                         ingredient.healthy = false;
@@ -172,11 +162,9 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
               }
             } catch (jsonErr) {
               console.error("Error parsing raw JSON:", jsonErr);
-              // Continue to use productInfo if available
             }
           }
 
-          // If we reach here, use the standard productInfo
           if (data.productInfo) {
             setAnalysis(data.productInfo);
             
@@ -195,18 +183,19 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
           } else {
             throw new Error('No analysis data returned');
           }
-        } catch (fetchError) {
-          if (fetchError.name === 'AbortError') {
+        } catch (fetchError: any) {
+          if (fetchError.message?.includes('timed out')) {
             throw new Error('Analysis request timed out');
           }
           throw fetchError;
         } finally {
-          clearTimeout(timeoutId); // Ensure timeout is cleared
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
         }
       } catch (err: any) {
         console.error('Error analyzing food:', err);
         
-        // Clear any existing timeout
         if (timeoutId) {
           clearTimeout(timeoutId);
           setTimeoutId(null);
@@ -214,8 +203,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         
         let errorMessage = 'Failed to analyze food image. Please try again with a clearer photo.';
         
-        // Handle common error types
-        if (err.name === 'AbortError' || err.message?.includes('timeout')) {
+        if (err.message?.includes('timeout') || err.message?.includes('timed out')) {
           errorMessage = 'The analysis took too long. Please try again with a clearer photo or a different food item.';
         } else if (err.message?.includes('network')) {
           errorMessage = 'Network error occurred. Please check your connection and try again.';
@@ -237,7 +225,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
       analyzeFoodImage();
     }
     
-    // Cleanup function to clear any timeouts if component unmounts
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -247,7 +234,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
 
   const handleLogFood = () => {
     if (analysis) {
-      // Store the analyzed food in session storage to retrieve in LogMeal
       sessionStorage.setItem('scannedFood', JSON.stringify({
         name: analysis.name,
         calories: analysis.calories,
@@ -256,7 +242,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         fat: analysis.fat
       }));
       
-      // Navigate to the log meal page
       navigate('/log-meal');
       
       toast({
@@ -267,7 +252,6 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
   };
 
   const handleUseFallbackData = () => {
-    // Provide sample data for the burger in the image
     const fallbackBurgerData: FoodAnalysis = {
       name: "Cheeseburger",
       calories: 450,

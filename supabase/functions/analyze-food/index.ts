@@ -105,7 +105,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o',  // Updated to use gpt-4o instead of deprecated gpt-4-vision-preview
+          model: 'gpt-4o',  // Using gpt-4o
           messages: [
             {
               role: 'system',

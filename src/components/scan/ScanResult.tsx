@@ -51,6 +51,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
   const [rawAnalysis, setRawAnalysis] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const analyzeFoodImage = async () => {
@@ -66,17 +67,43 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
           console.log("Analyzing image data of length:", imageUrl.length);
         }
 
+        // Set a timeout to prevent infinite loading
+        const timeout = setTimeout(() => {
+          if (isLoading) {
+            console.log("Analysis timeout reached");
+            throw new Error("Analysis took too long. Please try again.");
+          }
+        }, 30000); // 30 second timeout
+        
+        setTimeoutId(timeout);
+
         // Call the Supabase Edge Function
         const { data, error } = await supabase.functions.invoke("analyze-food", {
           body: {
             imageData: imageUrl,
             barcode: barcode
           },
+          // Set a custom timeout for the Supabase function call
+          requestInit: {
+            signal: AbortSignal.timeout(25000) // 25 second timeout on the request
+          }
         });
+
+        // Clear the timeout as we got a response
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          setTimeoutId(null);
+        }
 
         if (error) {
           console.error("Supabase function error:", error);
-          throw new Error(error.message);
+          throw new Error(error.message || "Failed to analyze food");
+        }
+
+        // If no data is returned at all, handle it as an error
+        if (!data) {
+          console.error("No data returned from analysis");
+          throw new Error("No analysis data returned. Please try again.");
         }
 
         console.log("Received analysis data:", data ? "success" : "no data");
@@ -164,12 +191,29 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         } else {
           throw new Error('No analysis data returned');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error analyzing food:', err);
-        setError('Failed to analyze food image. Please try again with a clearer photo.');
+        
+        // Clear any existing timeout
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          setTimeoutId(null);
+        }
+        
+        let errorMessage = 'Failed to analyze food image. Please try again with a clearer photo.';
+        
+        // Handle common error types
+        if (err.name === 'AbortError' || err.message?.includes('timeout')) {
+          errorMessage = 'The analysis took too long. Please try again with a clearer photo or a different food item.';
+        } else if (err.message?.includes('network')) {
+          errorMessage = 'Network error occurred. Please check your connection and try again.';
+        }
+        
+        setError(errorMessage);
+        
         toast({
           title: "Analysis Failed",
-          description: "We couldn't analyze the food image. Please try again with a clearer photo.",
+          description: errorMessage,
           variant: "destructive",
         });
       } finally {
@@ -180,6 +224,13 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
     if (imageUrl || barcode) {
       analyzeFoodImage();
     }
+    
+    // Cleanup function to clear any timeouts if component unmounts
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [imageUrl, barcode, toast]);
 
   // Handle logging the food to meal journal
@@ -202,6 +253,54 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         description: `${analysis.name} has been added to your meal form.`,
       });
     }
+  };
+
+  // Handle using fallback data
+  const handleUseFallbackData = () => {
+    // Provide sample data for the burger in the image
+    const fallbackBurgerData: FoodAnalysis = {
+      name: "Cheeseburger",
+      calories: 450,
+      protein: 25,
+      carbs: 35,
+      fat: 22,
+      ingredients: [
+        { name: "Beef patty", healthy: true },
+        { name: "Cheese", healthy: false, warning: "High in saturated fat" },
+        { name: "Lettuce", healthy: true },
+        { name: "Tomato", healthy: true },
+        { name: "Onion", healthy: true },
+        { name: "Bun", healthy: false, warning: "Refined carbs" },
+        { name: "Sauce", healthy: false, warning: "May contain added sugars" }
+      ],
+      healthScore: 5.5,
+      warnings: ["Moderate in calories", "Contains saturated fat", "Contains refined carbs"],
+      recommendations: ["Pair with a side salad", "Choose whole grain bun for more fiber", "Limit additional condiments"],
+      servingSize: "1 burger (180g)",
+      vitamins: [
+        { name: "Vitamin A", amount: "5% DV" },
+        { name: "Vitamin C", amount: "8% DV" }
+      ],
+      minerals: [
+        { name: "Calcium", amount: "15% DV" },
+        { name: "Iron", amount: "20% DV" }
+      ],
+      dietary: {
+        vegan: false,
+        vegetarian: false,
+        glutenFree: false,
+        dairyFree: false
+      }
+    };
+    
+    setAnalysis(fallbackBurgerData);
+    setError(null);
+    setRawAnalysis(null);
+    
+    toast({
+      title: "Using Sample Data",
+      description: "Using sample data for demonstration purposes",
+    });
   };
 
   // Fallback if analysis fails
@@ -269,8 +368,16 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
           <Loader2 className="h-8 w-8 text-purple-600 animate-spin mb-2" />
           <p className="text-purple-700 font-medium">Analyzing your food...</p>
           <p className="text-sm text-muted-foreground">This may take a moment</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-6"
+            onClick={onReset}
+          >
+            Cancel Analysis
+          </Button>
         </div>
-      ) : error && !rawAnalysis ? (
+      ) : error ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -281,13 +388,20 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
                 <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-2" />
                 <p className="text-lg font-medium mb-2">Analysis Failed</p>
                 <p className="text-sm text-muted-foreground">{error}</p>
-                <Button 
-                  variant="purple" 
-                  className="mt-4"
-                  onClick={onReset}
-                >
-                  Try Again
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 mt-6 justify-center">
+                  <Button 
+                    variant="purple" 
+                    onClick={onReset}
+                  >
+                    Try Again
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleUseFallbackData}
+                  >
+                    Use Sample Data
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -473,3 +587,4 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
 };
 
 export default ScanResult;
+

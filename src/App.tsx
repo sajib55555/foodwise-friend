@@ -30,7 +30,6 @@ import { useEffect } from "react";
 import { useToast } from "./hooks/use-toast";
 import { Button } from "./components/ui/button-custom";
 import { Crown } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 const queryClient = new QueryClient();
 
@@ -38,8 +37,7 @@ const queryClient = new QueryClient();
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-
+  
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -58,7 +56,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="flex justify-center w-full mt-2">
           <Button 
             className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-            onClick={() => navigate("/profile/subscription")}
+            onClick={() => window.location.href = "/profile/subscription"}
           >
             <Crown className="h-4 w-4 mr-2" />
             Upgrade Now
@@ -76,8 +74,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-
+  
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -96,7 +93,7 @@ const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
         <div className="flex justify-center w-full mt-2">
           <Button 
             className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-            onClick={() => navigate("/profile/subscription")}
+            onClick={() => window.location.href = "/profile/subscription"}
           >
             <Crown className="h-4 w-4 mr-2" />
             Upgrade Now
@@ -113,7 +110,6 @@ const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
 const AppRoutes = () => {
   const { user, subscription } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   
   // Check if trial is ending soon (within 3 days)
   useEffect(() => {
@@ -124,14 +120,14 @@ const AppRoutes = () => {
       
       if (daysLeft <= 3 && daysLeft > 0) {
         toast({
-          title: `Your trial ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+          title: `Your trial ends in ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}`,
           description: "Upgrade to premium to continue enjoying all features.",
           variant: "default",
           action: (
             <div className="flex justify-center w-full mt-2">
               <Button 
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-                onClick={() => navigate("/profile/subscription")}
+                onClick={() => window.location.href = "/profile/subscription"}
               >
                 <Crown className="h-4 w-4 mr-2" />
                 Upgrade Now
@@ -141,7 +137,7 @@ const AppRoutes = () => {
         });
       }
     }
-  }, [subscription, toast, navigate]);
+  }, [subscription, toast]);
 
   return (
     <AnimatePresence mode="wait">

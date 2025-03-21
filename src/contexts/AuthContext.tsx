@@ -125,6 +125,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       if (!user) return;
       
+      console.log("Fetching subscription data for user:", user.id);
+      
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -136,11 +138,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log("Subscription data retrieved:", data);
       setSubscription(data);
       
       // If subscription is active, check for next billing date from Stripe
       if (data && data.status === 'active' && data.stripe_subscription_id) {
         try {
+          console.log("Fetching Stripe subscription details for:", data.stripe_subscription_id);
+          
           const { data: stripeData, error: stripeError } = await supabase.functions.invoke('stripe-subscription', {
             body: {
               action: 'get-subscription-details',
@@ -148,7 +153,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           });
           
-          if (!stripeError && stripeData && stripeData.next_billing_date) {
+          if (stripeError) {
+            console.error('Error fetching Stripe subscription details:', stripeError);
+            return;
+          }
+          
+          if (stripeData && stripeData.next_billing_date) {
+            console.log("Updated subscription with next billing date:", stripeData.next_billing_date);
+            
             setSubscription(prev => ({
               ...prev,
               next_billing_date: stripeData.next_billing_date

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -156,9 +155,8 @@ const Profile = () => {
                         </div>
                         <Button 
                           size="sm"
-                          variant="purple-gradient"
-                          onClick={() => navigate('/profile/subscription')}
-                          className="whitespace-nowrap"
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white whitespace-nowrap"
+                          onClick={() => window.location.href = "/profile/subscription"}
                         >
                           <Crown className="h-4 w-4 mr-1" />
                           Upgrade Now
@@ -180,9 +178,8 @@ const Profile = () => {
                         </div>
                         <Button 
                           size="sm"
-                          variant="purple-gradient"
-                          onClick={() => navigate('/profile/subscription')}
-                          className="whitespace-nowrap"
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white whitespace-nowrap"
+                          onClick={() => window.location.href = "/profile/subscription"}
                         >
                           <Crown className="h-4 w-4 mr-1" />
                           Renew Now

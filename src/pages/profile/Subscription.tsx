@@ -68,6 +68,8 @@ const Subscription = () => {
       const successUrl = `${origin}/profile/subscription?success=true`;
       const cancelUrl = `${origin}/profile/subscription?canceled=true`;
       
+      console.log("Initiating Stripe checkout...");
+      
       const { data, error } = await supabase.functions.invoke('stripe-subscription', {
         body: {
           action: 'create-checkout-session',
@@ -85,18 +87,31 @@ const Subscription = () => {
       }
       
       if (data && data.url) {
+        console.log("Redirecting to Stripe checkout URL:", data.url);
         // Redirect to Stripe checkout
         window.location.href = data.url;
       } else {
+        console.error("No URL returned from Stripe function:", data);
         throw new Error("Failed to create checkout session. No URL returned.");
       }
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating checkout session:', error);
       toast({
         variant: "destructive",
         title: "Subscription Error",
-        description: error.message || "Failed to start the subscription process. Please try again."
+        description: error.message || "Failed to start the subscription process. Please try again.",
+        action: (
+          <div className="flex justify-center w-full mt-2">
+            <Button 
+              onClick={() => window.location.reload()}
+              size="sm"
+              variant="outline"
+            >
+              Try Again
+            </Button>
+          </div>
+        )
       });
     } finally {
       setIsLoading(false);
@@ -119,6 +134,8 @@ const Subscription = () => {
       const origin = window.location.origin;
       const returnUrl = `${origin}/profile/subscription`;
       
+      console.log("Opening Stripe customer portal...");
+      
       const { data, error } = await supabase.functions.invoke('stripe-subscription', {
         body: {
           action: 'create-customer-portal',
@@ -132,18 +149,31 @@ const Subscription = () => {
       }
       
       if (data && data.url) {
+        console.log("Redirecting to Stripe customer portal URL:", data.url);
         // Redirect to Stripe customer portal
         window.location.href = data.url;
       } else {
+        console.error("No URL returned from Stripe function for customer portal:", data);
         throw new Error("Failed to access subscription management portal. No URL returned.");
       }
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error opening customer portal:', error);
       toast({
         variant: "destructive",
         title: "Subscription Error",
-        description: error.message || "Failed to access subscription management. Please try again."
+        description: error.message || "Failed to access subscription management. Please try again.",
+        action: (
+          <div className="flex justify-center w-full mt-2">
+            <Button 
+              onClick={() => window.location.reload()}
+              size="sm"
+              variant="outline"
+            >
+              Try Again
+            </Button>
+          </div>
+        )
       });
     } finally {
       setIsLoading(false);
@@ -315,7 +345,7 @@ const Subscription = () => {
                 
                 {!isSubscribed && (
                   <Button 
-                    className="w-full btn-premium" 
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                     onClick={handleStartCheckout}
                     disabled={isLoading}
                   >

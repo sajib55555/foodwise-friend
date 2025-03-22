@@ -110,6 +110,51 @@ const mealPlans = [
           { type: "Dinner", foods: ["Grilled chicken breast", "Asparagus", "Sweet potato (small)"] },
           { type: "Snack", foods: ["Greek yogurt (0% fat)", "Berries"] }
         ]
+      },
+      {
+        day: "Wednesday",
+        meals: [
+          { type: "Breakfast", foods: ["Overnight oats with almond milk", "Cinnamon"] },
+          { type: "Lunch", foods: ["Turkey and vegetable soup", "Side salad"] },
+          { type: "Dinner", foods: ["Baked cod", "Roasted Brussels sprouts", "Quinoa (small portion)"] },
+          { type: "Snack", foods: ["Apple slices", "Almond butter (1 tbsp)"] }
+        ]
+      },
+      {
+        day: "Thursday",
+        meals: [
+          { type: "Breakfast", foods: ["Green smoothie", "Plant protein powder"] },
+          { type: "Lunch", foods: ["Chicken and vegetable stir-fry", "Cauliflower rice"] },
+          { type: "Dinner", foods: ["Grilled shrimp", "Zucchini noodles", "Tomato sauce"] },
+          { type: "Snack", foods: ["Carrot sticks", "Hummus (2 tbsp)"] }
+        ]
+      },
+      {
+        day: "Friday",
+        meals: [
+          { type: "Breakfast", foods: ["Cottage cheese", "Mixed berries", "Cinnamon"] },
+          { type: "Lunch", foods: ["Mediterranean bowl", "Chickpeas", "Feta (small amount)"] },
+          { type: "Dinner", foods: ["Turkey meatballs", "Spaghetti squash", "Marinara sauce"] },
+          { type: "Snack", foods: ["Cucumber slices", "Tzatziki (2 tbsp)"] }
+        ]
+      },
+      {
+        day: "Saturday",
+        meals: [
+          { type: "Breakfast", foods: ["Protein pancakes (low-carb mix)", "Berries"] },
+          { type: "Lunch", foods: ["Cobb salad (no bacon)", "Avocado", "Light dressing"] },
+          { type: "Dinner", foods: ["Roasted salmon", "Asparagus", "Wild rice (small portion)"] },
+          { type: "Snack", foods: ["Rice cake", "Light cream cheese"] }
+        ]
+      },
+      {
+        day: "Sunday",
+        meals: [
+          { type: "Breakfast", foods: ["Vegetable frittata", "Fresh herbs"] },
+          { type: "Lunch", foods: ["Lentil soup", "Mixed greens salad"] },
+          { type: "Dinner", foods: ["Grilled lean steak (small portion)", "Mushrooms", "Green beans"] },
+          { type: "Snack", foods: ["String cheese", "Cherry tomatoes"] }
+        ]
       }
     ]
   },
@@ -136,6 +181,51 @@ const mealPlans = [
           { type: "Lunch", foods: ["Turkey and cheese sandwich", "Spinach", "Apple"] },
           { type: "Dinner", foods: ["Salmon", "Quinoa", "Roasted vegetables"] },
           { type: "Snack", foods: ["Cottage cheese", "Pineapple"] }
+        ]
+      },
+      {
+        day: "Wednesday",
+        meals: [
+          { type: "Breakfast", foods: ["Greek yogurt", "Granola", "Honey", "Whey protein"] },
+          { type: "Lunch", foods: ["Beef and vegetable stir-fry", "Brown rice (large portion)"] },
+          { type: "Dinner", foods: ["Chicken thighs", "Sweet potato", "Spinach salad"] },
+          { type: "Snack", foods: ["Protein bar", "Banana"] }
+        ]
+      },
+      {
+        day: "Thursday",
+        meals: [
+          { type: "Breakfast", foods: ["Protein smoothie", "Oats", "Peanut butter", "Banana"] },
+          { type: "Lunch", foods: ["Tuna wrap", "Avocado", "Greek yogurt sauce"] },
+          { type: "Dinner", foods: ["Ground turkey", "Pasta", "Tomato sauce", "Parmesan"] },
+          { type: "Snack", foods: ["Hard-boiled eggs (2)", "Whole grain crackers"] }
+        ]
+      },
+      {
+        day: "Friday",
+        meals: [
+          { type: "Breakfast", foods: ["Breakfast burrito", "Eggs", "Black beans", "Cheese"] },
+          { type: "Lunch", foods: ["Grilled chicken sandwich", "Whole grain bread", "Side salad"] },
+          { type: "Dinner", foods: ["Baked cod", "Quinoa", "Roasted Brussels sprouts"] },
+          { type: "Snack", foods: ["Trail mix", "Dried fruits", "Nuts"] }
+        ]
+      },
+      {
+        day: "Saturday",
+        meals: [
+          { type: "Breakfast", foods: ["French toast", "Maple syrup", "Greek yogurt", "Berries"] },
+          { type: "Lunch", foods: ["Lean beef burger", "Whole grain bun", "Sweet potato fries"] },
+          { type: "Dinner", foods: ["Grilled chicken", "Rice pilaf", "Grilled vegetables"] },
+          { type: "Snack", foods: ["Protein shake", "Almond butter toast"] }
+        ]
+      },
+      {
+        day: "Sunday",
+        meals: [
+          { type: "Breakfast", foods: ["Egg and vegetable scramble", "Whole grain toast", "Avocado"] },
+          { type: "Lunch", foods: ["Salmon poke bowl", "Brown rice", "Edamame"] },
+          { type: "Dinner", foods: ["Slow-cooked beef", "Baked potato", "Broccoli"] },
+          { type: "Snack", foods: ["Greek yogurt", "Honey", "Walnuts"] }
         ]
       }
     ]

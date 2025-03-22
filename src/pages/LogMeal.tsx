@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -18,6 +17,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
 // Define the form schema
 const formSchema = z.object({
@@ -34,6 +35,8 @@ const LogMeal = () => {
   const [scannedFood, setScannedFood] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { logActivity } = useActivityLog();
 
   // Initialize form with default values
   const form = useForm<z.infer<typeof formSchema>>({
@@ -85,12 +88,17 @@ const LogMeal = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
     try {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
       const now = new Date();
       const formattedDate = format(now, "yyyy-MM-dd");
       
       // Create the metadata object
       const metadata: any = {
         meal_type: values.mealType,
+        date: formattedDate,
         food_items: values.foodItems ? values.foodItems.split(",").map(item => item.trim()) : []
       };
       
@@ -108,23 +116,9 @@ const LogMeal = () => {
         };
       }
       
-      // Log the meal in the user_activity_logs table
-      const { error } = await supabase
-        .from('user_activity_logs')
-        .insert([
-          {
-            activity_type: 'meal_logged',
-            activity_data: {
-              date: formattedDate,
-              meal_type: values.mealType
-            },
-            metadata: metadata
-          }
-        ]);
-      
-      if (error) {
-        throw error;
-      }
+      // Log the meal using the ActivityLogContext
+      const mealDescription = `Logged ${values.mealType} meal`;
+      await logActivity('meal_logged', mealDescription, metadata);
       
       toast({
         title: "Meal logged successfully",

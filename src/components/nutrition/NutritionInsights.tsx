@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfDay, endOfDay } from "date-fns";
@@ -8,6 +7,7 @@ import GoalProgressCard from "./components/GoalProgressCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { useToast } from "@/hooks/use-toast";
 import { Utensils, Info } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MealData {
   name: string;
@@ -34,11 +34,18 @@ const NutritionInsights: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchMealData() {
       setIsLoading(true);
       try {
+        if (!user) {
+          setMeals([]);
+          setIsLoading(false);
+          return;
+        }
+
         // Get today's date range for filtering
         const today = new Date();
         const start = startOfDay(today);
@@ -49,6 +56,7 @@ const NutritionInsights: React.FC = () => {
           .from('user_activity_logs')
           .select('*')
           .eq('activity_type', 'meal_logged')
+          .eq('user_id', user.id)
           .gte('created_at', start.toISOString())
           .lte('created_at', end.toISOString())
           .order('created_at', { ascending: false });
@@ -168,7 +176,7 @@ const NutritionInsights: React.FC = () => {
     }
     
     fetchMealData();
-  }, [toast]);
+  }, [toast, user]);
 
   return (
     <div className="space-y-6">

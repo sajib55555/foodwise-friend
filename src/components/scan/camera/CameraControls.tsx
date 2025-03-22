@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Camera, Image, RotateCw } from "lucide-react";
+import { Camera, Image, RotateCw, SwitchCamera } from "lucide-react";
 import { Button } from "@/components/ui/button-custom";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -49,7 +49,20 @@ const CameraControls: React.FC<CameraControlsProps> = ({
       {/* Camera controls when active */}
       {activeCamera && (
         <div className="flex items-center justify-center w-full gap-8 mt-2">
-          {/* Capture button */}
+          {/* Camera flip button - only shown on mobile when camera can be flipped */}
+          {canFlipCamera && (
+            <Button
+              variant="glass"
+              size="icon-sm"
+              className="bg-black/20 text-white border-white/10 rounded-full shadow-lg hover:scale-105 transition-transform"
+              onClick={onFlipCamera}
+              aria-label="Flip camera"
+            >
+              <SwitchCamera className="h-5 w-5" />
+            </Button>
+          )}
+          
+          {/* Capture button - 50% smaller */}
           <Button
             variant="blue-gradient"
             className="w-10 h-10 rounded-full flex items-center justify-center shadow-xl hover:scale-105 transition-transform"

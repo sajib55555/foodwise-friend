@@ -21,13 +21,7 @@ interface MealData {
 interface MealLogMetadata {
   meal_type?: string;
   food_items?: string[];
-  scanned_food?: {
-    name: string;
-    calories: number;
-    protein?: number;
-    carbs?: number;
-    fat?: number;
-  };
+  scanned_food?: any;
 }
 
 const NutritionInsights: React.FC = () => {
@@ -76,12 +70,26 @@ const NutritionInsights: React.FC = () => {
             let protein = 0;
             let carbs = 0;
             let fat = 0;
+            let mealName = mealType.charAt(0).toUpperCase() + mealType.slice(1);
             
+            // Check for scanned food with detailed nutrition info
             if (metadata.scanned_food) {
-              calories = Number(metadata.scanned_food.calories) || 0;
-              protein = Number(metadata.scanned_food.protein) || 0;
-              carbs = Number(metadata.scanned_food.carbs) || 0;
-              fat = Number(metadata.scanned_food.fat) || 0;
+              const sf = metadata.scanned_food;
+              
+              // If scanned_food is a complete object with detailed info
+              if (typeof sf === 'object') {
+                mealName = sf.name || mealName;
+                calories = Number(sf.calories) || 0;
+                protein = Number(sf.protein) || 0;
+                carbs = Number(sf.carbs) || 0;
+                fat = Number(sf.fat) || 0;
+              } else {
+                // Legacy format where scanned_food might be simpler
+                calories = Number(metadata.scanned_food.calories) || 0;
+                protein = Number(metadata.scanned_food.protein) || 0;
+                carbs = Number(metadata.scanned_food.carbs) || 0;
+                fat = Number(metadata.scanned_food.fat) || 0;
+              }
             } else {
               // Estimate nutritional values if not provided
               switch(mealType) {
@@ -116,7 +124,7 @@ const NutritionInsights: React.FC = () => {
             const formattedTime = format(createdAt, 'h:mm a');
             
             return {
-              name: mealType.charAt(0).toUpperCase() + mealType.slice(1),
+              name: mealName,
               calories,
               protein,
               carbs,
@@ -172,7 +180,7 @@ const NutritionInsights: React.FC = () => {
       />
       <GoalProgressCard />
       
-      {/* New component to show consumed food details */}
+      {/* Component to show consumed food details */}
       <Card variant="glass">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center">

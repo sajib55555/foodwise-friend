@@ -1,235 +1,317 @@
+
 import React, { useState, useEffect } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Utensils, Camera, Plus, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
+
 import PageTransition from "@/components/layout/PageTransition";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button-custom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card-custom";
-import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, Clock, Plus, Search, Camera } from "lucide-react";
-import { useActivityLog } from "@/contexts/ActivityLogContext";
+import { Card, CardContent } from "@/components/ui/card-custom";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+
+// Define the form schema
+const formSchema = z.object({
+  mealType: z.string().min(1, { message: "Please select a meal type" }),
+  foodItems: z.string().optional(),
+  calories: z.coerce.number().min(0, { message: "Calories must be a positive number" }).optional(),
+  protein: z.coerce.number().min(0, { message: "Protein must be a positive number" }).optional(),
+  carbs: z.coerce.number().min(0, { message: "Carbs must be a positive number" }).optional(),
+  fat: z.coerce.number().min(0, { message: "Fat must be a positive number" }).optional(),
+});
 
 const LogMeal = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [scannedFood, setScannedFood] = useState<any>(null);
+  const { toast } = useToast();
   const navigate = useNavigate();
-  const [mealType, setMealType] = useState("breakfast");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [foodItems, setFoodItems] = useState<string[]>([]);
-  const [customFood, setCustomFood] = useState("");
-  const [scannedFoodInfo, setScannedFoodInfo] = useState<any>(null);
-  const { logActivity } = useActivityLog();
 
-  const sampleFoods = {
-    breakfast: ["Oatmeal", "Eggs", "Toast", "Banana", "Yogurt"],
-    lunch: ["Sandwich", "Salad", "Soup", "Wrap", "Rice Bowl"],
-    dinner: ["Grilled Chicken", "Pasta", "Salmon", "Stir Fry", "Pizza"],
-    snack: ["Apple", "Nuts", "Granola Bar", "Protein Shake", "Popcorn"]
-  };
+  // Initialize form with default values
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      mealType: "",
+      foodItems: "",
+      calories: undefined,
+      protein: undefined,
+      carbs: undefined,
+      fat: undefined,
+    },
+  });
 
   useEffect(() => {
-    const scannedFood = sessionStorage.getItem('scannedFood');
-    if (scannedFood) {
-      const foodData = JSON.parse(scannedFood);
-      setScannedFoodInfo(foodData);
-      setFoodItems(prev => [...prev, foodData.name]);
-      sessionStorage.removeItem('scannedFood'); // Clear after using
+    // Check if there's scanned food data in session storage
+    const storedFood = sessionStorage.getItem("scannedFood");
+    if (storedFood) {
+      try {
+        const parsedFood = JSON.parse(storedFood);
+        setScannedFood(parsedFood);
+        
+        // Pre-fill the form with the scanned food data
+        form.setValue("calories", parsedFood.calories || 0);
+        form.setValue("protein", parsedFood.protein || 0);
+        form.setValue("carbs", parsedFood.carbs || 0);
+        form.setValue("fat", parsedFood.fat || 0);
+        
+        // If the food has ingredients, set them in the foodItems field
+        if (parsedFood.ingredients && Array.isArray(parsedFood.ingredients)) {
+          const ingredientNames = parsedFood.ingredients
+            .map((ing: any) => ing.name || ing)
+            .filter((name: string) => name && name !== "No ingredient data available")
+            .join(", ");
+          
+          if (ingredientNames) {
+            form.setValue("foodItems", ingredientNames);
+          }
+        }
+        
+        // Clear the session storage to prevent the data from being used again
+        sessionStorage.removeItem("scannedFood");
+      } catch (error) {
+        console.error("Error parsing scanned food data:", error);
+      }
+    }
+  }, [form]);
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    setIsLoading(true);
+    try {
+      const now = new Date();
+      const formattedDate = format(now, "yyyy-MM-dd");
+      
+      // Create the metadata object
+      const metadata: any = {
+        meal_type: values.mealType,
+        food_items: values.foodItems ? values.foodItems.split(",").map(item => item.trim()) : []
+      };
+      
+      // Include the complete scanned food data if available
+      if (scannedFood) {
+        metadata.scanned_food = scannedFood;
+      } else if (values.calories || values.protein || values.carbs || values.fat) {
+        // If no scanned food but user entered nutritional values
+        metadata.scanned_food = {
+          name: values.mealType.charAt(0).toUpperCase() + values.mealType.slice(1),
+          calories: values.calories || 0,
+          protein: values.protein || 0,
+          carbs: values.carbs || 0,
+          fat: values.fat || 0
+        };
+      }
+      
+      // Log the meal in the user_activity_logs table
+      const { error } = await supabase
+        .from('user_activity_logs')
+        .insert([
+          {
+            activity_type: 'meal_logged',
+            activity_data: {
+              date: formattedDate,
+              meal_type: values.mealType
+            },
+            metadata: metadata
+          }
+        ]);
+      
+      if (error) {
+        throw error;
+      }
       
       toast({
-        title: "Food Added",
-        description: `${foodData.name} has been added from your scan.`,
+        title: "Meal logged successfully",
+        description: `Your ${values.mealType} has been recorded.`,
       });
-    }
-  }, []);
-
-  const handleAddFood = () => {
-    if (customFood.trim()) {
-      setFoodItems([...foodItems, customFood]);
-      setCustomFood("");
+      
+      navigate("/nutrition");
+    } catch (error: any) {
+      console.error("Error logging meal:", error);
       toast({
-        title: "Food Added",
-        description: `${customFood} has been added to your meal.`,
+        title: "Error logging meal",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const handleSaveMeal = () => {
-    if (foodItems.length === 0) return;
-    
-    logActivity('meal_logged', `Logged a ${mealType} meal`, { 
-      meal_type: mealType, 
-      food_items: foodItems,
-      scanned_food: scannedFoodInfo
-    });
-    
-    toast({
-      title: "Meal Logged",
-      description: "Your meal has been successfully logged.",
-    });
-    navigate("/nutrition");
-  };
-
-  const handleScanFood = () => {
-    navigate("/scan");
-  };
-
-  const filteredFoods = sampleFoods[mealType as keyof typeof sampleFoods].filter(
-    food => food.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <PageTransition>
-      <Header title="Log Meal" showBackButton />
-      <main className="container max-w-md mx-auto px-4 pb-24 pt-20">
-        <Card className="glass-card mb-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center">
-              <Clock className="w-5 h-5 mr-2 text-purple-500" />
-              Meal Type
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select 
-              value={mealType} 
-              onValueChange={setMealType}
-            >
-              <SelectTrigger className="w-full mb-2 bg-background/50 border-purple-100">
-                <SelectValue placeholder="Select a meal type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="breakfast">Breakfast</SelectItem>
-                <SelectItem value="lunch">Lunch</SelectItem>
-                <SelectItem value="dinner">Dinner</SelectItem>
-                <SelectItem value="snack">Snack</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+      <Header title="Log Meal" />
+      <main className="flex-1 container mx-auto px-4 pb-24 pt-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card variant="glass">
+            <CardContent className="pt-6">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center mr-3">
+                  <Utensils className="text-white h-5 w-5" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold">Log Your Meal</h1>
+                  <p className="text-sm text-muted-foreground">Track what you've eaten</p>
+                </div>
+              </div>
 
-        <Card className="glass-card mb-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold flex items-center">
-              <Search className="w-5 h-5 mr-2 text-purple-500" />
-              Search Foods
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 mb-4">
-              <Input
-                type="text"
-                placeholder="Search for foods..."
-                className="flex-1 bg-background/50 border-purple-100"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Button
-                size="icon"
-                variant="outline"
-                className="bg-background/50 text-purple-500"
-                onClick={handleScanFood}
-              >
-                <Camera className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              {filteredFoods.map((food, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center justify-between p-3 bg-background/30 rounded-lg border border-purple-100/30"
-                >
-                  <span>{food}</span>
-                  <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    className="text-purple-500 hover:text-purple-700 hover:bg-purple-100/50"
-                    onClick={() => {
-                      setFoodItems([...foodItems, food]);
-                      toast({
-                        title: "Food Added",
-                        description: `${food} has been added to your meal.`,
-                      });
-                    }}
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card mb-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">Add Custom Food</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="Enter custom food..."
-                className="flex-1 bg-background/50 border-purple-100"
-                value={customFood}
-                onChange={(e) => setCustomFood(e.target.value)}
-              />
-              <Button
-                size="icon"
-                variant="purple"
-                onClick={handleAddFood}
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-semibold">Your Meal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {foodItems.length > 0 ? (
-              <ul className="space-y-2">
-                {foodItems.map((item, index) => (
-                  <motion.li
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="p-3 bg-background/30 rounded-lg border border-purple-100/30"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span>{item}</span>
-                      {scannedFoodInfo && item === scannedFoodInfo.name && (
-                        <div className="text-xs text-purple-600">
-                          {scannedFoodInfo.calories} cal • {scannedFoodInfo.protein}g protein
-                        </div>
-                      )}
+              {scannedFood && (
+                <div className="mb-6 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                        Analyzed Food: {scannedFood.name}
+                      </p>
+                      <p className="text-xs text-green-700 dark:text-green-300">
+                        {scannedFood.calories} cal | P: {scannedFood.protein}g, C: {scannedFood.carbs}g, F: {scannedFood.fat}g
+                      </p>
                     </div>
-                  </motion.li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-muted-foreground text-center py-4">
-                No foods added yet. Add some foods to your meal!
-              </p>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Button
-              variant="purple"
-              className="w-full"
-              onClick={handleSaveMeal}
-              disabled={foodItems.length === 0}
-            >
-              Save Meal
-            </Button>
-          </CardFooter>
-        </Card>
+                    {scannedFood.healthScore && (
+                      <div className="bg-green-100 dark:bg-green-800 px-2 py-1 rounded-full text-xs font-medium text-green-800 dark:text-green-200">
+                        Health Score: {scannedFood.healthScore}/10
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="mealType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Meal Type</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select meal type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="breakfast">Breakfast</SelectItem>
+                            <SelectItem value="lunch">Lunch</SelectItem>
+                            <SelectItem value="dinner">Dinner</SelectItem>
+                            <SelectItem value="snack">Snack</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="foodItems"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Food Items (comma separated)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Oats, Banana, Milk" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="calories"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Calories</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="protein"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Protein (g)</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="carbs"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Carbs (g)</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="fat"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Fat (g)</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="pt-4 flex space-x-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => navigate('/scan')}
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Scan Food
+                    </Button>
+                    <Button type="submit" variant="green-gradient" className="flex-1" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Log Meal
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </motion.div>
       </main>
       <MobileNavbar />
     </PageTransition>

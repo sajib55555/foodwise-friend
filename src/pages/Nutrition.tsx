@@ -9,7 +9,7 @@ import NutritionInsights from "@/components/nutrition/NutritionInsights";
 import DetailedNutritionAnalysis from "@/components/nutrition/DetailedNutritionAnalysis";
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
-import { Heart, Leaf, Utensils, ArrowUpCircle } from "lucide-react";
+import { Heart, Leaf, Utensils, ArrowUpCircle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +22,7 @@ interface MealData {
   protein: number;
   carbs: number;
   fat: number;
-  ingredients?: string[];
+  ingredients?: Array<{ name: string; healthy: boolean; warning?: string }>;
   healthScore?: number;
   warnings?: string[];
   recommendations?: string[];
@@ -40,13 +40,7 @@ interface MealData {
 interface MealLogMetadata {
   meal_type?: string;
   food_items?: string[];
-  scanned_food?: {
-    name: string;
-    calories: number;
-    protein?: number;
-    carbs?: number;
-    fat?: number;
-  };
+  scanned_food?: any;
 }
 
 // Define interface for the nutrition analysis
@@ -81,9 +75,6 @@ const Nutrition = () => {
     async function fetchLatestMeal() {
       setIsLoading(true);
       try {
-        // Get today's date range for filtering
-        const today = new Date();
-        
         // Query activity logs for meal_logged activities, get the latest one
         const { data, error } = await supabase
           .from('user_activity_logs')
@@ -101,6 +92,44 @@ const Nutrition = () => {
           // Process the meal data
           const latestMealLog = data[0];
           const metadata = latestMealLog.metadata as MealLogMetadata || {};
+          
+          // Check if we have scanned food data with complete nutrition info
+          if (metadata.scanned_food && typeof metadata.scanned_food === 'object') {
+            // Extract the complete scanned food data if available
+            const scannedFood = metadata.scanned_food;
+            
+            // Check if the scanned food has detailed nutrition data
+            if (scannedFood && scannedFood.ingredients) {
+              // This is a complete nutrition analysis from the scan
+              const processedMeal: MealData = {
+                name: scannedFood.name || "Unknown Food",
+                servingSize: scannedFood.servingSize || "1 serving",
+                calories: Number(scannedFood.calories) || 0,
+                protein: Number(scannedFood.protein) || 0,
+                carbs: Number(scannedFood.carbs) || 0,
+                fat: Number(scannedFood.fat) || 0,
+                ingredients: scannedFood.ingredients || [],
+                healthScore: scannedFood.healthScore || 5,
+                warnings: scannedFood.warnings || [],
+                recommendations: scannedFood.recommendations || [],
+                vitamins: scannedFood.vitamins || [],
+                minerals: scannedFood.minerals || [],
+                dietary: scannedFood.dietary || {
+                  vegan: false,
+                  vegetarian: false,
+                  glutenFree: false,
+                  dairyFree: false
+                },
+                time: format(new Date(latestMealLog.created_at), 'h:mm a')
+              };
+              
+              setLatestMeal(processedMeal);
+              setIsLoading(false);
+              return;
+            }
+          }
+          
+          // If we don't have detailed scanned food data, use basic metadata
           const mealType = (metadata.meal_type || 'snack').toLowerCase();
           
           // Get nutritional values
@@ -109,14 +138,15 @@ const Nutrition = () => {
           let carbs = 0;
           let fat = 0;
           let mealName = "";
-          let mealIngredients: string[] = [];
+          let mealIngredients: Array<{ name: string; healthy: boolean; warning?: string }> = [];
           
           if (metadata.scanned_food) {
-            mealName = metadata.scanned_food.name || mealType.charAt(0).toUpperCase() + mealType.slice(1);
-            calories = Number(metadata.scanned_food.calories) || 0;
-            protein = Number(metadata.scanned_food.protein) || 0;
-            carbs = Number(metadata.scanned_food.carbs) || 0;
-            fat = Number(metadata.scanned_food.fat) || 0;
+            const sf = metadata.scanned_food;
+            mealName = sf.name || mealType.charAt(0).toUpperCase() + mealType.slice(1);
+            calories = Number(sf.calories) || 0;
+            protein = Number(sf.protein) || 0;
+            carbs = Number(sf.carbs) || 0;
+            fat = Number(sf.fat) || 0;
           } else {
             mealName = mealType.charAt(0).toUpperCase() + mealType.slice(1) + " Meal";
             // Estimate nutritional values if not provided
@@ -149,7 +179,15 @@ const Nutrition = () => {
           
           // Get food items
           if (metadata.food_items && metadata.food_items.length > 0) {
-            mealIngredients = metadata.food_items;
+            mealIngredients = metadata.food_items.map(item => ({
+              name: item,
+              healthy: !item.toLowerCase().includes('sugar') && 
+                      !item.toLowerCase().includes('fried') && 
+                      !item.toLowerCase().includes('processed'),
+              warning: item.toLowerCase().includes('sugar') ? 'High sugar content' : 
+                      item.toLowerCase().includes('fried') ? 'Fried foods are high in unhealthy fats' :
+                      item.toLowerCase().includes('processed') ? 'Highly processed' : undefined
+            }));
           }
           
           // Format the time
@@ -164,7 +202,9 @@ const Nutrition = () => {
             protein,
             carbs,
             fat,
-            ingredients: mealIngredients.map(item => item),
+            ingredients: mealIngredients.length > 0 ? mealIngredients : [
+              { name: "No detailed ingredients available", healthy: false }
+            ],
             healthScore: calculateHealthScore(protein, carbs, fat),
             warnings: generateWarnings(calories, fat),
             recommendations: generateRecommendations(protein, calories),
@@ -174,9 +214,9 @@ const Nutrition = () => {
               vegetarian: true,
               glutenFree: true,
               dairyFree: mealIngredients.every(item => 
-                !item.toLowerCase().includes('yogurt') && 
-                !item.toLowerCase().includes('cheese') && 
-                !item.toLowerCase().includes('milk'))
+                !item.name.toLowerCase().includes('yogurt') && 
+                !item.name.toLowerCase().includes('cheese') && 
+                !item.name.toLowerCase().includes('milk'))
             },
             vitamins: generateVitamins(),
             minerals: generateMinerals()
@@ -278,39 +318,6 @@ const Nutrition = () => {
       { name: "Zinc", amount: "1.2mg" }
     ];
   }
-  
-  // Transform MealData to the format expected by DetailedNutritionAnalysis
-  function transformMealForAnalysis(meal: MealData): NutritionAnalysisData {
-    return {
-      name: meal.name,
-      servingSize: meal.servingSize || "1 serving", // Ensure servingSize is provided
-      calories: meal.calories,
-      protein: meal.protein,
-      carbs: meal.carbs,
-      fat: meal.fat,
-      // Transform string[] to required object format for ingredients
-      ingredients: (meal.ingredients || []).map(item => ({
-        name: item,
-        healthy: !item.toLowerCase().includes('sugar') && 
-                !item.toLowerCase().includes('fried') && 
-                !item.toLowerCase().includes('processed'),
-        warning: item.toLowerCase().includes('sugar') ? 'High sugar content' : 
-                item.toLowerCase().includes('fried') ? 'Fried foods are high in unhealthy fats' :
-                item.toLowerCase().includes('processed') ? 'Highly processed' : undefined
-      })),
-      healthScore: meal.healthScore || 5,
-      warnings: meal.warnings || ["No nutrition warnings"],
-      recommendations: meal.recommendations || ["No recommendations available"],
-      vitamins: meal.vitamins || [],
-      minerals: meal.minerals || [],
-      dietary: meal.dietary || {
-        vegan: false,
-        vegetarian: false,
-        glutenFree: false,
-        dairyFree: false
-      }
-    };
-  }
 
   return (
     <PageTransition>
@@ -384,13 +391,21 @@ const Nutrition = () => {
                 <div className="w-6 h-6 border-2 border-green-500 rounded-full animate-spin border-t-transparent"></div>
               </div>
             ) : latestMeal ? (
-              <DetailedNutritionAnalysis nutritionData={transformMealForAnalysis(latestMeal)} />
+              <DetailedNutritionAnalysis nutritionData={latestMeal as NutritionAnalysisData} />
             ) : (
               <div className="text-center py-12">
+                <Info className="h-12 w-12 text-green-500/50 mx-auto mb-2" />
                 <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No meals logged yet</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Log a meal to see detailed nutrition analysis
                 </p>
+                <Button 
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => window.location.href = '/scan'}
+                >
+                  Scan Food Item
+                </Button>
               </div>
             )}
           </TabsContent>

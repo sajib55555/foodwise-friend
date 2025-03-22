@@ -234,13 +234,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
 
   const handleLogFood = () => {
     if (analysis) {
-      sessionStorage.setItem('scannedFood', JSON.stringify({
-        name: analysis.name,
-        calories: analysis.calories,
-        protein: analysis.protein,
-        carbs: analysis.carbs,
-        fat: analysis.fat
-      }));
+      sessionStorage.setItem('scannedFood', JSON.stringify(analysis));
       
       navigate('/log-meal');
       

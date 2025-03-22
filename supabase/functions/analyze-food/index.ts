@@ -22,47 +22,144 @@ serve(async (req) => {
       throw new Error('OpenAI API key is not configured')
     }
 
-    // If we have a barcode, we can use it to search for product information
+    // If we have a barcode, use it to search for product information
     if (barcode) {
       console.log(`Processing barcode: ${barcode}`)
-      return new Response(
-        JSON.stringify({
-          productInfo: {
-            name: "Analyzed product from barcode " + barcode,
-            brand: "Analysis Result",
-            calories: 120,
-            protein: 15,
-            carbs: 8,
-            fat: 5,
-            healthScore: 7.5,
-            ingredients: [
-              { name: "Ingredient 1", healthy: true },
-              { name: "Ingredient 2", healthy: true },
-              { name: "Ingredient 3", healthy: false, warning: "High in sodium" },
-            ],
-            warnings: ["Contains moderate sodium"],
-            recommendations: ["Good source of protein", "Contains essential nutrients"],
-            servingSize: "100g",
-            vitamins: [
-              { name: "Vitamin A", amount: "10% DV" },
-              { name: "Vitamin C", amount: "15% DV" },
-              { name: "Calcium", amount: "8% DV" },
-              { name: "Iron", amount: "12% DV" }
-            ],
-            minerals: [
-              { name: "Potassium", amount: "320mg" },
-              { name: "Magnesium", amount: "56mg" }
-            ],
-            dietary: {
-              vegan: false,
-              vegetarian: true,
-              glutenFree: true,
-              dairyFree: false
+      
+      try {
+        // Use Open Food Facts API to get real product data
+        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'NutriTrack App - For Educational Purposes'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 1 && data.product) {
+          const product = data.product;
+          
+          // Parse nutrition facts
+          const nutriments = product.nutriments || {};
+          
+          // Parse ingredients
+          const ingredientsList = [];
+          if (product.ingredients) {
+            for (const ingredient of product.ingredients) {
+              ingredientsList.push({
+                name: ingredient.text || ingredient.id,
+                healthy: ingredient.vegan === "yes" || ingredient.vegetarian === "yes" || false,
+                warning: ingredient.vegan !== "yes" ? "May not be vegan" : null
+              });
             }
           }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+          
+          // Generate health score (simple algorithm, could be improved)
+          let healthScore = 5;
+          if (nutriments["nutrition-score-fr_100g"]) {
+            // Convert nutrition score (-15 to +40) to health score (0-10)
+            const ns = nutriments["nutrition-score-fr_100g"];
+            healthScore = ns < 0 ? 7 + (-ns / 15) * 3 : 7 - (ns / 40) * 7;
+            healthScore = Math.min(10, Math.max(0, healthScore));
+            healthScore = parseFloat(healthScore.toFixed(1));
+          }
+          
+          // Prepare warnings and recommendations
+          const warnings = [];
+          const recommendations = [];
+          
+          if (nutriments.salt_100g && nutriments.salt_100g > 1.5) {
+            warnings.push("High in sodium");
+          }
+          
+          if (nutriments.sugars_100g && nutriments.sugars_100g > 10) {
+            warnings.push("High in sugars");
+          }
+          
+          if (nutriments.saturated_fat_100g && nutriments.saturated_fat_100g > 5) {
+            warnings.push("High in saturated fat");
+          }
+          
+          if (nutriments.fiber_100g && nutriments.fiber_100g > 6) {
+            recommendations.push("Good source of fiber");
+          }
+          
+          if (nutriments.proteins_100g && nutriments.proteins_100g > 10) {
+            recommendations.push("Good source of protein");
+          }
+          
+          // Compile the product info
+          const productInfo = {
+            name: product.product_name || "Unknown Product",
+            brand: product.brands || "Unknown Brand",
+            calories: nutriments.energy_value || nutriments["energy-kcal_100g"] || 0,
+            protein: nutriments.proteins_100g || 0,
+            carbs: nutriments.carbohydrates_100g || 0,
+            fat: nutriments.fat_100g || 0,
+            healthScore: healthScore,
+            ingredients: ingredientsList.length > 0 ? ingredientsList : [
+              { name: "No ingredient data available", healthy: false }
+            ],
+            warnings: warnings.length > 0 ? warnings : ["Limited nutritional data available"],
+            recommendations: recommendations.length > 0 ? recommendations : ["Consume in moderation"],
+            servingSize: product.serving_size || "100g",
+            vitamins: [
+              { name: "No detailed vitamin data available", amount: "0% DV" }
+            ],
+            minerals: [
+              { name: "No detailed mineral data available", amount: "0mg" }
+            ],
+            dietary: {
+              vegan: product.vegan === "yes" || false,
+              vegetarian: product.vegetarian === "yes" || false,
+              glutenFree: product.allergens_tags ? !product.allergens_tags.includes("en:gluten") : false,
+              dairyFree: product.allergens_tags ? !product.allergens_tags.includes("en:milk") : false
+            }
+          };
+          
+          return new Response(
+            JSON.stringify({
+              productInfo: productInfo
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          // Product not found in database
+          console.log("Product not found in Open Food Facts database");
+          return new Response(
+            JSON.stringify({
+              productInfo: {
+                name: "Product not found",
+                brand: "Unknown",
+                calories: 0,
+                protein: 0,
+                carbs: 0,
+                fat: 0,
+                healthScore: 5,
+                ingredients: [
+                  { name: "No data available", healthy: false }
+                ],
+                warnings: ["Product not found in database"],
+                recommendations: ["Try scanning a different product or take a photo instead"],
+                servingSize: "100g",
+                vitamins: [],
+                minerals: [],
+                dietary: {
+                  vegan: false,
+                  vegetarian: false,
+                  glutenFree: false,
+                  dairyFree: false
+                }
+              }
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (fetchError) {
+        console.error("Error fetching product data:", fetchError);
+        throw new Error("Failed to fetch product data from database");
+      }
     }
 
     // For image analysis, we'll use OpenAI's API

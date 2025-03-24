@@ -7,12 +7,7 @@ import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
 import NutritionSummary from "@/components/home/NutritionSummary";
 import ActionButtons from "@/components/home/ActionButtons";
-import WaterTracker from "@/components/home/WaterTracker";
 import ExerciseTracker from "@/components/home/ExerciseTracker";
-import ReminderSystem from "@/components/home/ReminderSystem";
-import MealRecommendations from "@/components/home/MealRecommendations";
-import SleepTracker from "@/components/home/SleepTracker";
-import GoalTracker from "@/components/home/GoalTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar, Dumbbell } from "lucide-react";
@@ -110,57 +105,12 @@ const Index = () => {
               <NutritionSummary />
             </motion.div>
             
-            {/* Responsive grid layout with consistent styling */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <motion.div 
-                variants={itemVariants}
-                id="water-tracker" 
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <WaterTracker />
-              </motion.div>
-              <motion.div 
-                variants={itemVariants}
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <ExerciseTracker />
-              </motion.div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <motion.div 
-                variants={itemVariants}
-                id="sleep-tracker"
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <SleepTracker />
-              </motion.div>
-              <motion.div 
-                variants={itemVariants}
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <GoalTracker />
-              </motion.div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <motion.div 
-                variants={itemVariants}
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <MealRecommendations />
-              </motion.div>
-              {/* Removed WorkoutSuggestions component */}
-            </div>
-            
             <motion.div 
               variants={itemVariants}
               className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
             >
-              <ReminderSystem />
+              <ExerciseTracker />
             </motion.div>
-            
-            {/* Removed premium feature banner */}
           </motion.div>
         </main>
         <MobileNavbar />

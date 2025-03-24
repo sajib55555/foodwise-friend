@@ -64,7 +64,7 @@ const ActionButtons = () => {
     { 
       icon: <Droplets className={iconSize} />, 
       label: "Water Intake", 
-      onClick: () => document.getElementById('water-tracker')?.scrollIntoView({ behavior: 'smooth' }),
+      onClick: () => navigate("/water-tracker"),
       gradient: "bg-gradient-to-br from-cyan-400 to-cyan-600",
       textColor: "text-white",
       shadow: "shadow-cyan"
@@ -72,7 +72,7 @@ const ActionButtons = () => {
     { 
       icon: <Moon className={iconSize} />, 
       label: "Sleep Tracker", 
-      onClick: () => document.getElementById('sleep-tracker')?.scrollIntoView({ behavior: 'smooth' }),
+      onClick: () => navigate("/sleep-tracker"),
       gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       textColor: "text-white",
       shadow: "shadow-indigo"
@@ -104,7 +104,7 @@ const ActionButtons = () => {
     { 
       icon: <Bell className={iconSize} />, 
       label: "Meal Reminders", 
-      onClick: () => document.getElementById('meal-reminders')?.scrollIntoView({ behavior: 'smooth' }),
+      onClick: () => navigate("/meal-reminders"),
       gradient: "bg-gradient-to-br from-orange-400 to-orange-600",
       textColor: "text-white",
       shadow: "shadow-orange"
@@ -112,7 +112,7 @@ const ActionButtons = () => {
     { 
       icon: <Utensils className={iconSize} />, 
       label: "Meal Recommendations", 
-      onClick: () => document.getElementById('meal-recommendations')?.scrollIntoView({ behavior: 'smooth' }),
+      onClick: () => navigate("/meal-recommendations"),
       gradient: "bg-gradient-to-br from-emerald-400 to-emerald-600",
       textColor: "text-white",
       shadow: "shadow-emerald"

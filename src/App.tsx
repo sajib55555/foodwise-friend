@@ -29,6 +29,10 @@ import { useEffect } from "react";
 import { useToast } from "./hooks/use-toast";
 import { Button } from "./components/ui/button-custom";
 import { Crown } from "lucide-react";
+import WaterTrackerPage from "./pages/WaterTracker";
+import SleepTrackerPage from "./pages/SleepTracker";
+import MealRecommendationsPage from "./pages/MealRecommendations";
+import MealRemindersPage from "./pages/MealReminders";
 
 const queryClient = new QueryClient();
 
@@ -229,6 +233,10 @@ const AppRoutes = () => {
             <GoalsTracker />
           </ProtectedRoute>
         } />
+        <Route path="/water-tracker" element={<WaterTrackerPage />} />
+        <Route path="/sleep-tracker" element={<SleepTrackerPage />} />
+        <Route path="/meal-recommendations" element={<MealRecommendationsPage />} />
+        <Route path="/meal-reminders" element={<MealRemindersPage />} />
 
         {/* Redirect home page to landing if not logged in, otherwise to dashboard */}
         <Route path="/" element={

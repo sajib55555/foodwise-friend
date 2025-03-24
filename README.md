@@ -1,3 +1,4 @@
+
 # Welcome to your Lovable project
 
 ## Project info
@@ -35,6 +36,8 @@ npm i
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
+
+**Important Note**: Make sure you are running the commands from the project root directory, not from any subdirectory.
 
 **Edit a file directly in GitHub**
 

@@ -9,6 +9,24 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Define TypeScript interfaces for our data structures
+interface SleepMetadata {
+  hours: number;
+  quality: number;
+  quality_text?: string;
+  date?: string;
+  time?: string;
+}
+
+interface SleepLogEntry {
+  id: string;
+  created_at: string;
+  metadata: SleepMetadata;
+  user_id: string;
+  activity_type: string;
+  description: string;
+}
+
 const SleepTracker = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -48,7 +66,8 @@ const SleepTracker = () => {
         let totalQualityScore = 0;
         
         data.forEach(item => {
-          const metadata = item.metadata || {};
+          // Ensure metadata is an object and has the expected properties
+          const metadata = item.metadata as SleepMetadata || {};
           totalDuration += metadata.hours || 0;
           totalQualityScore += metadata.quality || 3;
         });
@@ -104,7 +123,7 @@ const SleepTracker = () => {
     
     try {
       const now = new Date();
-      const sleepData = { 
+      const sleepData: SleepMetadata = { 
         hours, 
         quality,
         quality_text: getSleepQualityText(quality),

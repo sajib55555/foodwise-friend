@@ -1,280 +1,241 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import OpenAI from "https://esm.sh/openai@4.20.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Function to generate analysis with timeout
-async function generateAnalysisWithTimeout(openai: OpenAI, prompt: string, timeout: number = 10000) {
-  // Create a promise that rejects after the timeout
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Analysis request timed out')), timeout);
-  });
-
-  // Create the analysis promise
-  const analysisPromise = openai.chat.completions.create({
-    model: "gpt-4o-mini", // Using the fastest recommended model
-    messages: [
-      {
-        role: "system",
-        content: "You are a health assistant that provides personalized health advice based on user data. Keep responses concise, clear, and actionable. Use a supportive and encouraging tone. Limit your response to 300 words maximum."
-      },
-      { role: "user", content: prompt }
-    ],
-    max_tokens: 400, // Limiting token count for faster response
-    temperature: 0.7,
-  });
-
-  // Race the two promises
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
   try {
-    const result = await Promise.race([analysisPromise, timeoutPromise]);
-    return result;
-  } catch (error) {
-    if (error.message === 'Analysis request timed out') {
-      throw new Error('Analysis request timed out');
+    const { query, userId } = await req.json();
+    
+    if (!query) {
+      throw new Error('No query provided');
     }
-    throw error;
+    
+    if (!userId) {
+      throw new Error('No user ID provided');
+    }
+    
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
+    }
+    
+    // Fetch user's health data from Supabase
+    let userData = await fetchUserData(supabaseUrl, supabaseKey, userId);
+    
+    // Format the context with user data
+    const context = formatUserContext(userData);
+    
+    // Call OpenAI with the user data as context
+    const openAIResponse = await callOpenAI(openAIApiKey, query, context);
+    
+    return new Response(
+      JSON.stringify({ response: openAIResponse }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+    
+  } catch (error) {
+    console.error("Error:", error.message);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
+
+// Function to fetch user data from various Supabase tables
+async function fetchUserData(supabaseUrl: string, supabaseKey: string, userId: string) {
+  try {
+    // Create basic fetch options
+    const options = {
+      headers: {
+        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': supabaseKey,
+        'Content-Type': 'application/json'
+      }
+    };
+    
+    // Fetch user profile
+    const profileResponse = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=*`,
+      options
+    );
+    const profileData = await profileResponse.json();
+    const profile = profileData.length > 0 ? profileData[0] : null;
+    
+    // Fetch user activity logs
+    const logsResponse = await fetch(
+      `${supabaseUrl}/rest/v1/user_activity_logs?user_id=eq.${userId}&select=*&order=created_at.desc&limit=50`,
+      options
+    );
+    const activityLogs = await logsResponse.json();
+    
+    // Fetch user goals
+    const goalsResponse = await fetch(
+      `${supabaseUrl}/rest/v1/user_goals?user_id=eq.${userId}&select=*`,
+      options
+    );
+    const goals = await goalsResponse.json();
+    
+    // Fetch meal data (filter activity logs for meal_logged type)
+    const mealLogs = activityLogs.filter(log => log.activity_type === 'meal_logged');
+    
+    // Filter out workout data
+    const workoutLogs = activityLogs.filter(log => log.activity_type === 'workout_logged');
+    
+    // Filter out weight data
+    const weightLogs = activityLogs.filter(log => log.activity_type === 'weight_logged');
+    
+    // Return the compiled user data
+    return {
+      profile,
+      activityLogs,
+      mealLogs,
+      workoutLogs,
+      weightLogs,
+      goals
+    };
+    
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    throw new Error(`Failed to fetch user data: ${error.message}`);
   }
 }
 
-// Function to generate speech with dedicated error handling
-async function generateSpeech(apiKey: string, text: string, voice: string) {
+// Format user context for the AI
+function formatUserContext(userData) {
+  let context = "User Health Profile:\n";
+  
+  // Add profile data if available
+  if (userData.profile) {
+    context += `Name: ${userData.profile.full_name || 'Not specified'}\n`;
+    context += `Weight: ${userData.profile.weight || 'Not specified'}\n`;
+    context += `Height: ${userData.profile.height || 'Not specified'}\n`;
+    context += `Goal: ${userData.profile.goal || 'Not specified'}\n\n`;
+  }
+  
+  // Add recent meals if available
+  if (userData.mealLogs && userData.mealLogs.length > 0) {
+    context += "Recent Meals:\n";
+    
+    userData.mealLogs.slice(0, 10).forEach(meal => {
+      const date = new Date(meal.created_at).toLocaleDateString();
+      const mealType = meal.metadata?.meal_type || 'Meal';
+      
+      context += `- ${date}, ${mealType}: `;
+      
+      if (meal.metadata?.scanned_food) {
+        const food = meal.metadata.scanned_food;
+        context += `${food.name || 'Food'} (${food.calories || 0} cal, `;
+        context += `P: ${food.protein || 0}g, C: ${food.carbs || 0}g, F: ${food.fat || 0}g)\n`;
+      } else if (meal.metadata?.food_items) {
+        const items = Array.isArray(meal.metadata.food_items) 
+          ? meal.metadata.food_items.join(', ') 
+          : meal.metadata.food_items;
+        context += `${items}\n`;
+      } else {
+        context += "No details available\n";
+      }
+    });
+    
+    context += "\n";
+  }
+  
+  // Add workout data if available
+  if (userData.workoutLogs && userData.workoutLogs.length > 0) {
+    context += "Recent Workouts:\n";
+    
+    userData.workoutLogs.slice(0, 5).forEach(workout => {
+      const date = new Date(workout.created_at).toLocaleDateString();
+      context += `- ${date}: ${workout.metadata?.workout_type || 'Workout'}, `;
+      context += `Duration: ${workout.metadata?.duration || 'Not specified'}, `;
+      context += `Intensity: ${workout.metadata?.intensity || 'Not specified'}\n`;
+    });
+    
+    context += "\n";
+  }
+  
+  // Add weight data if available
+  if (userData.weightLogs && userData.weightLogs.length > 0) {
+    context += "Weight History:\n";
+    
+    userData.weightLogs.slice(0, 5).forEach(log => {
+      const date = new Date(log.created_at).toLocaleDateString();
+      context += `- ${date}: ${log.metadata?.weight || 'Not specified'}\n`;
+    });
+    
+    context += "\n";
+  }
+  
+  // Add goals if available
+  if (userData.goals && userData.goals.length > 0) {
+    context += "User Goals:\n";
+    
+    userData.goals.forEach(goal => {
+      context += `- ${goal.title}: ${goal.current_value}/${goal.target_value} ${goal.unit}, `;
+      context += `Status: ${goal.status}, Target date: ${goal.target_date || 'Not specified'}\n`;
+    });
+  }
+  
+  return context;
+}
+
+// Call OpenAI API
+async function callOpenAI(apiKey: string, query: string, context: string) {
   try {
-    console.log("Generating speech for text length:", text.length, "with voice:", voice);
-    
-    // Limit the text length to prevent potential buffer issues
-    const truncatedText = text.slice(0, 4000);
-    
-    const speechResponse = await fetch('https://api.openai.com/v1/audio/speech', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tts-1',
-        input: truncatedText,
-        voice: voice,
-        response_format: 'mp3',
-      }),
-    });
-
-    if (!speechResponse.ok) {
-      const errorText = await speechResponse.text();
-      console.error("OpenAI speech API error. Status:", speechResponse.status, "Response:", errorText);
-      throw new Error(`Speech generation failed with status ${speechResponse.status}`);
-    }
-
-    // Get the audio as an array buffer
-    const arrayBuffer = await speechResponse.arrayBuffer();
-    
-    // Process in smaller chunks to avoid memory issues
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const chunks = [];
-    const chunkSize = 32768; // Process in smaller chunks to avoid call stack issues
-    
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      chunks.push(String.fromCharCode.apply(null, [...chunk]));
-    }
-    
-    const base64Audio = btoa(chunks.join(''));
-    console.log("Successfully generated audio, length:", base64Audio.length);
-    
-    return base64Audio;
-  } catch (error) {
-    console.error("Speech generation error:", error);
-    throw error;
-  }
-}
-
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY is not set');
-      return new Response(
-        JSON.stringify({ error: "OPENAI_API_KEY is not set", textAnalysis: "I couldn't analyze your health data. The OpenAI API key is missing." }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const openai = new OpenAI({
-      apiKey: OPENAI_API_KEY,
-    });
-
-    // Parse request data safely
-    let requestData;
-    try {
-      requestData = await req.json();
-    } catch (error) {
-      console.error("Error parsing request JSON:", error);
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body", textAnalysis: "I couldn't process your request due to invalid data format." }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const { healthData, userName } = requestData;
-    
-    if (!healthData) {
-      console.error("Health data is missing");
-      return new Response(
-        JSON.stringify({ error: "Health data is required", textAnalysis: "I need your health data to provide an analysis." }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-    
-    console.log("Received health data:", JSON.stringify(healthData));
-    console.log("Received user name:", userName);
-
-    // Generate personalized health analysis
-    const analysisPrompt = generateAnalysisPrompt(healthData, userName || 'User');
-    console.log("Analysis prompt:", analysisPrompt);
-
-    // Generate OpenAI completion with timeout
-    let analysis;
-    try {
-      const completion = await generateAnalysisWithTimeout(openai, analysisPrompt, 15000);
-      analysis = completion.choices[0].message.content;
-      console.log("Generated analysis:", analysis);
-    } catch (error) {
-      console.error("OpenAI API error:", error);
-      
-      if (error.message === 'Analysis request timed out') {
-        return new Response(
-          JSON.stringify({ 
-            error: "The analysis is taking too long to generate",
-            textAnalysis: "I'm sorry, but your health analysis is taking longer than expected. Please try again later when our systems are less busy."
-          }),
+        model: 'gpt-4o-mini',
+        messages: [
           {
-            status: 200,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          error: `OpenAI API error: ${error.message}`,
-          textAnalysis: "I couldn't analyze your health data at the moment. Please try again later."
-        }),
-        {
-          status: 200, // Return 200 to avoid client-side error handling issues
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    if (!analysis) {
-      console.error("Failed to generate analysis");
-      return new Response(
-        JSON.stringify({ 
-          error: "Failed to generate analysis",
-          textAnalysis: "I couldn't analyze your health data at the moment. Please try again later."
-        }),
-        {
-          status: 200, // Return 200 to avoid client-side error handling issues
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Process voice generation
-    const voicePreference = healthData.voicePreference || 'nova';
-    console.log("Voice preference:", voicePreference);
-    
-    // Generate speech from text
-    let audioContent = null;
-    let speechError = null;
-    
-    try {
-      // Prioritize speech generation for better user experience
-      audioContent = await generateSpeech(OPENAI_API_KEY, analysis, voicePreference);
-      console.log("Audio content generated successfully, length:", audioContent ? audioContent.length : 0);
-    } catch (error) {
-      console.error("Speech generation error:", error);
-      speechError = error.message;
-    }
-
-    // Return the response with text analysis and audio if available
-    return new Response(
-      JSON.stringify({
-        textAnalysis: analysis,
-        audioContent: audioContent,
-        error: speechError, // Will be null if speech generation succeeded
-        autoPlay: true // Added flag to indicate auto-play preference
+            role: 'system',
+            content: `You are an AI health assistant for a nutrition and fitness app. 
+            You have access to user's health data, including their nutrition intake, exercise, 
+            weight, and goals. Provide personalized health advice based on this data.
+            
+            Here is the user's data:
+            ${context}`
+          },
+          { role: 'user', content: query }
+        ],
+        max_tokens: 500,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    });
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(`OpenAI error: ${data.error.message}`);
+    }
+    
+    return data.choices[0].message.content;
+    
   } catch (error) {
-    console.error("Unhandled error:", error.message, error.stack);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        textAnalysis: "An unexpected error occurred. Please try again later."
-      }),
-      {
-        status: 200, // Return 200 to avoid client-side error handling
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.error("OpenAI API error:", error);
+    throw new Error(`Failed to generate response: ${error.message}`);
   }
-});
-
-function generateAnalysisPrompt(healthData: any, userName: string): string {
-  // Safely extract data with fallbacks
-  const nutrition = healthData.nutrition || [];
-  const exercise = healthData.exercise || [];
-  const water = healthData.water || [];
-  const sleep = healthData.sleep || [];
-  const goals = healthData.goals || [];
-  const weight = healthData.weight || [];
-  const userProfile = healthData.userProfile || {};
-
-  return `
-    Analyze the following health data for ${userName} and provide personalized health advice and recommendations:
-    
-    User Profile: ${JSON.stringify(userProfile)}
-    Nutrition data: ${JSON.stringify(nutrition)}
-    Exercise data: ${JSON.stringify(exercise)}
-    Water intake: ${JSON.stringify(water)}
-    Sleep data: ${JSON.stringify(sleep)}
-    Weight data: ${JSON.stringify(weight)}
-    Goals: ${JSON.stringify(goals)}
-    
-    Provide a concise, personalized health update that:
-    1. Addresses the user by name if available
-    2. Comments on their nutritional intake (calories, protein, carbs, fat)
-    3. Provides insights on exercise activity
-    4. Mentions sleep quality if data is available
-    5. Comments on weight trends if data is available
-    6. Analyzes water intake and hydration status
-    7. Reviews progress toward their health and fitness goals
-    8. Gives specific, actionable recommendations for improvement
-    9. Uses an encouraging tone
-    
-    Keep the response under 300 words and make it conversational as it will be read aloud.
-  `;
 }

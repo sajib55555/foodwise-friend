@@ -59,6 +59,7 @@ const BarcodeScanner: React.FC<{
   };
 
   const initQuagga = (target: HTMLElement) => {
+    console.log("Initializing Quagga with target element:", target);
     return new Promise<void>((resolve, reject) => {
       Quagga.init(
         {
@@ -114,16 +115,23 @@ const BarcodeScanner: React.FC<{
   useEffect(() => {
     // Start barcode scanner
     const startScanner = async () => {
-      if (!scannerRef.current) return;
+      if (!scannerRef.current) {
+        console.error("Scanner ref is null");
+        return;
+      }
       
       try {
         setError(null);
         setScanning(true);
         setLastResults([]);
         
+        console.log("Starting barcode scanner");
+        
         // Initialize Quagga with enhanced settings
         await initQuagga(scannerRef.current);
         Quagga.start();
+        
+        console.log("Quagga started, setting up detection handler");
         
         // Set up barcode detection handlers with improved filtering
         Quagga.onDetected((result) => {
@@ -167,6 +175,7 @@ const BarcodeScanner: React.FC<{
     
     // Clean up when component unmounts
     return () => {
+      console.log("Cleaning up barcode scanner");
       stopScanner();
     };
   }, [onDetected, toast, logActivity]);

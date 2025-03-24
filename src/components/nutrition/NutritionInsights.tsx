@@ -1,243 +1,389 @@
-import React, { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { format, startOfDay, endOfDay } from "date-fns";
-import CalorieIntakeCard from "./components/CalorieIntakeCard";
-import MacroDistributionCard from "./components/MacroDistributionCard";
-import GoalProgressCard from "./components/GoalProgressCard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
-import { useToast } from "@/hooks/use-toast";
-import { Utensils, Info } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 
-interface MealData {
-  name: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  time: string;
-}
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card-custom';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Sparkles, Calendar, TrendingUp, Utensils } from 'lucide-react';
+import { motion } from 'framer-motion';
+import CalorieIntakeCard from './components/CalorieIntakeCard';
+import MacroDistributionCard from './components/MacroDistributionCard';
+import GoalProgressCard from './components/GoalProgressCard';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
-interface MealLogMetadata {
-  meal_type?: string;
-  food_items?: string[];
-  scanned_food?: any;
-}
-
-const NutritionInsights: React.FC = () => {
-  const [meals, setMeals] = useState<MealData[]>([]);
-  const [totalNutrition, setTotalNutrition] = useState({
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0
-  });
+const NutritionInsights = () => {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [weeklyData, setWeeklyData] = useState<any[]>([]);
+  const [macroData, setMacroData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
   const { user } = useAuth();
+  const { toast } = useToast();
 
+  // Fetch user nutrition data from activity logs
   useEffect(() => {
-    async function fetchMealData() {
-      setIsLoading(true);
+    const fetchNutritionData = async () => {
+      if (!user) return;
+      
       try {
-        if (!user) {
-          setMeals([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Get today's date range for filtering
-        const today = new Date();
-        const start = startOfDay(today);
-        const end = endOfDay(today);
+        setIsLoading(true);
         
-        // Query activity logs for meal_logged activities from today
-        const { data, error } = await supabase
+        // Get meal logged activities from the past 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        const { data: mealLogs, error } = await supabase
           .from('user_activity_logs')
           .select('*')
-          .eq('activity_type', 'meal_logged')
           .eq('user_id', user.id)
-          .gte('created_at', start.toISOString())
-          .lte('created_at', end.toISOString())
+          .eq('activity_type', 'meal_logged')
+          .gte('created_at', sevenDaysAgo.toISOString())
           .order('created_at', { ascending: false });
-        
+          
         if (error) {
-          console.error('Error fetching meal data:', error);
           throw error;
         }
         
-        if (data && data.length > 0) {
-          // Process the meal data
-          const processedMeals: MealData[] = data.map(item => {
-            // Properly type the metadata
-            const metadata = item.metadata as MealLogMetadata || {};
-            const mealType = (metadata.meal_type || 'snack').toLowerCase();
-            
-            // Get nutritional values
-            let calories = 0;
-            let protein = 0;
-            let carbs = 0;
-            let fat = 0;
-            let mealName = mealType.charAt(0).toUpperCase() + mealType.slice(1);
-            
-            // Check for scanned food with detailed nutrition info
-            if (metadata.scanned_food) {
-              const sf = metadata.scanned_food;
-              
-              // If scanned_food is a complete object with detailed info
-              if (typeof sf === 'object') {
-                mealName = sf.name || mealName;
-                calories = Number(sf.calories) || 0;
-                protein = Number(sf.protein) || 0;
-                carbs = Number(sf.carbs) || 0;
-                fat = Number(sf.fat) || 0;
-              } else {
-                // Legacy format where scanned_food might be simpler
-                calories = Number(metadata.scanned_food.calories) || 0;
-                protein = Number(metadata.scanned_food.protein) || 0;
-                carbs = Number(metadata.scanned_food.carbs) || 0;
-                fat = Number(metadata.scanned_food.fat) || 0;
-              }
-            } else {
-              // Estimate nutritional values if not provided
-              switch(mealType) {
-                case 'breakfast':
-                  calories = 350;
-                  protein = 15;
-                  carbs = 45;
-                  fat = 12;
-                  break;
-                case 'lunch':
-                  calories = 520;
-                  protein = 25;
-                  carbs = 65;
-                  fat = 15;
-                  break;
-                case 'dinner':
-                  calories = 650;
-                  protein = 35;
-                  carbs = 70;
-                  fat = 20;
-                  break;
-                default: // snack
-                  calories = 180;
-                  protein = 5;
-                  carbs = 25;
-                  fat = 8;
-              }
-            }
-            
-            // Format the time
-            const createdAt = new Date(item.created_at);
-            const formattedTime = format(createdAt, 'h:mm a');
-            
-            return {
-              name: mealName,
-              calories,
-              protein,
-              carbs,
-              fat,
-              time: formattedTime
-            };
-          });
-          
-          setMeals(processedMeals);
-          
-          // Calculate total nutrition
-          const totals = processedMeals.reduce((acc, meal) => {
-            return {
-              calories: acc.calories + meal.calories,
-              protein: acc.protein + meal.protein,
-              carbs: acc.carbs + meal.carbs,
-              fat: acc.fat + meal.fat
-            };
-          }, { calories: 0, protein: 0, carbs: 0, fat: 0 });
-          
-          setTotalNutrition(totals);
-        } else {
-          setMeals([]);
-          setTotalNutrition({
-            calories: 0,
-            protein: 0,
-            carbs: 0,
-            fat: 0
-          });
+        if (!mealLogs || mealLogs.length === 0) {
+          setWeeklyData([]);
+          setMacroData([]);
+          setIsLoading(false);
+          return;
         }
-      } catch (error) {
-        console.error('Error in meal data processing:', error);
+        
+        // Process meal logs to create weeklyData format
+        const processedWeeklyData = processMealLogsToWeeklyData(mealLogs);
+        setWeeklyData(processedWeeklyData);
+        
+        // Process meal logs to create macroData format
+        const processedMacroData = processMealLogsToMacroData(mealLogs);
+        setMacroData(processedMacroData);
+        
+        setIsLoading(false);
+      } catch (error: any) {
+        console.error('Error fetching nutrition data:', error.message);
         toast({
-          title: "Failed to load meal data",
-          description: "Please try refreshing the page",
-          variant: "destructive"
+          title: 'Failed to load nutrition data',
+          description: error.message,
+          variant: 'destructive'
         });
+        setIsLoading(false);
+      }
+    };
+    
+    fetchNutritionData();
+  }, [user, toast]);
+  
+  // Process meal logs into weekly data format
+  const processMealLogsToWeeklyData = (mealLogs: any[]) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dailyData: Record<string, any> = {};
+    
+    // Initialize with empty data for all days
+    days.forEach(day => {
+      dailyData[day] = {
+        name: day,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        goal: 2000 // Default goal, should be from user settings
+      };
+    });
+    
+    // Fill in data from meal logs
+    mealLogs.forEach(log => {
+      const logDate = new Date(log.created_at);
+      const dayName = days[logDate.getDay()];
+      
+      if (log.metadata && log.metadata.scanned_food) {
+        const food = log.metadata.scanned_food;
+        
+        dailyData[dayName].calories += food.calories || 0;
+        dailyData[dayName].protein += food.protein || 0;
+        dailyData[dayName].carbs += food.carbs || 0;
+        dailyData[dayName].fat += food.fat || 0;
+      }
+    });
+    
+    // Convert to array format
+    return Object.values(dailyData);
+  };
+  
+  // Process meal logs into macro data format
+  const processMealLogsToMacroData = (mealLogs: any[]) => {
+    // Get total macros from all logs
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFat = 0;
+    let totalFiber = 0;
+    let totalSugar = 0;
+    
+    mealLogs.forEach(log => {
+      if (log.metadata && log.metadata.scanned_food) {
+        const food = log.metadata.scanned_food;
+        
+        totalProtein += food.protein || 0;
+        totalCarbs += food.carbs || 0;
+        totalFat += food.fat || 0;
+        
+        // Some scanned foods might have detailed nutrition
+        if (food.nutrients) {
+          totalFiber += food.nutrients.fiber || 0;
+          totalSugar += food.nutrients.sugar || 0;
+        }
+      }
+    });
+    
+    // Calculate averages (per day)
+    const days = Math.min(7, mealLogs.length > 0 ? 7 : 1);
+    const avgProtein = Math.round(totalProtein / days);
+    const avgCarbs = Math.round(totalCarbs / days);
+    const avgFat = Math.round(totalFat / days);
+    const avgFiber = Math.round(totalFiber / days);
+    const avgSugar = Math.round(totalSugar / days);
+    
+    // Create macro data array
+    return [
+      { name: "Protein", current: avgProtein, goal: 100, unit: "g", color: "#8884d8" },
+      { name: "Carbs", current: avgCarbs, goal: 250, unit: "g", color: "#82ca9d" },
+      { name: "Fat", current: avgFat, goal: 70, unit: "g", color: "#ffc658" },
+      { name: "Fiber", current: avgFiber, goal: 30, unit: "g", color: "#8dd1e1" },
+      { name: "Sugar", current: avgSugar, goal: 40, unit: "g", color: "#ff8042", warning: avgSugar > 40 }
+    ];
+  };
+
+  return (
+    <Card variant="glass">
+      <CardHeader>
+        <CardTitle className="text-xl flex items-center">
+          <Sparkles className="mr-2 h-5 w-5 text-purple-500" />
+          Nutrition Insights
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-3 mb-8">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-900/30">
+              <Calendar className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="trends" className="data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-900/30">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Trends
+            </TabsTrigger>
+            <TabsTrigger value="meals" className="data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-900/30">
+              <Utensils className="h-4 w-4 mr-2" />
+              Meals
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            {isLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-40 w-full" />
+              </div>
+            ) : weeklyData.length > 0 ? (
+              <>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <CalorieIntakeCard data={weeklyData} />
+                </motion.div>
+                
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                  <MacroDistributionCard data={macroData} />
+                </motion.div>
+                
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                >
+                  <GoalProgressCard data={weeklyData} />
+                </motion.div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No nutrition data available yet.</p>
+                <p className="text-sm text-muted-foreground mt-2">Log your meals to see insights here.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="trends">
+            {isLoading ? (
+              <Skeleton className="h-60 w-full" />
+            ) : weeklyData.length > 0 ? (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h3 className="text-lg font-medium mb-2">Your Weekly Nutrition Trends</h3>
+                <div className="space-y-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p>Calorie intake has been {getCalorieTrend(weeklyData)} your goal.</p>
+                      <p className="mt-2">Protein intake is {getProteinTrend(macroData)}.</p>
+                      <p className="mt-2">Carb intake is {getCarbTrend(macroData)}.</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No trend data available yet.</p>
+                <p className="text-sm text-muted-foreground mt-2">Log meals for several days to see trends.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="meals">
+            {isLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <RecentMeals />
+              </motion.div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Helper functions for trend analysis
+const getCalorieTrend = (data: any[]) => {
+  const average = data.reduce((sum, day) => sum + day.calories, 0) / data.length;
+  const goal = data[0]?.goal || 2000;
+  
+  if (average < goal * 0.85) return "consistently below";
+  if (average > goal * 1.15) return "consistently above";
+  return "close to";
+};
+
+const getProteinTrend = (data: any[]) => {
+  const protein = data.find(item => item.name === "Protein");
+  if (!protein) return "not tracked";
+  
+  const ratio = protein.current / protein.goal;
+  if (ratio < 0.8) return "lower than recommended";
+  if (ratio > 1.2) return "higher than recommended";
+  return "at a good level";
+};
+
+const getCarbTrend = (data: any[]) => {
+  const carbs = data.find(item => item.name === "Carbs");
+  if (!carbs) return "not tracked";
+  
+  const ratio = carbs.current / carbs.goal;
+  if (ratio < 0.8) return "lower than recommended";
+  if (ratio > 1.2) return "higher than recommended";
+  return "at a good level";
+};
+
+// Component to display recent meals
+const RecentMeals = () => {
+  const [meals, setMeals] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    const fetchRecentMeals = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_activity_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('activity_type', 'meal_logged')
+          .order('created_at', { ascending: false })
+          .limit(10);
+          
+        if (error) throw error;
+        
+        setMeals(data || []);
+      } catch (error) {
+        console.error('Error fetching recent meals:', error);
       } finally {
         setIsLoading(false);
       }
-    }
+    };
     
-    fetchMealData();
-  }, [toast, user]);
-
+    fetchRecentMeals();
+  }, [user]);
+  
+  if (isLoading) {
+    return <Skeleton className="h-40 w-full" />;
+  }
+  
+  if (meals.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No meal data available yet.</p>
+        <p className="text-sm text-muted-foreground mt-2">Start logging your meals to see them here.</p>
+      </div>
+    );
+  }
+  
   return (
-    <div className="space-y-6">
-      <CalorieIntakeCard actualCalories={totalNutrition.calories} />
-      <MacroDistributionCard 
-        protein={totalNutrition.protein}
-        carbs={totalNutrition.carbs}
-        fat={totalNutrition.fat}
-      />
-      <GoalProgressCard />
-      
-      {/* Component to show consumed food details */}
-      <Card variant="glass">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center">
-            <Utensils className="h-4 w-4 mr-2 text-green-500" />
-            Today's Food Consumption
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-6">
-              <div className="w-6 h-6 border-2 border-green-500 rounded-full animate-spin border-t-transparent"></div>
-            </div>
-          ) : meals.length > 0 ? (
-            <div className="space-y-4">
-              {meals.map((meal, index) => (
-                <div key={index} className="p-3 bg-green-50/50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800/30">
-                  <div className="flex justify-between items-center mb-1">
-                    <h4 className="font-medium text-green-700 dark:text-green-300">{meal.name} - {meal.time}</h4>
-                    <span className="text-sm font-semibold text-green-600 dark:text-green-400">{meal.calories} cal</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-green-600 dark:text-green-400">
-                    <div>Protein: {meal.protein}g</div>
-                    <div>Carbs: {meal.carbs}g</div>
-                    <div>Fat: {meal.fat}g</div>
-                  </div>
-                </div>
-              ))}
-              
-              <div className="mt-4 p-3 bg-green-100/50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800/50">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium text-green-800 dark:text-green-200">Daily Total</h4>
-                  <span className="font-semibold text-green-800 dark:text-green-200">{totalNutrition.calories} cal</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 mt-2 text-xs text-green-700 dark:text-green-300">
-                  <div>Protein: {totalNutrition.protein}g</div>
-                  <div>Carbs: {totalNutrition.carbs}g</div>
-                  <div>Fat: {totalNutrition.fat}g</div>
-                </div>
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium mb-2">Recent Meals</h3>
+      {meals.map((meal, index) => (
+        <Card key={index}>
+          <CardContent className="p-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <h4 className="font-medium capitalize">{meal.metadata?.meal_type || 'Meal'}</h4>
+                {meal.metadata?.food_items && (
+                  <p className="text-sm text-muted-foreground">
+                    {Array.isArray(meal.metadata.food_items) 
+                      ? meal.metadata.food_items.join(', ') 
+                      : meal.metadata.food_items}
+                  </p>
+                )}
+                {meal.metadata?.scanned_food?.name && (
+                  <p className="text-sm text-muted-foreground">
+                    {meal.metadata.scanned_food.name}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {new Date(meal.created_at).toLocaleDateString()} at {new Date(meal.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </p>
               </div>
+              {meal.metadata?.scanned_food && (
+                <div className="text-right">
+                  <p className="text-sm font-medium">{meal.metadata.scanned_food.calories || 0} cal</p>
+                  <div className="flex text-xs text-muted-foreground space-x-2">
+                    <span>P: {meal.metadata.scanned_food.protein || 0}g</span>
+                    <span>C: {meal.metadata.scanned_food.carbs || 0}g</span>
+                    <span>F: {meal.metadata.scanned_food.fat || 0}g</span>
+                  </div>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-6 text-muted-foreground">
-              <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No meals logged today</p>
-              <p className="text-sm mt-1">Log your meals to see nutrition analysis</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MealData {
   name: string;
@@ -14,6 +15,15 @@ interface MealData {
   time: string;
   image: string;
   color: string;
+}
+
+interface NutrientData {
+  name: string;
+  value: number;
+  target: number;
+  color: string;
+  bgColor: string;
+  textColor: string;
 }
 
 // Define the expected structure of the metadata
@@ -31,16 +41,15 @@ interface MealLogMetadata {
 
 const NutritionSummary: React.FC = () => {
   const [mealHistory, setMealHistory] = useState<MealData[]>([]);
+  const [nutrients, setNutrients] = useState<NutrientData[]>([
+    { name: "Calories", value: 0, target: 2000, color: "bg-amber-500", bgColor: "bg-amber-100/50 dark:bg-amber-950/30", textColor: "text-amber-700 dark:text-amber-300" },
+    { name: "Protein", value: 0, target: 80, color: "bg-blue-500", bgColor: "bg-blue-100/50 dark:bg-blue-950/30", textColor: "text-blue-700 dark:text-blue-300" },
+    { name: "Carbs", value: 0, target: 200, color: "bg-green-500", bgColor: "bg-green-100/50 dark:bg-green-950/30", textColor: "text-green-700 dark:text-green-300" },
+    { name: "Fat", value: 0, target: 65, color: "bg-orange-500", bgColor: "bg-orange-100/50 dark:bg-orange-950/30", textColor: "text-orange-700 dark:text-orange-300" }
+  ]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  // Example data for nutrition summary
-  const nutrients = [
-    { name: "Calories", value: 1200, target: 2000, color: "bg-amber-500", bgColor: "bg-amber-100/50 dark:bg-amber-950/30", textColor: "text-amber-700 dark:text-amber-300" },
-    { name: "Protein", value: 50, target: 80, color: "bg-blue-500", bgColor: "bg-blue-100/50 dark:bg-blue-950/30", textColor: "text-blue-700 dark:text-blue-300" },
-    { name: "Carbs", value: 120, target: 200, color: "bg-green-500", bgColor: "bg-green-100/50 dark:bg-green-950/30", textColor: "text-green-700 dark:text-green-300" },
-    { name: "Fat", value: 35, target: 65, color: "bg-orange-500", bgColor: "bg-orange-100/50 dark:bg-orange-950/30", textColor: "text-orange-700 dark:text-orange-300" }
-  ];
+  const { user } = useAuth();
 
   // Default meal image backgrounds
   const mealColors = {
@@ -60,6 +69,8 @@ const NutritionSummary: React.FC = () => {
 
   useEffect(() => {
     async function fetchMealData() {
+      if (!user) return;
+      
       setIsLoading(true);
       try {
         // Get today's date at midnight for comparison
@@ -71,6 +82,7 @@ const NutritionSummary: React.FC = () => {
           .from('user_activity_logs')
           .select('*')
           .eq('activity_type', 'meal_logged')
+          .eq('user_id', user.id)
           .gte('created_at', today.toISOString())
           .order('created_at', { ascending: false });
         
@@ -80,7 +92,7 @@ const NutritionSummary: React.FC = () => {
         }
         
         if (data && data.length > 0) {
-          // Process the meal data
+          // Process the meal data for display
           const processedMeals: MealData[] = data.map(item => {
             // Properly type the metadata
             const metadata = item.metadata as MealLogMetadata || {};
@@ -91,10 +103,8 @@ const NutritionSummary: React.FC = () => {
             if (metadata.scanned_food && metadata.scanned_food.calories) {
               totalCalories += parseInt(metadata.scanned_food.calories.toString());
             } else {
-              // Estimate calories if not provided
-              totalCalories = mealType === 'breakfast' ? 350 :
-                              mealType === 'lunch' ? 520 :
-                              mealType === 'dinner' ? 650 : 180;
+              // Default calories if not provided
+              totalCalories = 0;
             }
             
             // Format the time
@@ -111,67 +121,34 @@ const NutritionSummary: React.FC = () => {
           });
           
           setMealHistory(processedMeals);
+          
+          // Calculate total nutrients from all meals
+          let totalCalories = 0;
+          let totalProtein = 0;
+          let totalCarbs = 0;
+          let totalFat = 0;
+          
+          data.forEach(item => {
+            const metadata = item.metadata as MealLogMetadata || {};
+            if (metadata.scanned_food) {
+              totalCalories += metadata.scanned_food.calories || 0;
+              totalProtein += metadata.scanned_food.protein || 0;
+              totalCarbs += metadata.scanned_food.carbs || 0;
+              totalFat += metadata.scanned_food.fat || 0;
+            }
+          });
+          
+          // Update nutrients state with real values
+          setNutrients([
+            { name: "Calories", value: totalCalories, target: 2000, color: "bg-amber-500", bgColor: "bg-amber-100/50 dark:bg-amber-950/30", textColor: "text-amber-700 dark:text-amber-300" },
+            { name: "Protein", value: totalProtein, target: 80, color: "bg-blue-500", bgColor: "bg-blue-100/50 dark:bg-blue-950/30", textColor: "text-blue-700 dark:text-blue-300" },
+            { name: "Carbs", value: totalCarbs, target: 200, color: "bg-green-500", bgColor: "bg-green-100/50 dark:bg-green-950/30", textColor: "text-green-700 dark:text-green-300" },
+            { name: "Fat", value: totalFat, target: 65, color: "bg-orange-500", bgColor: "bg-orange-100/50 dark:bg-orange-950/30", textColor: "text-orange-700 dark:text-orange-300" }
+          ]);
+          
         } else {
-          // If no data, use example meals but with current times
-          const now = new Date();
-          const hour = now.getHours();
-          
-          // Only show meals that would make sense for the current time
-          const defaultMeals: MealData[] = [];
-          
-          if (hour >= 6 && hour < 11) {
-            defaultMeals.push({
-              name: "Breakfast", 
-              calories: 350, 
-              time: format(new Date().setHours(8, 30), 'h:mm a'),
-              image: mealImages.breakfast,
-              color: mealColors.breakfast
-            });
-          }
-          
-          if (hour >= 11 && hour < 15) {
-            defaultMeals.push({
-              name: "Lunch", 
-              calories: 520, 
-              time: format(new Date().setHours(12, 45), 'h:mm a'),
-              image: mealImages.lunch,
-              color: mealColors.lunch
-            });
-          }
-          
-          if (hour >= 15 && hour < 19) {
-            defaultMeals.push({
-              name: "Snack", 
-              calories: 180, 
-              time: format(new Date().setHours(15, 15), 'h:mm a'),
-              image: mealImages.snack,
-              color: mealColors.snack
-            });
-          }
-          
-          if (hour >= 18) {
-            defaultMeals.push({
-              name: "Dinner", 
-              calories: 650, 
-              time: format(new Date().setHours(19, 0), 'h:mm a'),
-              image: mealImages.dinner,
-              color: mealColors.dinner
-            });
-          }
-          
-          // If it's early morning, show yesterday's dinner
-          if (hour < 6 && defaultMeals.length === 0) {
-            defaultMeals.push({
-              name: "Dinner (Yesterday)", 
-              calories: 650, 
-              time: format(new Date().setHours(19, 0), 'h:mm a'),
-              image: mealImages.dinner,
-              color: mealColors.dinner
-            });
-          }
-          
-          // If nothing applies, show a message about no meals
-          setMealHistory(defaultMeals.length > 0 ? defaultMeals : [
+          // No meal data found
+          setMealHistory([
             {
               name: "No meals logged today", 
               calories: 0, 
@@ -180,6 +157,12 @@ const NutritionSummary: React.FC = () => {
               color: "from-gray-400/20 to-gray-300/10"
             }
           ]);
+          
+          // Reset nutrients to zero values
+          setNutrients(nutrients.map(nutrient => ({
+            ...nutrient,
+            value: 0
+          })));
         }
       } catch (error) {
         console.error('Error in meal data processing:', error);
@@ -194,7 +177,7 @@ const NutritionSummary: React.FC = () => {
     }
     
     fetchMealData();
-  }, [toast]);
+  }, [toast, user]);
 
   const container = {
     hidden: { opacity: 0 },

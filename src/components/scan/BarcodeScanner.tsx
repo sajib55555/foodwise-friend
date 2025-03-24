@@ -60,6 +60,11 @@ const BarcodeScanner: React.FC<{
 
   const initQuagga = (target: HTMLElement) => {
     return new Promise<void>((resolve, reject) => {
+      if (!target) {
+        reject(new Error("Target element not available"));
+        return;
+      }
+      
       Quagga.init(
         {
           inputStream: {
@@ -114,12 +119,16 @@ const BarcodeScanner: React.FC<{
   useEffect(() => {
     // Start barcode scanner
     const startScanner = async () => {
-      if (!scannerRef.current) return;
-      
       try {
         setError(null);
         setScanning(true);
         setLastResults([]);
+        
+        if (!scannerRef.current) {
+          setError("Scanner element not found");
+          setScanning(false);
+          return;
+        }
         
         // Initialize Quagga with enhanced settings
         await initQuagga(scannerRef.current);

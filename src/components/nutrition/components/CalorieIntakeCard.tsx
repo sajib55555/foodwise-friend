@@ -6,13 +6,16 @@ import { motion } from "framer-motion";
 import { Flame, Target } from "lucide-react";
 
 interface CalorieIntakeCardProps {
-  actualCalories?: number;
+  actualCalories: number;
+  targetCalories?: number;
+  mealBreakdown?: {name: string; calories: number}[];
 }
 
-const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({ actualCalories = 0 }) => {
-  // Default target calories
-  const targetCalories = 2000;
-  
+const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({ 
+  actualCalories = 0,
+  targetCalories = 2000,
+  mealBreakdown = []
+}) => {
   // Calculate percentage
   const percentage = Math.min(Math.round((actualCalories / targetCalories) * 100), 100);
   
@@ -44,17 +47,32 @@ const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({ actualCalories = 
           />
           
           <div className="grid grid-cols-3 gap-1 pt-2 text-xs text-muted-foreground">
-            {["Breakfast", "Lunch", "Dinner"].map((meal, index) => (
-              <motion.div
-                key={meal}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 + 0.2 }}
-                className="flex flex-col items-center justify-center p-2 rounded-md bg-orange-50/50 dark:bg-orange-950/20"
-              >
-                <span className="font-medium text-orange-700 dark:text-orange-300">{meal}</span>
-              </motion.div>
-            ))}
+            {mealBreakdown && mealBreakdown.length > 0 ? (
+              mealBreakdown.map((meal, index) => (
+                <motion.div
+                  key={meal.name}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 + 0.2 }}
+                  className="flex flex-col items-center justify-center p-2 rounded-md bg-orange-50/50 dark:bg-orange-950/20"
+                >
+                  <span className="font-medium text-orange-700 dark:text-orange-300">{meal.name}</span>
+                  <span className="text-xs text-orange-600 dark:text-orange-400">{meal.calories} cal</span>
+                </motion.div>
+              ))
+            ) : (
+              ["Breakfast", "Lunch", "Dinner"].map((meal, index) => (
+                <motion.div
+                  key={meal}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 + 0.2 }}
+                  className="flex flex-col items-center justify-center p-2 rounded-md bg-orange-50/50 dark:bg-orange-950/20"
+                >
+                  <span className="font-medium text-orange-700 dark:text-orange-300">{meal}</span>
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </CardContent>

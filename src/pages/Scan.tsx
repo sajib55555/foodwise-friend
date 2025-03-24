@@ -101,7 +101,7 @@ const Scan = () => {
   // Handle tab change to reinitialize components
   const handleTabChange = (value: string) => {
     if (value === "camera" || value === "barcode") {
-      setScanMode(value);
+      setScanMode(value as "camera" | "barcode");
       // Force component remount by toggling showCamera
       setShowCamera(false);
       setTimeout(() => {
@@ -109,6 +109,11 @@ const Scan = () => {
       }, 100);
     }
   };
+
+  // Update document title with current mode
+  useEffect(() => {
+    document.title = `NutriTrack - ${scanMode === "camera" ? "Camera" : "Barcode"} Scanner`;
+  }, [scanMode]);
 
   return (
     <PageTransition>
@@ -209,7 +214,10 @@ const Scan = () => {
                   
                   <TabsContent value="barcode" className="mt-4">
                     {showCamera && (
-                      <BarcodeScanner onDetected={handleBarcodeDetected} onReset={handleReset} />
+                      <BarcodeScanner 
+                        onDetected={handleBarcodeDetected} 
+                        onReset={handleReset} 
+                      />
                     )}
                     
                     <div className="mt-5 p-4 bg-gradient-to-r from-purple-50/80 to-blue-50/80 dark:from-purple-900/10 dark:to-blue-900/10 rounded-3xl border border-purple-100/50 dark:border-purple-800/20">

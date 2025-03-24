@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfDay, endOfDay } from "date-fns";
+import { format, startOfDay, endOfDay, subDays } from "date-fns";
 import CalorieIntakeCard from "./components/CalorieIntakeCard";
 import MacroDistributionCard from "./components/MacroDistributionCard";
 import GoalProgressCard from "./components/GoalProgressCard";
@@ -32,6 +33,7 @@ const NutritionInsights: React.FC = () => {
     carbs: 0,
     fat: 0
   });
+  const [mealBreakdown, setMealBreakdown] = useState<{name: string; calories: number}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -91,39 +93,6 @@ const NutritionInsights: React.FC = () => {
                 protein = Number(sf.protein) || 0;
                 carbs = Number(sf.carbs) || 0;
                 fat = Number(sf.fat) || 0;
-              } else {
-                // Legacy format where scanned_food might be simpler
-                calories = Number(metadata.scanned_food.calories) || 0;
-                protein = Number(metadata.scanned_food.protein) || 0;
-                carbs = Number(metadata.scanned_food.carbs) || 0;
-                fat = Number(metadata.scanned_food.fat) || 0;
-              }
-            } else {
-              // Estimate nutritional values if not provided
-              switch(mealType) {
-                case 'breakfast':
-                  calories = 350;
-                  protein = 15;
-                  carbs = 45;
-                  fat = 12;
-                  break;
-                case 'lunch':
-                  calories = 520;
-                  protein = 25;
-                  carbs = 65;
-                  fat = 15;
-                  break;
-                case 'dinner':
-                  calories = 650;
-                  protein = 35;
-                  carbs = 70;
-                  fat = 20;
-                  break;
-                default: // snack
-                  calories = 180;
-                  protein = 5;
-                  carbs = 25;
-                  fat = 8;
               }
             }
             
@@ -143,6 +112,24 @@ const NutritionInsights: React.FC = () => {
           
           setMeals(processedMeals);
           
+          // Prepare meal breakdown for CalorieIntakeCard
+          const breakdown = processedMeals.reduce((acc, meal) => {
+            const existingMealType = acc.find(m => m.name.toLowerCase() === meal.name.toLowerCase());
+            
+            if (existingMealType) {
+              existingMealType.calories += meal.calories;
+            } else {
+              acc.push({
+                name: meal.name,
+                calories: meal.calories
+              });
+            }
+            
+            return acc;
+          }, [] as {name: string; calories: number}[]);
+          
+          setMealBreakdown(breakdown);
+          
           // Calculate total nutrition
           const totals = processedMeals.reduce((acc, meal) => {
             return {
@@ -156,6 +143,7 @@ const NutritionInsights: React.FC = () => {
           setTotalNutrition(totals);
         } else {
           setMeals([]);
+          setMealBreakdown([]);
           setTotalNutrition({
             calories: 0,
             protein: 0,
@@ -176,11 +164,19 @@ const NutritionInsights: React.FC = () => {
     }
     
     fetchMealData();
+    
+    // Set up interval to refresh data every 5 minutes
+    const intervalId = setInterval(fetchMealData, 5 * 60 * 1000);
+    
+    return () => clearInterval(intervalId);
   }, [toast, user]);
 
   return (
     <div className="space-y-6">
-      <CalorieIntakeCard actualCalories={totalNutrition.calories} />
+      <CalorieIntakeCard 
+        actualCalories={totalNutrition.calories} 
+        mealBreakdown={mealBreakdown}
+      />
       <MacroDistributionCard 
         protein={totalNutrition.protein}
         carbs={totalNutrition.carbs}

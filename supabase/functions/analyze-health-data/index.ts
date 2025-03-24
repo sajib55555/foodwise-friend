@@ -146,8 +146,25 @@ serve(async (req) => {
     console.log("Received health data:", JSON.stringify(healthData));
     console.log("Received user name:", userName);
 
+    // Ensure all data fields exist
+    const safeHealthData = {
+      nutrition: healthData.nutrition || [],
+      exercise: healthData.exercise || [],
+      water: healthData.water || [],
+      sleep: healthData.sleep || [],
+      goals: healthData.goals || [],
+      weight: healthData.weight || [],
+      userProfile: healthData.userProfile || {},
+      meals: healthData.meals || [],
+      activityLog: healthData.activityLog || [],
+      workouts: healthData.workouts || [],
+      dailySteps: healthData.dailySteps || [],
+      heartRate: healthData.heartRate || [],
+      bloodPressure: healthData.bloodPressure || []
+    };
+
     // Generate personalized health analysis
-    const analysisPrompt = generateAnalysisPrompt(healthData, userName || 'User');
+    const analysisPrompt = generateAnalysisPrompt(safeHealthData, userName || 'User');
     console.log("Analysis prompt:", analysisPrompt);
 
     // Generate OpenAI completion with timeout
@@ -252,28 +269,41 @@ function generateAnalysisPrompt(healthData: any, userName: string): string {
   const goals = healthData.goals || [];
   const weight = healthData.weight || [];
   const userProfile = healthData.userProfile || {};
+  const meals = healthData.meals || [];
+  const activityLog = healthData.activityLog || [];
+  const workouts = healthData.workouts || [];
+  const dailySteps = healthData.dailySteps || [];
+  const heartRate = healthData.heartRate || [];
+  const bloodPressure = healthData.bloodPressure || [];
 
   return `
-    Analyze the following health data for ${userName} and provide personalized health advice and recommendations:
+    Analyze the following comprehensive health data for ${userName} and provide personalized health advice and recommendations:
     
     User Profile: ${JSON.stringify(userProfile)}
     Nutrition data: ${JSON.stringify(nutrition)}
+    Meal data: ${JSON.stringify(meals)}
     Exercise data: ${JSON.stringify(exercise)}
+    Workout data: ${JSON.stringify(workouts)}
     Water intake: ${JSON.stringify(water)}
     Sleep data: ${JSON.stringify(sleep)}
     Weight data: ${JSON.stringify(weight)}
+    Activity log: ${JSON.stringify(activityLog)}
+    Daily steps: ${JSON.stringify(dailySteps)}
+    Heart rate: ${JSON.stringify(heartRate)}
+    Blood pressure: ${JSON.stringify(bloodPressure)}
     Goals: ${JSON.stringify(goals)}
     
     Provide a concise, personalized health update that:
     1. Addresses the user by name if available
     2. Comments on their nutritional intake (calories, protein, carbs, fat)
-    3. Provides insights on exercise activity
+    3. Provides insights on exercise activity and workouts
     4. Mentions sleep quality if data is available
     5. Comments on weight trends if data is available
     6. Analyzes water intake and hydration status
     7. Reviews progress toward their health and fitness goals
-    8. Gives specific, actionable recommendations for improvement
-    9. Uses an encouraging tone
+    8. Includes any relevant information from their activity logs
+    9. Gives specific, actionable recommendations for improvement
+    10. Uses an encouraging tone
     
     Keep the response under 300 words and make it conversational as it will be read aloud.
   `;

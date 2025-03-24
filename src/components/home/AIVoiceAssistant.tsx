@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card-custom';
 import { Button } from '@/components/ui/button-custom';
-import { Mic, MicOff, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Loader2, Volume2, VolumeX, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,7 @@ const AIVoiceAssistant = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -26,6 +27,12 @@ const AIVoiceAssistant = () => {
     };
   }
 
+  const resetState = () => {
+    setError(null);
+    setTranscript('');
+    setResponse('');
+  };
+
   const startListening = async () => {
     if (!user) {
       toast({
@@ -37,9 +44,8 @@ const AIVoiceAssistant = () => {
     }
 
     try {
+      resetState();
       setIsListening(true);
-      setTranscript('');
-      setResponse('');
       
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -105,6 +111,7 @@ const AIVoiceAssistant = () => {
           };
         } catch (error: any) {
           console.error('Error processing voice:', error);
+          setError(error.message || 'Could not process your voice input');
           toast({
             title: 'Error',
             description: error.message || 'Could not process your voice input',
@@ -121,16 +128,17 @@ const AIVoiceAssistant = () => {
       // Start recording
       mediaRecorder.start();
       
-      // Stop recording after 10 seconds or wait for stopListening
+      // Stop recording after 8 seconds or wait for stopListening
       setTimeout(() => {
         if (mediaRecorder.state === 'recording') {
           mediaRecorder.stop();
         }
-      }, 10000);
+      }, 8000);
       
     } catch (error: any) {
       console.error('Error accessing microphone:', error);
       setIsListening(false);
+      setError('Microphone access denied. Please allow microphone access in your browser settings.');
       toast({
         title: 'Microphone Access Denied',
         description: 'Please allow microphone access to use the voice assistant',
@@ -153,7 +161,7 @@ const AIVoiceAssistant = () => {
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
           text,
-          voice: 'alloy' // Using OpenAI's alloy voice
+          voice: 'nova' // Using OpenAI's nova voice which is good for health information
         },
       });
       
@@ -166,7 +174,10 @@ const AIVoiceAssistant = () => {
         const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
         if (audioRef.current) {
           audioRef.current.src = audioSrc;
-          audioRef.current.play();
+          await audioRef.current.play().catch(err => {
+            console.error('Audio playback error:', err);
+            throw new Error('Could not play audio. Please try again.');
+          });
         }
       } else {
         throw new Error('No audio received from text-to-speech service');
@@ -174,6 +185,7 @@ const AIVoiceAssistant = () => {
     } catch (error: any) {
       console.error('Error with text-to-speech:', error);
       setIsSpeaking(false);
+      setError('Could not convert text to speech. Please try again.');
       toast({
         title: 'Text-to-Speech Error',
         description: error.message || 'Could not convert text to speech',
@@ -188,6 +200,10 @@ const AIVoiceAssistant = () => {
       audioRef.current.currentTime = 0;
       setIsSpeaking(false);
     }
+  };
+  
+  const retryVoiceAssistant = () => {
+    resetState();
   };
   
   return (
@@ -206,9 +222,33 @@ const AIVoiceAssistant = () => {
         </div>
         
         <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4 mb-3 min-h-20">
-          <AnimatePresence mode="wait">
-            {!transcript && !response && !isListening && !isProcessing && (
+          <AnimatePresence mode="sync">
+            {error && (
               <motion.div 
+                key="error"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center"
+              >
+                <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-lg w-full text-center mb-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500 mx-auto mb-1" />
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+                <Button 
+                  onClick={retryVoiceAssistant}
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
+                >
+                  Try Again
+                </Button>
+              </motion.div>
+            )}
+            
+            {!error && !transcript && !response && !isListening && !isProcessing && (
+              <motion.div 
+                key="idle"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -222,6 +262,7 @@ const AIVoiceAssistant = () => {
             
             {isListening && (
               <motion.div 
+                key="listening"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -243,6 +284,7 @@ const AIVoiceAssistant = () => {
             
             {isProcessing && (
               <motion.div 
+                key="processing"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -253,8 +295,9 @@ const AIVoiceAssistant = () => {
               </motion.div>
             )}
             
-            {transcript && (
+            {transcript && !error && (
               <motion.div 
+                key="transcript"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-3"
@@ -266,8 +309,9 @@ const AIVoiceAssistant = () => {
               </motion.div>
             )}
             
-            {response && (
+            {response && !error && (
               <motion.div 
+                key="response"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
               >

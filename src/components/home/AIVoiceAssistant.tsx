@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card-custom';
 import { Button } from '@/components/ui/button-custom';
-import { Mic, MicOff, Loader2, Volume2, VolumeX, AlertTriangle, Stethoscope, Ban } from 'lucide-react';
+import { Mic, MicOff, Loader2, Volume2, VolumeX, AlertTriangle, Stethoscope, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,37 +89,63 @@ const AIVoiceAssistant = () => {
               throw new Error('Failed to convert audio to base64');
             }
             
-            // Send to Supabase Edge Function for processing
-            const { data, error } = await supabase.functions.invoke('voice-to-text', {
-              body: { audio: base64Audio },
-            });
+            // Send to Supabase Edge Function for processing with timeout
+            const voiceTimeout = setTimeout(() => {
+              setError('Voice processing took too long. Please try again.');
+              setIsProcessing(false);
+            }, 20000); // 20 second timeout
             
-            if (error) {
-              throw error;
-            }
-            
-            if (data?.text) {
-              setTranscript(data.text);
-              
-              // Process with AI
-              const aiResponse = await supabase.functions.invoke('analyze-health-data', {
-                body: { 
-                  query: data.text,
-                  userId: user.id,
-                  format: 'voice',
-                  isHealthAdvisor: activeTab === 'doctor'
-                },
+            try {
+              const { data, error } = await supabase.functions.invoke('voice-to-text', {
+                body: { audio: base64Audio },
               });
               
-              if (aiResponse.error) {
-                throw aiResponse.error;
+              clearTimeout(voiceTimeout);
+              
+              if (error) {
+                throw error;
               }
               
-              const responseText = aiResponse.data?.response || 'Sorry, I could not understand that.';
-              setResponse(responseText);
-              
-              // Generate speech from text
-              await speakResponse(responseText);
+              if (data?.text) {
+                setTranscript(data.text);
+                
+                // Process with AI with timeout
+                const aiTimeout = setTimeout(() => {
+                  setError('AI processing took too long. Please try again.');
+                  setIsProcessing(false);
+                }, 30000); // 30 second timeout
+                
+                try {
+                  const aiResponse = await supabase.functions.invoke('analyze-health-data', {
+                    body: { 
+                      query: data.text,
+                      userId: user.id,
+                      format: 'voice',
+                      isHealthAdvisor: activeTab === 'doctor'
+                    },
+                  });
+                  
+                  clearTimeout(aiTimeout);
+                  
+                  if (aiResponse.error) {
+                    throw aiResponse.error;
+                  }
+                  
+                  const responseText = aiResponse.data?.response || 'Sorry, I could not understand that.';
+                  setResponse(responseText);
+                  
+                  // Generate speech from text
+                  await speakResponse(responseText);
+                } catch (aiError: any) {
+                  clearTimeout(aiTimeout);
+                  throw aiError;
+                }
+              } else {
+                throw new Error('Could not transcribe your voice. Please try again.');
+              }
+            } catch (voiceError: any) {
+              clearTimeout(voiceTimeout);
+              throw voiceError;
             }
           };
         } catch (error: any) {
@@ -169,7 +195,7 @@ const AIVoiceAssistant = () => {
       setIsSpeaking(true);
       
       // Use text-to-speech edge function with retries
-      const maxRetries = 2;
+      const maxRetries = 3;
       let retryCount = 0;
       let success = false;
       
@@ -177,7 +203,7 @@ const AIVoiceAssistant = () => {
         try {
           const { data, error } = await supabase.functions.invoke('text-to-speech', {
             body: { 
-              text: text.substring(0, 4096), // Limit text length to prevent API issues
+              text: text.substring(0, 4000), // Limit text length to prevent API issues
               voice: activeTab === 'doctor' ? 'nova' : 'alloy'
             },
           });
@@ -247,6 +273,12 @@ const AIVoiceAssistant = () => {
       resetState();
       setIsGeneratingReport(true);
       
+      // Process with AI with timeout
+      const timeout = setTimeout(() => {
+        setError('Health report generation took too long. Please try again.');
+        setIsGeneratingReport(false);
+      }, 30000); // 30 second timeout
+      
       // Process with AI
       const aiResponse = await supabase.functions.invoke('analyze-health-data', {
         body: { 
@@ -256,6 +288,8 @@ const AIVoiceAssistant = () => {
           isHealthAdvisor: true
         },
       });
+      
+      clearTimeout(timeout);
       
       if (aiResponse.error) {
         throw aiResponse.error;
@@ -323,55 +357,40 @@ const AIVoiceAssistant = () => {
           </div>
           
           <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4 mb-3 min-h-24 max-h-[280px] overflow-y-auto">
-            <AnimatePresence mode="wait">
-              {error && (
-                <motion.div 
-                  key="error"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center"
+            {error && (
+              <div className="flex flex-col items-center justify-center">
+                <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-lg w-full text-center mb-2">
+                  <AlertTriangle className="h-5 w-5 text-red-500 mx-auto mb-1" />
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+                <Button 
+                  onClick={retryVoiceAssistant}
+                  size="sm"
+                  variant="outline"
+                  className="mt-2"
                 >
-                  <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-lg w-full text-center mb-2">
-                    <AlertTriangle className="h-5 w-5 text-red-500 mx-auto mb-1" />
-                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                  </div>
-                  <Button 
-                    onClick={retryVoiceAssistant}
-                    size="sm"
-                    variant="outline"
-                    className="mt-2"
-                  >
-                    Try Again
-                  </Button>
-                </motion.div>
-              )}
-              
+                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                  Try Again
+                </Button>
+              </div>
+            )}
+            
+            {!error && (
               <TabsContent value="assistant" className="mt-0 outline-none">
-                {!error && !transcript && !response && !isListening && !isProcessing && (
-                  <motion.div 
-                    key="idle-assistant"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center h-full text-center"
-                  >
+                {!transcript && !response && !isListening && !isProcessing && (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
                     <p className="text-sm text-muted-foreground">
                       Click the microphone to ask a health question
                     </p>
-                  </motion.div>
+                  </div>
                 )}
               </TabsContent>
-              
+            )}
+            
+            {!error && (
               <TabsContent value="doctor" className="mt-0 outline-none">
-                {!error && !transcript && !response && !isGeneratingReport && !isListening && !isProcessing && (
-                  <motion.div 
-                    key="idle-doctor"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center h-full text-center"
-                  >
+                {!transcript && !response && !isGeneratingReport && !isListening && !isProcessing && (
+                  <div className="flex flex-col items-center justify-center h-full text-center">
                     <p className="text-sm text-muted-foreground mb-2">
                       Get a personalized health assessment based on your data
                     </p>
@@ -384,78 +403,57 @@ const AIVoiceAssistant = () => {
                     >
                       Generate Health Report
                     </Button>
-                  </motion.div>
+                  </div>
                 )}
               </TabsContent>
-              
-              {isListening && (
-                <motion.div 
-                  key="listening"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center"
-                >
-                  <div className="relative w-16 h-16 mb-2">
-                    <motion.div 
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ repeat: Infinity, duration: 1.5 }}
-                      className={`absolute inset-0 ${activeTab === 'assistant' ? 'bg-purple-500/20' : 'bg-teal-500/20'} rounded-full`}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Mic className={`h-8 w-8 ${activeTab === 'assistant' ? 'text-purple-600' : 'text-teal-600'}`} />
-                    </div>
+            )}
+            
+            {isListening && !error && (
+              <div className="flex flex-col items-center justify-center">
+                <div className="relative w-16 h-16 mb-2">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className={`absolute inset-0 ${activeTab === 'assistant' ? 'bg-purple-500/20' : 'bg-teal-500/20'} rounded-full`}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Mic className={`h-8 w-8 ${activeTab === 'assistant' ? 'text-purple-600' : 'text-teal-600'}`} />
                   </div>
-                  <p className="text-sm">Listening...</p>
-                </motion.div>
-              )}
-              
-              {(isProcessing || isGeneratingReport) && (
-                <motion.div 
-                  key="processing"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center"
-                >
-                  <Loader2 className={`h-8 w-8 ${activeTab === 'assistant' ? 'text-purple-600' : 'text-teal-600'} animate-spin mb-2`} />
-                  <p className="text-sm">
-                    {isGeneratingReport 
-                      ? "Analyzing your health data..." 
-                      : "Processing your request..."}
-                  </p>
-                </motion.div>
-              )}
-              
-              {transcript && !error && (
-                <motion.div 
-                  key="transcript"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-3"
-                >
-                  <p className="text-xs font-medium text-muted-foreground mb-1">You said:</p>
-                  <div className={`${activeTab === 'assistant' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-teal-100 dark:bg-teal-900/30'} p-2 rounded-lg text-sm`}>
-                    {transcript}
-                  </div>
-                </motion.div>
-              )}
-              
-              {response && !error && (
-                <motion.div 
-                  key="response"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <p className="text-xs font-medium text-muted-foreground mb-1">
-                    {activeTab === 'assistant' ? 'Assistant:' : 'Health Advisor:'}
-                  </p>
-                  <div className={`${activeTab === 'assistant' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'} p-2 rounded-lg text-sm`}>
-                    {response}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+                <p className="text-sm">Listening...</p>
+              </div>
+            )}
+            
+            {(isProcessing || isGeneratingReport) && !error && (
+              <div className="flex flex-col items-center justify-center">
+                <Loader2 className={`h-8 w-8 ${activeTab === 'assistant' ? 'text-purple-600' : 'text-teal-600'} animate-spin mb-2`} />
+                <p className="text-sm">
+                  {isGeneratingReport 
+                    ? "Analyzing your health data..." 
+                    : "Processing your request..."}
+                </p>
+              </div>
+            )}
+            
+            {transcript && !error && (
+              <div className="mb-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">You said:</p>
+                <div className={`${activeTab === 'assistant' ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-teal-100 dark:bg-teal-900/30'} p-2 rounded-lg text-sm`}>
+                  {transcript}
+                </div>
+              </div>
+            )}
+            
+            {response && !error && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  {activeTab === 'assistant' ? 'Assistant:' : 'Health Advisor:'}
+                </p>
+                <div className={`${activeTab === 'assistant' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'} p-2 rounded-lg text-sm`}>
+                  {response}
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="flex justify-center gap-3">

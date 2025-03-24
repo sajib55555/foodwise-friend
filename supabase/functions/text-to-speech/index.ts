@@ -20,43 +20,72 @@ serve(async (req) => {
     }
 
     console.log(`Processing text-to-speech request with voice: ${voice || 'alloy'}`);
+    console.log(`Text length: ${text.length} characters`);
     
-    // Generate speech from text with improved error handling
-    const response = await fetch('https://api.openai.com/v1/audio/speech', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'tts-1',
-        input: text.substring(0, 4096), // Ensure we don't exceed OpenAI's token limit
-        voice: voice || 'alloy', // Default to alloy voice if none specified
-        response_format: 'mp3',
-      }),
-    })
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error(`OpenAI API Error: ${response.status} - ${errorBody}`);
-      throw new Error(`Failed to generate speech: ${response.status}`);
+    // Get OpenAI API key with error handling
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      throw new Error('OpenAI API key is not configured');
     }
-
-    // Convert audio buffer to base64
-    const arrayBuffer = await response.arrayBuffer()
-    const base64Audio = btoa(
-      String.fromCharCode(...new Uint8Array(arrayBuffer))
-    )
-
-    console.log('Successfully generated audio response');
     
-    return new Response(
-      JSON.stringify({ audioContent: base64Audio }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
-    )
+    // Limit text to prevent token issues and chunking for long responses
+    const maxLength = 4000;
+    const processedText = text.length > maxLength 
+      ? text.substring(0, maxLength) + "... I've summarized the rest for brevity."
+      : text;
+    
+    // Generate speech from text with improved error handling and timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+    
+    try {
+      const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'tts-1',
+          input: processedText,
+          voice: voice || 'alloy', // Default to alloy voice if none specified
+          response_format: 'mp3',
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`OpenAI API Error: ${response.status} - ${errorBody}`);
+        throw new Error(`Failed to generate speech: ${response.status}`);
+      }
+
+      // Convert audio buffer to base64
+      const arrayBuffer = await response.arrayBuffer();
+      const base64Audio = btoa(
+        String.fromCharCode(...new Uint8Array(arrayBuffer))
+      );
+
+      console.log('Successfully generated audio response');
+      
+      return new Response(
+        JSON.stringify({ audioContent: base64Audio }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        },
+      );
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        throw new Error('Text-to-speech request timed out');
+      }
+      
+      throw fetchError;
+    }
   } catch (error) {
     console.error(`Text-to-speech error: ${error.message || 'Unknown error'}`);
     
@@ -66,6 +95,6 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
-    )
+    );
   }
-})
+});

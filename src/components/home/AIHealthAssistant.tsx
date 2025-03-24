@@ -3,7 +3,7 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card-custom';
 import { Button } from '@/components/ui/button-custom';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Send, Bot, Loader2, ArrowDown } from 'lucide-react';
+import { Sparkles, Send, Bot, Loader2, ArrowDown, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,9 +14,28 @@ const AIHealthAssistant = () => {
   const [conversation, setConversation] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Create audio element for playback
+  React.useEffect(() => {
+    if (!audioRef.current && typeof window !== 'undefined') {
+      audioRef.current = new Audio();
+      audioRef.current.onended = () => {
+        setIsSpeaking(false);
+      };
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,7 +68,8 @@ const AIHealthAssistant = () => {
       }
       
       if (data && data.response) {
-        setConversation(prev => [...prev, { role: 'assistant', content: data.response }]);
+        const responseText = data.response;
+        setConversation(prev => [...prev, { role: 'assistant', content: responseText }]);
       } else {
         throw new Error('No response received from the assistant');
       }
@@ -81,6 +101,72 @@ const AIHealthAssistant = () => {
     }
   };
 
+  const speakResponse = async (text: string) => {
+    if (!text || isSpeaking) return;
+    
+    try {
+      setIsSpeaking(true);
+      
+      // Use text-to-speech edge function with retries
+      const maxRetries = 3;
+      let retryCount = 0;
+      let success = false;
+      
+      while (retryCount <= maxRetries && !success) {
+        try {
+          const { data, error } = await supabase.functions.invoke('text-to-speech', {
+            body: { 
+              text: text.substring(0, 4000), // Limit text length to prevent API issues
+              voice: 'nova' // Use a natural female voice
+            },
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (!data?.audioContent) {
+            throw new Error('No audio content received');
+          }
+          
+          // Convert base64 to audio and play
+          const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
+          if (audioRef.current) {
+            audioRef.current.src = audioSrc;
+            await audioRef.current.play();
+            success = true;
+          }
+        } catch (e) {
+          retryCount++;
+          console.error(`Text-to-speech attempt ${retryCount} failed:`, e);
+          
+          if (retryCount > maxRetries) {
+            throw e;
+          }
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    } catch (error: any) {
+      console.error('Error with text-to-speech:', error);
+      setIsSpeaking(false);
+      toast({
+        title: 'Text-to-Speech Error',
+        description: error.message || 'Could not convert text to speech',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const stopSpeaking = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsSpeaking(false);
+    }
+  };
+
   return (
     <Card className="overflow-hidden border border-purple-200/50 dark:border-purple-900/50 shadow-sm dark:shadow-purple-900/10">
       <CardContent className="p-3">
@@ -105,7 +191,7 @@ const AIHealthAssistant = () => {
           </Button>
         </div>
 
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {expanded && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
@@ -138,6 +224,30 @@ const AIHealthAssistant = () => {
                             }`}
                         >
                           {message.content}
+                          
+                          {message.role === 'assistant' && (
+                            <div className="mt-1 flex justify-end">
+                              {isSpeaking ? (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={stopSpeaking}
+                                >
+                                  <VolumeX className="h-3 w-3 text-slate-500" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => speakResponse(message.content)}
+                                >
+                                  <Volume2 className="h-3 w-3 text-slate-500" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

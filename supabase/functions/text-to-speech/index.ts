@@ -21,7 +21,7 @@ serve(async (req) => {
 
     console.log(`Processing text-to-speech request with voice: ${voice || 'alloy'}`);
     
-    // Generate speech from text
+    // Generate speech from text with improved error handling
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
@@ -30,8 +30,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'tts-1',
-        input: text,
-        voice: voice || 'nova', // Using nova voice for a more natural, professional sound
+        input: text.substring(0, 4096), // Ensure we don't exceed OpenAI's token limit
+        voice: voice || 'alloy', // Default to alloy voice if none specified
         response_format: 'mp3',
       }),
     })

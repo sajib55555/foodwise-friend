@@ -168,30 +168,46 @@ const AIVoiceAssistant = () => {
     try {
       setIsSpeaking(true);
       
-      // Use text-to-speech edge function
-      const { data, error } = await supabase.functions.invoke('text-to-speech', {
-        body: { 
-          text,
-          voice: activeTab === 'doctor' ? 'nova' : 'nova' // Using nova voice for both for consistency
-        },
-      });
+      // Use text-to-speech edge function with retries
+      const maxRetries = 2;
+      let retryCount = 0;
+      let success = false;
       
-      if (error) {
-        throw error;
-      }
-      
-      if (data?.audioContent) {
-        // Convert base64 to audio and play
-        const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
-        if (audioRef.current) {
-          audioRef.current.src = audioSrc;
-          await audioRef.current.play().catch(err => {
-            console.error('Audio playback error:', err);
-            throw new Error('Could not play audio. Please try again.');
+      while (retryCount <= maxRetries && !success) {
+        try {
+          const { data, error } = await supabase.functions.invoke('text-to-speech', {
+            body: { 
+              text: text.substring(0, 4096), // Limit text length to prevent API issues
+              voice: activeTab === 'doctor' ? 'nova' : 'alloy'
+            },
           });
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (!data?.audioContent) {
+            throw new Error('No audio content received');
+          }
+          
+          // Convert base64 to audio and play
+          const audioSrc = `data:audio/mp3;base64,${data.audioContent}`;
+          if (audioRef.current) {
+            audioRef.current.src = audioSrc;
+            await audioRef.current.play();
+            success = true;
+          }
+        } catch (e) {
+          retryCount++;
+          console.error(`Text-to-speech attempt ${retryCount} failed:`, e);
+          
+          if (retryCount > maxRetries) {
+            throw e;
+          }
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-      } else {
-        throw new Error('No audio received from text-to-speech service');
       }
     } catch (error: any) {
       console.error('Error with text-to-speech:', error);
@@ -307,7 +323,7 @@ const AIVoiceAssistant = () => {
           </div>
           
           <div className="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-4 mb-3 min-h-24 max-h-[280px] overflow-y-auto">
-            <AnimatePresence mode="sync">
+            <AnimatePresence mode="wait">
               {error && (
                 <motion.div 
                   key="error"

@@ -56,13 +56,7 @@ const ActionButtons = () => {
     { 
       icon: <Brain className={iconSize} />, 
       label: "AI Assistant", 
-      onClick: () => {
-        document.getElementById('ai-health-assistant')?.scrollIntoView({ behavior: 'smooth' });
-        // Also scroll the voice assistant into view after a slight delay
-        setTimeout(() => {
-          document.getElementById('ai-voice-assistant')?.scrollIntoView({ behavior: 'smooth' });
-        }, 500);
-      },
+      onClick: () => document.getElementById('ai-health-assistant')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       textColor: "text-white",
       shadow: "shadow-indigo"
@@ -70,7 +64,7 @@ const ActionButtons = () => {
     { 
       icon: <Droplets className={iconSize} />, 
       label: "Water Intake", 
-      onClick: () => navigate("/water-tracker"),
+      onClick: () => document.getElementById('water-tracker')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-cyan-400 to-cyan-600",
       textColor: "text-white",
       shadow: "shadow-cyan"
@@ -78,7 +72,7 @@ const ActionButtons = () => {
     { 
       icon: <Moon className={iconSize} />, 
       label: "Sleep Tracker", 
-      onClick: () => navigate("/sleep-tracker"),
+      onClick: () => document.getElementById('sleep-tracker')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       textColor: "text-white",
       shadow: "shadow-indigo"
@@ -110,7 +104,7 @@ const ActionButtons = () => {
     { 
       icon: <Bell className={iconSize} />, 
       label: "Meal Reminders", 
-      onClick: () => navigate("/meal-reminders"),
+      onClick: () => document.getElementById('meal-reminders')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-orange-400 to-orange-600",
       textColor: "text-white",
       shadow: "shadow-orange"
@@ -118,7 +112,7 @@ const ActionButtons = () => {
     { 
       icon: <Utensils className={iconSize} />, 
       label: "Meal Recommendations", 
-      onClick: () => navigate("/meal-recommendations"),
+      onClick: () => document.getElementById('meal-recommendations')?.scrollIntoView({ behavior: 'smooth' }),
       gradient: "bg-gradient-to-br from-emerald-400 to-emerald-600",
       textColor: "text-white",
       shadow: "shadow-emerald"

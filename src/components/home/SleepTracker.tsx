@@ -8,6 +8,7 @@ import { Moon, Clock, BedDouble } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Json } from "@/integrations/supabase/types";
 
 // Define TypeScript interfaces for our data structures
 interface SleepMetadata {
@@ -66,10 +67,35 @@ const SleepTracker = () => {
         let totalQualityScore = 0;
         
         data.forEach(item => {
-          // Ensure metadata is an object and has the expected properties
-          const metadata = item.metadata as SleepMetadata || {};
-          totalDuration += metadata.hours || 0;
-          totalQualityScore += metadata.quality || 3;
+          // Safely cast the metadata to our expected type
+          let metadata: SleepMetadata;
+          
+          try {
+            // First check if metadata exists and is an object
+            if (item.metadata && typeof item.metadata === 'object' && !Array.isArray(item.metadata)) {
+              metadata = item.metadata as SleepMetadata;
+              // Ensure the required properties exist
+              if (typeof metadata.hours === 'number' && typeof metadata.quality === 'number') {
+                totalDuration += metadata.hours;
+                totalQualityScore += metadata.quality;
+              } else {
+                console.warn('Invalid sleep metadata structure:', metadata);
+                // Use fallback values
+                totalDuration += 0;
+                totalQualityScore += 3;
+              }
+            } else {
+              console.warn('Invalid metadata format:', item.metadata);
+              // Use fallback values
+              totalDuration += 0;
+              totalQualityScore += 3;
+            }
+          } catch (err) {
+            console.error('Error processing sleep metadata:', err);
+            // Use fallback values
+            totalDuration += 0;
+            totalQualityScore += 3;
+          }
         });
         
         const avgDuration = totalDuration / data.length;
@@ -123,7 +149,7 @@ const SleepTracker = () => {
     
     try {
       const now = new Date();
-      const sleepData: SleepMetadata = { 
+      const sleepData = { 
         hours, 
         quality,
         quality_text: getSleepQualityText(quality),
@@ -137,7 +163,7 @@ const SleepTracker = () => {
           user_id: user.id,
           activity_type: 'sleep_logged',
           description: `Logged ${hours} hours of sleep with ${getSleepQualityText(quality)} quality`,
-          metadata: sleepData
+          metadata: sleepData as Json
         });
         
       if (error) {
@@ -175,7 +201,6 @@ const SleepTracker = () => {
         {!showInput && (
           <Button 
             size="sm" 
-            variant="ghost" 
             onClick={() => setShowInput(true)}
           >
             Log Sleep

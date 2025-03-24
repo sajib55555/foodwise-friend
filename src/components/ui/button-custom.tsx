@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -8,7 +7,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:brightness-105",
+        default: "bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-purple hover:shadow-purple-lg",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:brightness-105",
         outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:brightness-95",
@@ -17,7 +16,7 @@ const buttonVariants = cva(
         glass: "glass text-foreground shadow-sm hover:shadow-md",
         "glass-primary": "glass bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md",
         "glass-sm": "glass text-foreground shadow-sm hover:shadow-md p-0",
-        "purple": "bg-purple-600 text-white shadow-purple hover:bg-purple-700 hover:shadow-purple-lg",
+        "purple": "bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-purple hover:shadow-purple-lg",
         "purple-light": "bg-purple-100 text-purple-800 hover:bg-purple-200",
         "purple-outline": "border border-purple-300 text-purple-700 hover:bg-purple-50",
         "purple-ghost": "text-purple-700 hover:bg-purple-50/50",
@@ -33,7 +32,7 @@ const buttonVariants = cva(
         "glass-green": "glass-green text-green-800 dark:text-green-200 shadow-sm hover:shadow-md",
         "glass-amber": "glass-amber text-amber-800 dark:text-amber-200 shadow-sm hover:shadow-md",
         "glass-pink": "glass-pink text-pink-800 dark:text-pink-200 shadow-sm hover:shadow-md",
-        icon: "rounded-full h-10 w-10 p-0 shadow-sm",
+        icon: "rounded-full bg-gradient-to-br from-purple-500 to-purple-700 text-white h-10 w-10 p-0 shadow-purple",
       },
       size: {
         default: "h-11 px-4 py-2",
@@ -54,7 +53,7 @@ const buttonVariants = cva(
       }
     },
     defaultVariants: {
-      variant: "default",
+      variant: "purple",
       size: "default",
       hover: "none",
     },

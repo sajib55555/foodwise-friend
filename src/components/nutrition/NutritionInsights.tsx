@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfDay, endOfDay } from "date-fns";
 import CalorieIntakeCard from "./components/CalorieIntakeCard";
 import MacroDistributionCard from "./components/MacroDistributionCard";
 import GoalProgressCard from "./components/GoalProgressCard";
@@ -176,11 +176,13 @@ const NutritionInsights: React.FC = () => {
       <CalorieIntakeCard 
         actualCalories={totalNutrition.calories} 
         mealBreakdown={mealBreakdown}
+        isLoading={isLoading}
       />
       <MacroDistributionCard 
         protein={totalNutrition.protein}
         carbs={totalNutrition.carbs}
         fat={totalNutrition.fat}
+        isLoading={isLoading}
       />
       <GoalProgressCard />
       

@@ -1,5 +1,5 @@
 
-// This file is kept for backward compatibility, but no mock data is used
-// Real user data is fetched from the database instead
+// This file is kept empty as real data is fetched from the database
 export const weeklyData = [];
 export const macroData = [];
+export const goalData = [];

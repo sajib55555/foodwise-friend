@@ -22,7 +22,7 @@ interface SleepMetadata {
 interface SleepLogEntry {
   id: string;
   created_at: string;
-  metadata: SleepMetadata;
+  metadata: Json;
   user_id: string;
   activity_type: string;
   description: string;
@@ -67,42 +67,31 @@ const SleepTracker = () => {
         let totalQualityScore = 0;
         
         data.forEach(item => {
-          // Safely cast the metadata to our expected type
-          let metadata: SleepMetadata;
-          
-          try {
-            // First check if metadata exists and is an object
-            if (item.metadata && typeof item.metadata === 'object' && !Array.isArray(item.metadata)) {
-              metadata = item.metadata as SleepMetadata;
-              // Ensure the required properties exist
-              if (typeof metadata.hours === 'number' && typeof metadata.quality === 'number') {
-                totalDuration += metadata.hours;
-                totalQualityScore += metadata.quality;
-              } else {
-                console.warn('Invalid sleep metadata structure:', metadata);
-                // Use fallback values
-                totalDuration += 0;
-                totalQualityScore += 3;
-              }
+          // Safely extract metadata
+          if (item.metadata && typeof item.metadata === 'object') {
+            // First try to access as an object with known properties
+            const metadata = item.metadata as Record<string, Json>;
+            
+            // Check if hours and quality exist and are numbers
+            if (metadata.hours !== undefined && typeof metadata.hours === 'number' &&
+                metadata.quality !== undefined && typeof metadata.quality === 'number') {
+              totalDuration += metadata.hours;
+              totalQualityScore += metadata.quality;
             } else {
-              console.warn('Invalid metadata format:', item.metadata);
-              // Use fallback values
-              totalDuration += 0;
-              totalQualityScore += 3;
+              console.warn('Invalid sleep metadata structure:', metadata);
             }
-          } catch (err) {
-            console.error('Error processing sleep metadata:', err);
-            // Use fallback values
-            totalDuration += 0;
-            totalQualityScore += 3;
+          } else {
+            console.warn('Invalid metadata format:', item.metadata);
           }
         });
         
-        const avgDuration = totalDuration / data.length;
-        const avgQuality = totalQualityScore / data.length;
-        
-        setAverageDuration(parseFloat(avgDuration.toFixed(1)));
-        setAverageQuality(getSleepQualityText(Math.round(avgQuality)));
+        if (data.length > 0) {
+          const avgDuration = totalDuration / data.length;
+          const avgQuality = totalQualityScore / data.length;
+          
+          setAverageDuration(parseFloat(avgDuration.toFixed(1)));
+          setAverageQuality(getSleepQualityText(Math.round(avgQuality)));
+        }
       } else {
         // Set defaults if no data
         setAverageDuration(7.5);
@@ -149,7 +138,7 @@ const SleepTracker = () => {
     
     try {
       const now = new Date();
-      const sleepData = { 
+      const sleepData: SleepMetadata = { 
         hours, 
         quality,
         quality_text: getSleepQualityText(quality),
@@ -202,6 +191,7 @@ const SleepTracker = () => {
           <Button 
             size="sm" 
             onClick={() => setShowInput(true)}
+            variant="purple-gradient"
           >
             Log Sleep
           </Button>
@@ -267,6 +257,7 @@ const SleepTracker = () => {
                 className="w-full" 
                 onClick={handleSleepLog}
                 disabled={isLoading}
+                variant="purple-gradient"
               >
                 {isLoading ? "Saving..." : "Save"}
               </Button>

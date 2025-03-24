@@ -31,7 +31,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'tts-1',
         input: text,
-        voice: voice || 'alloy',
+        voice: voice || 'nova', // Using nova voice for a more natural, professional sound
         response_format: 'mp3',
       }),
     })

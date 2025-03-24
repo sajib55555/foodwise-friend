@@ -15,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, userId, format = 'text' } = await req.json();
+    const { query, userId, format = 'text', isHealthAdvisor = false } = await req.json();
     
     if (!query) {
       throw new Error('Query parameter is required');
@@ -24,6 +24,8 @@ serve(async (req) => {
     if (!userId) {
       throw new Error('User ID is required');
     }
+
+    console.log(`Processing health data analysis request. Health Advisor mode: ${isHealthAdvisor}`);
 
     // Initialize OpenAI client
     const openai = new OpenAI({
@@ -39,53 +41,11 @@ serve(async (req) => {
     let mealData = [];
     let weightData = [];
     let workoutData = [];
+    let sleepData = [];
+    let waterData = [];
     let userData = null;
 
-    // Get user's meal data
-    const { data: meals, error: mealError } = await supabase
-      .from('user_activity_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('activity_type', 'meal_logged')
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (mealError) {
-      console.error('Error fetching meal data:', mealError);
-    } else {
-      mealData = meals;
-    }
-
-    // Get user's weight tracking data
-    const { data: weights, error: weightError } = await supabase
-      .from('user_activity_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('activity_type', 'weight_logged')
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    if (weightError) {
-      console.error('Error fetching weight data:', weightError);
-    } else {
-      weightData = weights;
-    }
-
-    // Get user's workout data
-    const { data: workouts, error: workoutError } = await supabase
-      .from('user_activity_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('activity_type', 'workout_logged')
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    if (workoutError) {
-      console.error('Error fetching workout data:', workoutError);
-    } else {
-      workoutData = workouts;
-    }
-
+    console.log('Fetching user profile data');
     // Get user profile data
     const { data: user, error: userError } = await supabase
       .from('user_profiles')
@@ -97,6 +57,92 @@ serve(async (req) => {
       console.error('Error fetching user data:', userError);
     } else {
       userData = user;
+      console.log('Successfully retrieved user profile');
+    }
+
+    console.log('Fetching meal data');
+    // Get user's meal data
+    const { data: meals, error: mealError } = await supabase
+      .from('user_activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('activity_type', 'meal_logged')
+      .order('created_at', { ascending: false })
+      .limit(30);  // Increased limit for better analysis
+
+    if (mealError) {
+      console.error('Error fetching meal data:', mealError);
+    } else {
+      mealData = meals;
+      console.log(`Retrieved ${mealData.length} meal records`);
+    }
+
+    console.log('Fetching weight data');
+    // Get user's weight tracking data
+    const { data: weights, error: weightError } = await supabase
+      .from('user_activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('activity_type', 'weight_logged')
+      .order('created_at', { ascending: false })
+      .limit(20);  // Increased limit to see trends
+
+    if (weightError) {
+      console.error('Error fetching weight data:', weightError);
+    } else {
+      weightData = weights;
+      console.log(`Retrieved ${weightData.length} weight records`);
+    }
+
+    console.log('Fetching workout data');
+    // Get user's workout data
+    const { data: workouts, error: workoutError } = await supabase
+      .from('user_activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('activity_type', 'workout_logged')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (workoutError) {
+      console.error('Error fetching workout data:', workoutError);
+    } else {
+      workoutData = workouts;
+      console.log(`Retrieved ${workoutData.length} workout records`);
+    }
+
+    console.log('Fetching sleep data');
+    // Get user's sleep data
+    const { data: sleep, error: sleepError } = await supabase
+      .from('user_activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('activity_type', 'sleep_logged')
+      .order('created_at', { ascending: false })
+      .limit(14);  // Two weeks of sleep data
+
+    if (sleepError) {
+      console.error('Error fetching sleep data:', sleepError);
+    } else {
+      sleepData = sleep;
+      console.log(`Retrieved ${sleepData.length} sleep records`);
+    }
+
+    console.log('Fetching water intake data');
+    // Get user's water intake data
+    const { data: water, error: waterError } = await supabase
+      .from('user_activity_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('activity_type', 'water_logged')
+      .order('created_at', { ascending: false })
+      .limit(14);  // Two weeks of water data
+
+    if (waterError) {
+      console.error('Error fetching water data:', waterError);
+    } else {
+      waterData = water;
+      console.log(`Retrieved ${waterData.length} water intake records`);
     }
 
     // Prepare context for AI
@@ -105,32 +151,92 @@ serve(async (req) => {
       recentMeals: mealData,
       recentWeightLogs: weightData,
       recentWorkouts: workoutData,
+      recentSleepData: sleepData,
+      recentWaterData: waterData
     };
 
-    // Adjust the system message based on format (voice or text)
-    let systemMessage = `You are a helpful nutrition and health assistant. I will help the user with their health, nutrition, and fitness questions.`;
+    // Calculate nutritional insights
+    let nutritionalInsights = {};
+    if (mealData.length > 0) {
+      console.log('Calculating nutritional insights');
+      
+      let totalCalories = 0;
+      let totalProtein = 0;
+      let totalCarbs = 0;
+      let totalFat = 0;
+      let mealCount = 0;
+      
+      mealData.forEach(meal => {
+        if (meal.metadata?.scanned_food) {
+          const food = meal.metadata.scanned_food;
+          totalCalories += food.calories || 0;
+          totalProtein += food.protein || 0;
+          totalCarbs += food.carbs || 0;
+          totalFat += food.fat || 0;
+          mealCount++;
+        }
+      });
+      
+      if (mealCount > 0) {
+        nutritionalInsights = {
+          averageDailyCalories: Math.round(totalCalories / (mealData.length / 3)), // Assuming 3 meals per day
+          averageProtein: Math.round(totalProtein / mealCount),
+          averageCarbs: Math.round(totalCarbs / mealCount),
+          averageFat: Math.round(totalFat / mealCount),
+          mealFrequency: mealData.length / 7, // Meals per day over last week
+        };
+      }
+      
+      console.log('Nutritional insights calculated:', nutritionalInsights);
+    }
+
+    // Adjust the system message based on format and mode
+    let systemMessage = `You are a professional healthcare AI advisor with expertise in nutrition, fitness, and overall wellness.`;
     
-    if (format === 'voice') {
-      systemMessage += ` Since you're speaking to the user, keep responses concise (under 150 words) and conversational. Use a friendly tone and avoid long technical explanations.`;
+    if (isHealthAdvisor) {
+      systemMessage = `You are Dr. Health AI, a comprehensive health and wellness advisor with medical expertise. You analyze the user's health data to provide personalized health recommendations and insights. Your tone is professional but warm, like a knowledgeable doctor who cares about their patient's wellbeing.
+      
+      For each health assessment you perform, you should:
+      1. Analyze the user's nutrition patterns (calories, macros, meal timing)
+      2. Evaluate their exercise habits and make recommendations
+      3. Review their sleep and water intake
+      4. If they have weight tracking data, provide context on their progress
+      5. Offer 2-3 specific, actionable recommendations for health improvement
+      
+      Always be encouraging and highlight positive trends while gently suggesting improvements.`;
     }
     
-    systemMessage += ` Here's the user's data to reference:
+    if (format === 'voice') {
+      systemMessage += ` Since you're speaking to the user, keep responses concise (under 200 words) and conversational. Use a friendly, encouraging tone and focus on the most important health insights.`;
+    }
+    
+    systemMessage += ` Here's the user's health data to reference:
     - User Profile: ${JSON.stringify(userData)}
-    - Recent Meals: ${JSON.stringify(mealData.slice(0, 5))}
-    - Recent Weight Logs: ${JSON.stringify(weightData.slice(0, 5))}
-    - Recent Workouts: ${JSON.stringify(workoutData.slice(0, 5))}
+    - Recent Meals: ${JSON.stringify(mealData.slice(0, 10))}
+    - Recent Weight Logs: ${JSON.stringify(weightData.slice(0, 10))}
+    - Recent Workouts: ${JSON.stringify(workoutData.slice(0, 10))}
+    - Recent Sleep Data: ${JSON.stringify(sleepData.slice(0, 7))}
+    - Recent Water Intake: ${JSON.stringify(waterData.slice(0, 7))}
+    - Nutritional Insights: ${JSON.stringify(nutritionalInsights)}
     `;
+
+    console.log('Sending request to OpenAI');
 
     // Get response from OpenAI
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemMessage },
-        { role: 'user', content: query }
+        { role: 'user', content: isHealthAdvisor ? 
+          "Please provide me with a comprehensive health assessment based on my data. Include specific insights about my nutrition, exercise, and other health metrics, along with personalized recommendations for improvement." : 
+          query 
+        }
       ],
-      max_tokens: format === 'voice' ? 250 : 800,
+      max_tokens: format === 'voice' ? 300 : 800,
       temperature: 0.7,
     });
+
+    console.log('Successfully received response from OpenAI');
 
     // Return AI response
     return new Response(
@@ -140,7 +246,10 @@ serve(async (req) => {
           userDataAvailable: !!userData,
           mealsAvailable: mealData.length,
           weightsAvailable: weightData.length,
-          workoutsAvailable: workoutData.length
+          workoutsAvailable: workoutData.length,
+          sleepDataAvailable: sleepData.length,
+          waterDataAvailable: waterData.length,
+          nutritionalInsights
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

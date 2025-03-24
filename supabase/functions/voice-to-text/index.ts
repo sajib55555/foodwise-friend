@@ -59,6 +59,7 @@ serve(async (req) => {
     const blob = new Blob([binaryAudio], { type: 'audio/webm' })
     formData.append('file', blob, 'audio.webm')
     formData.append('model', 'whisper-1')
+    formData.append('language', 'en') // Ensuring English language processing
 
     console.log('Sending audio to OpenAI for transcription...');
     

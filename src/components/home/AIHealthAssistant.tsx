@@ -280,18 +280,41 @@ const AIHealthAssistant = () => {
       const today = new Date();
       const weekStart = startOfDay(subDays(today, 7));
       
-      const { data, error } = await supabase
+      const { data: workoutData, error: workoutError } = await supabase
+        .from('user_activity_logs')
+        .select('*')
+        .eq('activity_type', 'workout_logged')
+        .gte('created_at', weekStart.toISOString())
+        .order('created_at', { ascending: false });
+      
+      if (workoutError) {
+        console.error("Error fetching workout data:", workoutError);
+      }
+      
+      const { data: exerciseData, error: exerciseError } = await supabase
         .from('user_activity_logs')
         .select('*')
         .eq('activity_type', 'exercise_logged')
         .gte('created_at', weekStart.toISOString())
         .order('created_at', { ascending: false });
       
-      if (error) {
-        throw error;
+      if (exerciseError) {
+        console.error("Error fetching exercise data:", exerciseError);
       }
       
-      return data ? data.map(item => {
+      const processedWorkouts = workoutData ? workoutData.map(item => {
+        const metadataObj = getMetadataObject(item.metadata);
+        return {
+          date: format(new Date(item.created_at), 'yyyy-MM-dd'),
+          type: metadataObj.workout_type || metadataObj.type || 'other',
+          name: metadataObj.workout_name || metadataObj.name || 'Workout',
+          duration: metadataObj.duration || 0,
+          calories_burned: metadataObj.calories || 0,
+          intensity: metadataObj.intensity || 'medium'
+        };
+      }) : [];
+      
+      const processedExercises = exerciseData ? exerciseData.map(item => {
         const metadataObj = getMetadataObject(item.metadata);
         return {
           date: format(new Date(item.created_at), 'yyyy-MM-dd'),
@@ -301,6 +324,8 @@ const AIHealthAssistant = () => {
           intensity: metadataObj.intensity || 'medium'
         };
       }) : [];
+      
+      return [...processedWorkouts, ...processedExercises];
       
     } catch (error) {
       console.error("Error fetching exercise data:", error);
@@ -328,8 +353,8 @@ const AIHealthAssistant = () => {
         const metadataObj = getMetadataObject(item.metadata);
         return {
           date: format(new Date(item.created_at), 'yyyy-MM-dd'),
-          duration: metadataObj.duration || 0,
-          quality: metadataObj.quality || 'medium',
+          duration: metadataObj.hours || 0,
+          quality: metadataObj.quality_text || metadataObj.quality || 'medium',
           start_time: metadataObj.start_time,
           end_time: metadataObj.end_time
         };
@@ -1077,3 +1102,4 @@ const AIHealthAssistant = () => {
 };
 
 export default AIHealthAssistant;
+

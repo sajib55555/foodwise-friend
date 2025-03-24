@@ -1,17 +1,72 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Moon, Clock, BedDouble } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SleepTracker = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [hours, setHours] = useState(7.5);
   const [quality, setQuality] = useState(3);
   const [showInput, setShowInput] = useState(false);
+  const [averageDuration, setAverageDuration] = useState<number | null>(null);
+  const [averageQuality, setAverageQuality] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchSleepData();
+    }
+  }, [user]);
+
+  const fetchSleepData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_activity_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('activity_type', 'sleep_logged')
+        .order('created_at', { ascending: false })
+        .limit(7);
+        
+      if (error) {
+        console.error('Error fetching sleep data:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        // Calculate average duration
+        let totalDuration = 0;
+        let totalQualityScore = 0;
+        
+        data.forEach(item => {
+          const metadata = item.metadata || {};
+          totalDuration += metadata.hours || 0;
+          totalQualityScore += metadata.quality || 3;
+        });
+        
+        const avgDuration = totalDuration / data.length;
+        const avgQuality = totalQualityScore / data.length;
+        
+        setAverageDuration(parseFloat(avgDuration.toFixed(1)));
+        setAverageQuality(getSleepQualityText(Math.round(avgQuality)));
+      } else {
+        // Set defaults if no data
+        setAverageDuration(7.5);
+        setAverageQuality('Good');
+      }
+    } catch (err) {
+      console.error('Failed to fetch sleep data:', err);
+    }
+  };
 
   const getSleepQualityText = (quality: number) => {
     switch (quality) {
@@ -35,19 +90,58 @@ const SleepTracker = () => {
     }
   };
 
-  const handleSleepLog = () => {
-    // Save sleep data (could be expanded to use Supabase)
-    const sleepData = { date: new Date().toISOString(), hours, quality };
+  const handleSleepLog = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to track your sleep",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // In a real app, we would save this to the database
-    console.log("Sleep data logged:", sleepData);
+    setIsLoading(true);
     
-    toast({
-      title: "Sleep Logged",
-      description: `${hours} hours with ${getSleepQualityText(quality)} quality`,
-    });
-    
-    setShowInput(false);
+    try {
+      const now = new Date();
+      const sleepData = { 
+        hours, 
+        quality,
+        quality_text: getSleepQualityText(quality),
+        date: now.toISOString().split('T')[0],
+        time: now.toTimeString().split(' ')[0].slice(0, 5)
+      };
+      
+      const { error } = await supabase
+        .from('user_activity_logs')
+        .insert({
+          user_id: user.id,
+          activity_type: 'sleep_logged',
+          description: `Logged ${hours} hours of sleep with ${getSleepQualityText(quality)} quality`,
+          metadata: sleepData
+        });
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Sleep Logged",
+        description: `${hours} hours with ${getSleepQualityText(quality)} quality`,
+      });
+      
+      fetchSleepData();
+      setShowInput(false);
+    } catch (err) {
+      console.error('Error saving sleep data:', err);
+      toast({
+        title: "Error",
+        description: "Failed to save sleep data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -121,14 +215,16 @@ const SleepTracker = () => {
                 variant="outline" 
                 className="w-full" 
                 onClick={() => setShowInput(false)}
+                disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button 
                 className="w-full" 
                 onClick={handleSleepLog}
+                disabled={isLoading}
               >
-                Save
+                {isLoading ? "Saving..." : "Save"}
               </Button>
             </div>
           </div>
@@ -139,14 +235,14 @@ const SleepTracker = () => {
                 <div className="flex justify-center mb-1">
                   <Clock className="h-5 w-5 text-primary" />
                 </div>
-                <div className="text-2xl font-bold">7.5h</div>
+                <div className="text-2xl font-bold">{averageDuration || '7.5'}h</div>
                 <div className="text-xs text-muted-foreground">Avg Duration</div>
               </div>
               <div className="rounded-lg bg-primary/10 p-3 text-center">
                 <div className="flex justify-center mb-1">
                   <BedDouble className="h-5 w-5 text-primary" />
                 </div>
-                <div className="text-2xl font-bold">Good</div>
+                <div className="text-2xl font-bold">{averageQuality || 'Good'}</div>
                 <div className="text-xs text-muted-foreground">Avg Quality</div>
               </div>
             </div>

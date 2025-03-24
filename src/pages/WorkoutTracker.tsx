@@ -13,6 +13,8 @@ import WorkoutStatsCards from "@/components/workout/WorkoutStatsCards";
 import { motion } from "framer-motion";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface Workout {
   id: string;
@@ -29,97 +31,160 @@ const WorkoutTracker = () => {
   const { logActivity } = useActivityLog();
   const [showWorkoutForm, setShowWorkoutForm] = useState(false);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const isMobile = useIsMobile();
+  const { user } = useAuth();
 
-  // Load workouts from localStorage on component mount
+  // Load workouts from the database
   useEffect(() => {
-    const savedWorkouts = localStorage.getItem('workouts');
-    if (savedWorkouts) {
-      setWorkouts(JSON.parse(savedWorkouts));
-    } else {
-      // Initial mock data if nothing in localStorage
-      const initialWorkouts = [
-        {
-          id: "1",
-          name: "Morning Run",
-          type: "Cardio",
-          duration: 30,
-          calories: 320,
-          date: new Date().toISOString().split('T')[0],
-          time: "08:30"
-        },
-        {
-          id: "2",
-          name: "Strength Training",
-          type: "Strength",
-          duration: 45,
-          calories: 210,
-          date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
-          time: "18:15"
-        }
-      ];
-      setWorkouts(initialWorkouts);
-      localStorage.setItem('workouts', JSON.stringify(initialWorkouts));
-    }
-    
-    const pendingWorkoutString = localStorage.getItem('pendingWorkout');
-    
-    if (pendingWorkoutString) {
+    async function fetchWorkouts() {
+      if (!user) return;
+      
+      setIsLoading(true);
       try {
-        const pendingWorkout = JSON.parse(pendingWorkoutString) as Omit<Workout, "id">;
-        addWorkout(pendingWorkout);
-        localStorage.removeItem('pendingWorkout');
+        const { data, error } = await supabase
+          .from('user_activity_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('activity_type', 'workout_logged')
+          .order('created_at', { ascending: false });
+          
+        if (error) {
+          console.error('Error fetching workouts:', error);
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          const formattedWorkouts: Workout[] = data.map(entry => {
+            const metadata = entry.metadata || {};
+            const dateObj = new Date(entry.created_at);
+            
+            return {
+              id: entry.id,
+              name: metadata.workout_name || 'Workout',
+              type: metadata.workout_type || 'Other',
+              duration: Number(metadata.duration) || 30,
+              calories: Number(metadata.calories) || 0,
+              date: dateObj.toISOString().split('T')[0],
+              time: dateObj.toTimeString().slice(0, 5)
+            };
+          });
+          
+          setWorkouts(formattedWorkouts);
+        }
       } catch (error) {
-        console.error("Error processing pending workout:", error);
+        console.error('Error processing workout data:', error);
+        toast({
+          title: "Failed to load workout history",
+          description: "Please try refreshing the page",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
       }
     }
-  }, []);
-
-  // Save workouts to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('workouts', JSON.stringify(workouts));
-    // Notify ExerciseTracker component about updates
-    localStorage.setItem('exerciseTrackerUpdated', 'true');
-    // Dispatch a storage event to trigger the listener in ExerciseTracker
-    window.dispatchEvent(new Event('storage'));
-  }, [workouts]);
-
-  const addWorkout = (workout: Omit<Workout, "id">) => {
-    const newWorkout = {
-      ...workout,
-      id: Math.random().toString(36).substring(2, 9)
-    };
-    setWorkouts([newWorkout, ...workouts]);
-    setShowWorkoutForm(false);
     
-    logActivity('workout_logged', `Logged a workout: ${workout.name}`, {
-      workout_name: workout.name,
-      workout_type: workout.type,
-      duration: workout.duration,
-      calories: workout.calories
-    });
+    fetchWorkouts();
+  }, [user, toast]);
+
+  const addWorkout = async (workout: Omit<Workout, "id">) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to log your workout",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    toast({
-      title: "Workout added",
-      description: `${workout.name} has been added to your history.`,
-    });
+    try {
+      // Insert workout into user_activity_logs
+      const { data, error } = await supabase
+        .from('user_activity_logs')
+        .insert([
+          {
+            user_id: user.id,
+            activity_type: 'workout_logged',
+            description: `Logged a workout: ${workout.name}`,
+            metadata: {
+              workout_name: workout.name,
+              workout_type: workout.type,
+              duration: workout.duration,
+              calories: workout.calories
+            }
+          }
+        ])
+        .select();
+        
+      if (error) {
+        throw error;
+      }
+      
+      const newWorkout = {
+        ...workout,
+        id: data?.[0]?.id || Math.random().toString(36).substring(2, 9)
+      };
+      
+      setWorkouts([newWorkout, ...workouts]);
+      setShowWorkoutForm(false);
+      
+      logActivity('workout_logged', `Logged a workout: ${workout.name}`, {
+        workout_name: workout.name,
+        workout_type: workout.type,
+        duration: workout.duration,
+        calories: workout.calories
+      });
+      
+      toast({
+        title: "Workout added",
+        description: `${workout.name} has been added to your history.`,
+      });
+    } catch (error) {
+      console.error('Error saving workout:', error);
+      toast({
+        title: "Failed to save workout",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
-  const deleteWorkout = (id: string) => {
-    const workoutToDelete = workouts.find(w => w.id === id);
-    setWorkouts(workouts.filter(workout => workout.id !== id));
+  const deleteWorkout = async (id: string) => {
+    if (!user) return;
     
-    if (workoutToDelete) {
+    const workoutToDelete = workouts.find(w => w.id === id);
+    
+    if (!workoutToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_activity_logs')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setWorkouts(workouts.filter(workout => workout.id !== id));
+      
       logActivity('workout_deleted', `Deleted workout: ${workoutToDelete.name}`, {
         workout_name: workoutToDelete.name,
         workout_type: workoutToDelete.type
       });
+      
+      toast({
+        title: "Workout deleted",
+        description: "The workout has been removed from your history.",
+      });
+    } catch (error) {
+      console.error('Error deleting workout:', error);
+      toast({
+        title: "Failed to delete workout",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Workout deleted",
-      description: "The workout has been removed from your history.",
-    });
   };
 
   const totalCalories = workouts.reduce((sum, workout) => sum + workout.calories, 0);
@@ -174,7 +239,13 @@ const WorkoutTracker = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <WorkoutHistoryList workouts={workouts} onDelete={deleteWorkout} />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                      <div className="w-6 h-6 border-2 border-purple-500 rounded-full animate-spin border-t-transparent"></div>
+                    </div>
+                  ) : (
+                    <WorkoutHistoryList workouts={workouts} onDelete={deleteWorkout} />
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -21,28 +22,80 @@ import WeightHistoryList from "@/components/weight/WeightHistoryList";
 import WeightChart from "@/components/weight/WeightChart";
 import WeightStatsCards from "@/components/weight/WeightStatsCards";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const WeightTracker = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [weight, setWeight] = useState("");
-  
-  const { logActivity } = useActivityLog();
-
   const [weightEntries, setWeightEntries] = useState<{
     id: string;
     weight: number;
     date: string;
     formattedDate: string;
-  }[]>([
-    { id: "1", weight: 72.5, date: "2023-10-01", formattedDate: "Oct 1" },
-    { id: "2", weight: 72.1, date: "2023-10-08", formattedDate: "Oct 8" },
-    { id: "3", weight: 71.8, date: "2023-10-15", formattedDate: "Oct 15" },
-    { id: "4", weight: 71.2, date: "2023-10-22", formattedDate: "Oct 22" },
-    { id: "5", weight: 70.5, date: "2023-10-29", formattedDate: "Oct 29" },
-    { id: "6", weight: 70.1, date: "2023-11-05", formattedDate: "Nov 5" },
-  ]);
+  }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const { logActivity } = useActivityLog();
+  const { user } = useAuth();
 
-  const handleAddWeight = () => {
+  useEffect(() => {
+    if (!user) return;
+    
+    async function fetchWeightData() {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('user_activity_logs')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('activity_type', 'weight_logged')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data && data.length > 0) {
+          const formattedEntries = data.map(entry => {
+            const metadata = entry.metadata || {};
+            const dateObj = new Date(entry.created_at);
+            
+            return {
+              id: entry.id,
+              weight: Number(metadata.weight_value) || 0,
+              date: format(dateObj, 'yyyy-MM-dd'),
+              formattedDate: format(dateObj, 'MMM d')
+            };
+          });
+          
+          setWeightEntries(formattedEntries);
+        }
+      } catch (error) {
+        console.error('Error fetching weight data:', error);
+        toast({
+          title: "Failed to load weight history",
+          description: "Please try refreshing the page",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchWeightData();
+  }, [user, toast]);
+
+  const handleAddWeight = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to log your weight",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const weightValue = parseFloat(weight);
     
     if (isNaN(weightValue) || weightValue <= 0) {
@@ -58,14 +111,46 @@ const WeightTracker = () => {
     const dateStr = format(today, "yyyy-MM-dd");
     const formattedDateStr = format(today, "MMM d");
     
+    // Log to user_activity_logs
+    const { data, error } = await supabase
+      .from('user_activity_logs')
+      .insert([
+        {
+          user_id: user.id,
+          activity_type: 'weight_logged',
+          description: `Logged weight: ${weightValue} kg`,
+          metadata: {
+            weight_value: weightValue,
+            date: dateStr
+          }
+        }
+      ])
+      .select();
+      
+    if (error) {
+      console.error('Error logging weight:', error);
+      toast({
+        title: "Failed to save weight",
+        description: "Please try again",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Also update the user's profile with the latest weight
+    await supabase
+      .from('profiles')
+      .update({ weight: weightValue.toString() })
+      .eq('id', user.id);
+    
     const newEntry = {
-      id: Date.now().toString(),
+      id: data?.[0]?.id || Date.now().toString(),
       weight: weightValue,
       date: dateStr,
       formattedDate: formattedDateStr,
     };
     
-    setWeightEntries([...weightEntries, newEntry]);
+    setWeightEntries([newEntry, ...weightEntries]);
     setWeight("");
     setAddDialogOpen(false);
     
@@ -80,21 +165,42 @@ const WeightTracker = () => {
     });
   };
 
-  const handleDeleteEntry = (id: string) => {
-    const entryToDelete = weightEntries.find(entry => entry.id === id);
-    setWeightEntries(weightEntries.filter(entry => entry.id !== id));
+  const handleDeleteEntry = async (id: string) => {
+    if (!user) return;
     
-    if (entryToDelete) {
+    const entryToDelete = weightEntries.find(entry => entry.id === id);
+    
+    if (!entryToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_activity_logs')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setWeightEntries(weightEntries.filter(entry => entry.id !== id));
+      
       logActivity('weight_deleted', `Deleted weight entry: ${entryToDelete.weight} kg`, {
         weight_value: entryToDelete.weight,
         date: entryToDelete.date
       });
+      
+      toast({
+        title: "Entry Deleted",
+        description: "Weight entry has been removed from your history.",
+      });
+    } catch (error) {
+      console.error('Error deleting weight entry:', error);
+      toast({
+        title: "Failed to delete entry",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: "Entry Deleted",
-      description: "Weight entry has been removed from your history.",
-    });
   };
 
   return (
@@ -157,7 +263,18 @@ const WeightTracker = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <WeightChart weightEntries={weightEntries} />
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <div className="w-6 h-6 border-2 border-purple-500 rounded-full animate-spin border-t-transparent"></div>
+                  </div>
+                ) : weightEntries.length > 0 ? (
+                  <WeightChart weightEntries={weightEntries} />
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <p>No weight entries found</p>
+                    <p className="text-sm mt-1">Add a weight entry to see your progress</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -170,6 +287,7 @@ const WeightTracker = () => {
             <WeightHistoryList 
               weightEntries={weightEntries} 
               onDelete={handleDeleteEntry} 
+              isLoading={isLoading}
             />
           </motion.div>
         </div>

@@ -9,6 +9,7 @@ import NutritionSummary from "@/components/home/NutritionSummary";
 import ActionButtons from "@/components/home/ActionButtons";
 import ExerciseTracker from "@/components/home/ExerciseTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";
+import AIVoiceAssistant from "@/components/home/AIVoiceAssistant";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar, Dumbbell } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -66,13 +67,14 @@ const Index = () => {
               <ActionButtons />
             </motion.div>
             
-            {/* AI Health Assistant with ID for scrolling - Made slightly smaller by adjusting scale */}
-            <motion.div 
-              variants={itemVariants} 
-              id="ai-health-assistant"
-              className="transform scale-95" // Added scale to reduce size by 5%
-            >
-              <AIHealthAssistant />
+            {/* AI Health Assistant and Voice Assistant in a grid */}
+            <motion.div variants={itemVariants} className="grid md:grid-cols-2 gap-3">
+              <div id="ai-health-assistant">
+                <AIHealthAssistant />
+              </div>
+              <div id="ai-voice-assistant">
+                <AIVoiceAssistant />
+              </div>
             </motion.div>
             
             {/* Navigation Buttons - Updated to be side by side in a centered flex container */}

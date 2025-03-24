@@ -56,7 +56,13 @@ const ActionButtons = () => {
     { 
       icon: <Brain className={iconSize} />, 
       label: "AI Assistant", 
-      onClick: () => document.getElementById('ai-health-assistant')?.scrollIntoView({ behavior: 'smooth' }),
+      onClick: () => {
+        document.getElementById('ai-health-assistant')?.scrollIntoView({ behavior: 'smooth' });
+        // Also scroll the voice assistant into view after a slight delay
+        setTimeout(() => {
+          document.getElementById('ai-voice-assistant')?.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      },
       gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       textColor: "text-white",
       shadow: "shadow-indigo"

@@ -10,31 +10,49 @@ interface MacroDistributionCardProps {
   protein?: number;
   carbs?: number;
   fat?: number;
+  data?: any[]; // Added to support the data prop
 }
 
 const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({ 
   protein = 0, 
   carbs = 0, 
-  fat = 0 
+  fat = 0,
+  data
 }) => {
+  // Process data if it's provided
+  let proteinVal = protein;
+  let carbsVal = carbs;
+  let fatVal = fat;
+
+  if (data && data.length > 0) {
+    // If data is in format [{name: "Protein", current: 50, goal: 100}, ...]
+    const proteinData = data.find(item => item.name === "Protein");
+    const carbsData = data.find(item => item.name === "Carbs");
+    const fatData = data.find(item => item.name === "Fat");
+    
+    if (proteinData) proteinVal = proteinData.current || 0;
+    if (carbsData) carbsVal = carbsData.current || 0;
+    if (fatData) fatVal = fatData.current || 0;
+  }
+  
   // Calculate total
-  const total = protein + carbs + fat;
+  const total = proteinVal + carbsVal + fatVal;
   
   // Calculate percentages
-  const proteinPercentage = total > 0 ? Math.round((protein / total) * 100) : 0;
-  const carbsPercentage = total > 0 ? Math.round((carbs / total) * 100) : 0;
-  const fatPercentage = total > 0 ? Math.round((fat / total) * 100) : 0;
+  const proteinPercentage = total > 0 ? Math.round((proteinVal / total) * 100) : 0;
+  const carbsPercentage = total > 0 ? Math.round((carbsVal / total) * 100) : 0;
+  const fatPercentage = total > 0 ? Math.round((fatVal / total) * 100) : 0;
   
   // Prepare data for chart
-  const data = [
-    { name: "Protein", value: protein, percentage: proteinPercentage, color: "#3b82f6" },
-    { name: "Carbs", value: carbs, percentage: carbsPercentage, color: "#22c55e" },
-    { name: "Fat", value: fat, percentage: fatPercentage, color: "#f59e0b" }
+  const chartData = [
+    { name: "Protein", value: proteinVal, percentage: proteinPercentage, color: "#3b82f6" },
+    { name: "Carbs", value: carbsVal, percentage: carbsPercentage, color: "#22c55e" },
+    { name: "Fat", value: fatVal, percentage: fatPercentage, color: "#f59e0b" }
   ].filter(item => item.value > 0);
   
   // If no data, provide default empty state
   if (total === 0) {
-    data.push(
+    chartData.push(
       { name: "No Data", value: 1, percentage: 100, color: "#e5e7eb" }
     );
   }
@@ -61,7 +79,7 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={chartData}
                   cx="50%"
                   cy="50%"
                   innerRadius={40}
@@ -70,7 +88,7 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
                   dataKey="value"
                   stroke="transparent"
                 >
-                  {data.map((entry, index) => (
+                  {chartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -88,7 +106,7 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
             transition={{ delay: 0.3 }}
             className="flex flex-col space-y-2 mt-4 sm:mt-0"
           >
-            {data.map((item, index) => (
+            {chartData.map((item, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
                 <span className="text-sm">{item.name}</span>

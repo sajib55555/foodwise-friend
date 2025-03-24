@@ -7,14 +7,37 @@ import { Flame, Target } from "lucide-react";
 
 interface CalorieIntakeCardProps {
   actualCalories?: number;
+  data?: any[]; // Added to support the data prop being passed
 }
 
-const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({ actualCalories = 0 }) => {
+const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({ 
+  actualCalories = 0,
+  data 
+}) => {
+  // Process data if it's provided
+  let calories = actualCalories;
+  if (data && data.length > 0) {
+    // Sum the calories from the last available day's data
+    const today = new Date().getDay(); // 0-6, where 0 is Sunday
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const todayName = dayNames[today];
+    
+    // Find today's entry in the data
+    const todayData = data.find(day => day.name === todayName);
+    if (todayData) {
+      calories = todayData.calories || 0;
+    } else {
+      // If today's data is not available, sum all calories and average them
+      const totalCalories = data.reduce((sum, day) => sum + (day.calories || 0), 0);
+      calories = data.length > 0 ? Math.round(totalCalories / data.length) : 0;
+    }
+  }
+  
   // Default target calories
   const targetCalories = 2000;
   
   // Calculate percentage
-  const percentage = Math.min(Math.round((actualCalories / targetCalories) * 100), 100);
+  const percentage = Math.min(Math.round((calories / targetCalories) * 100), 100);
   
   return (
     <Card variant="glass" className="overflow-hidden border-green-100 dark:border-green-900/20">
@@ -28,7 +51,7 @@ const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({ actualCalories = 
         <div className="mt-1 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <span className="text-2xl font-bold text-orange-500">{actualCalories}</span>
+              <span className="text-2xl font-bold text-orange-500">{calories}</span>
               <span className="ml-1 text-sm text-muted-foreground">/ {targetCalories} kcal</span>
             </div>
             <div className="flex items-center space-x-1 text-sm text-muted-foreground">

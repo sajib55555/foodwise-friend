@@ -96,7 +96,7 @@ const ActionButtons = () => {
     { 
       icon: <Target className={iconSize} />, 
       label: "Goals", 
-      onClick: () => navigate("/goals"),
+      onClick: () => navigate("/goals-tracker"),
       gradient: "bg-gradient-to-br from-teal-400 to-teal-600",
       textColor: "text-white",
       shadow: "shadow-teal"

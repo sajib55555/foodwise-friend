@@ -12,7 +12,6 @@ import ExerciseTracker from "@/components/home/ExerciseTracker";
 import ReminderSystem from "@/components/home/ReminderSystem";
 import MealRecommendations from "@/components/home/MealRecommendations";
 import SleepTracker from "@/components/home/SleepTracker";
-import GoalTracker from "@/components/home/GoalTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar, Dumbbell } from "lucide-react";
@@ -135,23 +134,14 @@ const Index = () => {
               >
                 <SleepTracker />
               </motion.div>
-              <motion.div 
-                variants={itemVariants}
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <GoalTracker />
-              </motion.div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <motion.div 
-                variants={itemVariants}
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <MealRecommendations />
-              </motion.div>
-              {/* Removed WorkoutSuggestions component */}
-            </div>
+            <motion.div 
+              variants={itemVariants}
+              className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
+            >
+              <MealRecommendations />
+            </motion.div>
             
             <motion.div 
               variants={itemVariants}
@@ -159,8 +149,6 @@ const Index = () => {
             >
               <ReminderSystem />
             </motion.div>
-            
-            {/* Removed premium feature banner */}
           </motion.div>
         </main>
         <MobileNavbar />

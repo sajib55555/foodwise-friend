@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
@@ -24,6 +23,7 @@ import WeightStatsCards from "@/components/weight/WeightStatsCards";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Json } from "@/integrations/supabase/types";
 
 const WeightTracker = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -58,7 +58,7 @@ const WeightTracker = () => {
         
         if (data && data.length > 0) {
           const formattedEntries = data.map(entry => {
-            const metadata = entry.metadata || {};
+            const metadata = entry.metadata as Record<string, any> || {};
             const dateObj = new Date(entry.created_at);
             
             return {
@@ -287,7 +287,6 @@ const WeightTracker = () => {
             <WeightHistoryList 
               weightEntries={weightEntries} 
               onDelete={handleDeleteEntry} 
-              isLoading={isLoading}
             />
           </motion.div>
         </div>

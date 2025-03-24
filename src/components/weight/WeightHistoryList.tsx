@@ -15,9 +15,10 @@ interface WeightEntry {
 interface WeightHistoryListProps {
   weightEntries: WeightEntry[];
   onDelete: (id: string) => void;
+  isLoading?: boolean;
 }
 
-const WeightHistoryList: React.FC<WeightHistoryListProps> = ({ weightEntries, onDelete }) => {
+const WeightHistoryList: React.FC<WeightHistoryListProps> = ({ weightEntries, onDelete, isLoading = false }) => {
   // Sort entries by date in descending order (newest first)
   const sortedEntries = [...weightEntries].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -29,7 +30,11 @@ const WeightHistoryList: React.FC<WeightHistoryListProps> = ({ weightEntries, on
         <CardTitle className="text-lg font-semibold">Weight History</CardTitle>
       </CardHeader>
       <CardContent>
-        {sortedEntries.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="w-6 h-6 border-2 border-purple-500 rounded-full animate-spin border-t-transparent"></div>
+          </div>
+        ) : sortedEntries.length > 0 ? (
           <div className="space-y-3">
             {sortedEntries.map((entry, index) => {
               // Calculate weight change

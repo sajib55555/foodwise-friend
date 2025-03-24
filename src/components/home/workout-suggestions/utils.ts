@@ -4,13 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const suggestedWorkouts: Workout[] = [];
 
-// This function will fetch real workout suggestions from the database
+// This function will fetch workout suggestions from user activity logs
 export const fetchSuggestedWorkouts = async (userId: string): Promise<Workout[]> => {
   try {
     const { data, error } = await supabase
-      .from('user_workout_suggestions')
+      .from('user_activity_logs')
       .select('*')
       .eq('user_id', userId)
+      .eq('activity_type', 'workout_suggestion')
       .order('created_at', { ascending: false });
       
     if (error) {
@@ -19,19 +20,22 @@ export const fetchSuggestedWorkouts = async (userId: string): Promise<Workout[]>
     }
     
     if (data && data.length > 0) {
-      return data.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        level: item.level || 'beginner',
-        category: item.category || 'strength',
-        duration: item.duration || '30 minutes',
-        caloriesBurned: item.calories_burned || 250,
-        difficulty: item.difficulty || 'Beginner',
-        exercises: item.exercises || [
-          { name: "Example Exercise", sets: "3", reps: "10" }
-        ]
-      }));
+      return data.map((item: any) => {
+        const metadata = item.metadata || {};
+        return {
+          id: item.id,
+          name: metadata.name || 'Workout',
+          description: metadata.description || 'No description available',
+          level: metadata.level || 'beginner',
+          category: metadata.category || 'strength',
+          duration: metadata.duration || '30 minutes',
+          caloriesBurned: metadata.calories_burned || 250,
+          difficulty: metadata.difficulty || 'Beginner',
+          exercises: metadata.exercises || [
+            { name: "Example Exercise", sets: "3", reps: "10" }
+          ]
+        };
+      });
     }
     
     return [];

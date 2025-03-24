@@ -15,6 +15,7 @@ import { useActivityLog } from "@/contexts/ActivityLogContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Json } from "@/integrations/supabase/types";
 
 export interface Workout {
   id: string;
@@ -56,7 +57,7 @@ const WorkoutTracker = () => {
         
         if (data && data.length > 0) {
           const formattedWorkouts: Workout[] = data.map(entry => {
-            const metadata = entry.metadata || {};
+            const metadata = entry.metadata as Record<string, any> || {};
             const dateObj = new Date(entry.created_at);
             
             return {

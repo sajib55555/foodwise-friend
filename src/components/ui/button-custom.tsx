@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -7,7 +8,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-purple hover:shadow-purple-lg",
+        default: "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-purple hover:shadow-purple-lg",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:brightness-105",
         outline: "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:brightness-95",
@@ -16,23 +17,23 @@ const buttonVariants = cva(
         glass: "glass text-foreground shadow-sm hover:shadow-md",
         "glass-primary": "glass bg-primary/90 text-primary-foreground shadow-sm hover:shadow-md",
         "glass-sm": "glass text-foreground shadow-sm hover:shadow-md p-0",
-        "purple": "bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-purple hover:shadow-purple-lg",
+        "purple": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-purple hover:shadow-purple-lg",
         "purple-light": "bg-purple-100 text-purple-800 hover:bg-purple-200",
         "purple-outline": "border border-purple-300 text-purple-700 hover:bg-purple-50",
         "purple-ghost": "text-purple-700 hover:bg-purple-50/50",
-        "purple-gradient": "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-purple hover:shadow-purple-lg",
-        "premium": "bg-gradient-to-r from-[#9b87f5] to-[#7c3aed] text-white shadow-purple hover:shadow-purple-lg",
-        "blue-gradient": "bg-gradient-to-r from-blue-500 to-cyan-400 text-white shadow-md hover:shadow-blue-200/50",
-        "green-gradient": "bg-gradient-to-r from-green-500 to-emerald-400 text-white shadow-md hover:shadow-green-200/50",
-        "amber-gradient": "bg-gradient-to-r from-amber-500 to-orange-400 text-white shadow-md hover:shadow-amber-200/50",
-        "pink-gradient": "bg-gradient-to-r from-pink-500 to-rose-400 text-white shadow-md hover:shadow-pink-200/50",
-        "teal-gradient": "bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md hover:shadow-teal-200/50", 
-        "rainbow-gradient": "bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white shadow-md hover:shadow-purple-200/50",
+        "purple-gradient": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-purple hover:shadow-purple-lg",
+        "premium": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-purple hover:shadow-purple-lg",
+        "blue-gradient": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md hover:shadow-blue-200/50",
+        "green-gradient": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md hover:shadow-green-200/50",
+        "amber-gradient": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md hover:shadow-amber-200/50",
+        "pink-gradient": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md hover:shadow-pink-200/50",
+        "teal-gradient": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md hover:shadow-teal-200/50", 
+        "rainbow-gradient": "bg-[#8B5CF6] hover:bg-[#7C3AED] text-white shadow-md hover:shadow-purple-200/50",
         "glass-blue": "glass-blue text-blue-800 dark:text-blue-200 shadow-sm hover:shadow-md",
         "glass-green": "glass-green text-green-800 dark:text-green-200 shadow-sm hover:shadow-md",
         "glass-amber": "glass-amber text-amber-800 dark:text-amber-200 shadow-sm hover:shadow-md",
         "glass-pink": "glass-pink text-pink-800 dark:text-pink-200 shadow-sm hover:shadow-md",
-        icon: "rounded-full bg-gradient-to-br from-purple-500 to-purple-700 text-white h-10 w-10 p-0 shadow-purple",
+        icon: "rounded-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white h-10 w-10 p-0 shadow-purple",
       },
       size: {
         default: "h-11 px-4 py-2",

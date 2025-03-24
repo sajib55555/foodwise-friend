@@ -33,7 +33,6 @@ const ActionButtons = () => {
       icon: <PlusCircle className={iconSize} />, 
       label: "Log Meal", 
       onClick: () => navigate("/log-meal"),
-      gradient: "bg-gradient-to-br from-purple-400 to-purple-600",
       textColor: "text-white",
       shadow: "shadow-purple"
     },
@@ -41,89 +40,78 @@ const ActionButtons = () => {
       icon: <UtensilsCrossed className={iconSize} />, 
       label: "Food Scanner", 
       onClick: () => navigate("/scan"),
-      gradient: "bg-gradient-to-br from-blue-400 to-blue-600",
       textColor: "text-white",
-      shadow: "shadow-blue"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Salad className={iconSize} />, 
       label: "Meal Plans", 
       onClick: () => navigate("/plans"),
-      gradient: "bg-gradient-to-br from-green-400 to-green-600",
       textColor: "text-white",
-      shadow: "shadow-green"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Brain className={iconSize} />, 
       label: "AI Assistant", 
       onClick: () => document.getElementById('ai-health-assistant')?.scrollIntoView({ behavior: 'smooth' }),
-      gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       textColor: "text-white",
-      shadow: "shadow-indigo"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Droplets className={iconSize} />, 
       label: "Water Intake", 
       onClick: () => document.getElementById('water-tracker')?.scrollIntoView({ behavior: 'smooth' }),
-      gradient: "bg-gradient-to-br from-cyan-400 to-cyan-600",
       textColor: "text-white",
-      shadow: "shadow-cyan"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Moon className={iconSize} />, 
       label: "Sleep Tracker", 
       onClick: () => document.getElementById('sleep-tracker')?.scrollIntoView({ behavior: 'smooth' }),
-      gradient: "bg-gradient-to-br from-indigo-400 to-indigo-600",
       textColor: "text-white",
-      shadow: "shadow-indigo"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Scale className={iconSize} />, 
       label: "Weight", 
       onClick: () => navigate("/weight"),
-      gradient: "bg-gradient-to-br from-amber-400 to-amber-600",
       textColor: "text-white",
-      shadow: "shadow-amber"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Dumbbell className={iconSize} />, 
       label: "Workouts", 
       onClick: () => navigate("/workout"),
-      gradient: "bg-gradient-to-br from-pink-400 to-pink-600",
       textColor: "text-white",
-      shadow: "shadow-pink"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Target className={iconSize} />, 
       label: "Goals", 
       onClick: () => navigate("/goals-tracker"),
-      gradient: "bg-gradient-to-br from-teal-400 to-teal-600",
       textColor: "text-white",
-      shadow: "shadow-teal"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Bell className={iconSize} />, 
       label: "Meal Reminders", 
       onClick: () => document.getElementById('meal-reminders')?.scrollIntoView({ behavior: 'smooth' }),
-      gradient: "bg-gradient-to-br from-orange-400 to-orange-600",
       textColor: "text-white",
-      shadow: "shadow-orange"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Utensils className={iconSize} />, 
       label: "Meal Recommendations", 
       onClick: () => document.getElementById('meal-recommendations')?.scrollIntoView({ behavior: 'smooth' }),
-      gradient: "bg-gradient-to-br from-emerald-400 to-emerald-600",
       textColor: "text-white",
-      shadow: "shadow-emerald"
+      shadow: "shadow-purple"
     },
     { 
       icon: <Activity className={iconSize} />, 
       label: "Workout Suggestions", 
       onClick: () => navigate("/workout-suggestions"),
-      gradient: "bg-gradient-to-br from-violet-400 to-violet-600",
       textColor: "text-white",
-      shadow: "shadow-violet"
+      shadow: "shadow-purple"
     }
   ];
 
@@ -142,7 +130,7 @@ const ActionButtons = () => {
               <Button 
                 variant="ghost"
                 size="icon"
-                className={`rounded-full mb-2 md:mb-3 ${action.textColor} ${action.gradient} ${action.shadow} hover:scale-105 transition-transform`}
+                className={`rounded-full mb-2 md:mb-3 ${action.textColor} bg-[#8B5CF6] hover:bg-[#7C3AED] ${action.shadow} hover:scale-105 transition-transform`}
                 onClick={action.onClick}
                 style={{ width: isMobile ? '4.5rem' : '7rem', height: isMobile ? '4.5rem' : '7rem' }}
               >

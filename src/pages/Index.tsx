@@ -86,7 +86,7 @@ const Index = () => {
             >
               <Button
                 onClick={() => navigate('/weekly-meal-planner')}
-                variant="purple-gradient"
+                variant="purple"
                 className="gap-1 md:gap-2 shadow-md text-xs md:text-sm"
                 size={isMobile ? "sm" : "default"}
               >
@@ -96,7 +96,7 @@ const Index = () => {
               
               <Button
                 onClick={() => navigate('/workout')}
-                variant="purple-gradient"
+                variant="purple"
                 className="gap-1 md:gap-2 shadow-md text-xs md:text-sm"
                 size={isMobile ? "sm" : "default"}
               >

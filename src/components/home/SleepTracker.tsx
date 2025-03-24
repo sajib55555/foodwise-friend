@@ -194,7 +194,7 @@ const SleepTracker = () => {
           <Button 
             size="sm" 
             onClick={() => setShowInput(true)}
-            variant="purple-gradient"
+            variant="purple"
           >
             Log Sleep
           </Button>
@@ -260,7 +260,7 @@ const SleepTracker = () => {
                 className="w-full" 
                 onClick={handleSleepLog}
                 disabled={isLoading}
-                variant="purple-gradient"
+                variant="purple"
               >
                 {isLoading ? "Saving..." : "Save"}
               </Button>

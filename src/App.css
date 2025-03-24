@@ -92,13 +92,13 @@ html {
 
 /* Enhanced purple gradient for buttons */
 .bg-gradient-purple-button {
-  background: linear-gradient(to right, #9b87f5, #7c3aed);
+  background: #8B5CF6;
   color: white;
   transition: all 0.3s ease;
 }
 
 .bg-gradient-purple-button:hover {
-  background: linear-gradient(to right, #8b5cf6, #6d28d9);
+  background: #7C3AED;
   box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.4);
 }
 

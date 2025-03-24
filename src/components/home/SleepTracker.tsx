@@ -138,6 +138,7 @@ const SleepTracker = () => {
     
     try {
       const now = new Date();
+      // Create the sleep data object
       const sleepData: SleepMetadata = { 
         hours, 
         quality,
@@ -146,13 +147,15 @@ const SleepTracker = () => {
         time: now.toTimeString().split(' ')[0].slice(0, 5)
       };
       
+      // Convert SleepMetadata to Json type by casting it as unknown first, then as Json
+      // This satisfies TypeScript's type checking while ensuring the structure is compatible
       const { error } = await supabase
         .from('user_activity_logs')
         .insert({
           user_id: user.id,
           activity_type: 'sleep_logged',
           description: `Logged ${hours} hours of sleep with ${getSleepQualityText(quality)} quality`,
-          metadata: sleepData as Json
+          metadata: sleepData as unknown as Json
         });
         
       if (error) {

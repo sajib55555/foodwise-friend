@@ -270,37 +270,62 @@ serve(async (req) => {
 });
 
 function generateAnalysisPrompt(healthData: any, userName: string): string {
-  // Safely extract data with fallbacks
-  const nutrition = healthData.nutrition || [];
-  const exercise = healthData.exercise || [];
-  const water = healthData.water || [];
-  const sleep = healthData.sleep || [];
-  const goals = healthData.goals || [];
-  const weight = healthData.weight || [];
-  const userProfile = healthData.userProfile || {};
-  const meals = healthData.meals || [];
-  const activityLog = healthData.activityLog || [];
-  const workouts = healthData.workouts || [];
-  const dailySteps = healthData.dailySteps || [];
-  const heartRate = healthData.heartRate || [];
-  const bloodPressure = healthData.bloodPressure || [];
+  // Process water intake data better
+  let waterConsumption = "No water intake data available";
+  if (healthData.water && healthData.water.length > 0) {
+    // Calculate average daily water intake
+    const totalWater = healthData.water.reduce((sum: number, day: any) => sum + (day.total || 0), 0);
+    const avgWater = totalWater / healthData.water.length;
+    waterConsumption = `Average daily water intake: ${avgWater.toFixed(0)} ml`;
+    
+    // Get today's water intake if available
+    const today = healthData.water.find((day: any) => {
+      const dateStr = day.date;
+      const today = new Date().toISOString().split('T')[0];
+      return dateStr === today;
+    });
+    
+    if (today) {
+      waterConsumption += `. Today's water intake: ${today.total} ml`;
+    }
+  }
+
+  // Process goals data better
+  let goalsInfo = "No goals data available";
+  if (healthData.goals && healthData.goals.length > 0) {
+    const activeGoals = healthData.goals.filter((goal: any) => goal.status === 'in_progress');
+    const completedGoals = healthData.goals.filter((goal: any) => goal.status === 'completed');
+    
+    goalsInfo = `Active goals: ${activeGoals.length}. Completed goals: ${completedGoals.length}. `;
+    
+    // Include details of active goals
+    if (activeGoals.length > 0) {
+      goalsInfo += "Active goals: ";
+      activeGoals.forEach((goal: any, index: number) => {
+        const progress = Math.round((goal.current_value / goal.target_value) * 100);
+        goalsInfo += `${index + 1}) ${goal.title}: ${progress}% complete (${goal.current_value}/${goal.target_value} ${goal.unit}). `;
+      });
+    }
+  }
 
   return `
     Analyze the following comprehensive health data for ${userName} and provide personalized health advice and recommendations:
     
-    User Profile: ${JSON.stringify(userProfile)}
-    Nutrition data: ${JSON.stringify(nutrition)}
-    Meal data: ${JSON.stringify(meals)}
-    Exercise data: ${JSON.stringify(exercise)}
-    Workout data: ${JSON.stringify(workouts)}
-    Water intake: ${JSON.stringify(water)}
-    Sleep data: ${JSON.stringify(sleep)}
-    Weight data: ${JSON.stringify(weight)}
-    Activity log: ${JSON.stringify(activityLog)}
-    Daily steps: ${JSON.stringify(dailySteps)}
-    Heart rate: ${JSON.stringify(heartRate)}
-    Blood pressure: ${JSON.stringify(bloodPressure)}
-    Goals: ${JSON.stringify(goals)}
+    User Profile: ${JSON.stringify(healthData.userProfile)}
+    Nutrition data: ${JSON.stringify(healthData.nutrition)}
+    Meal data: ${JSON.stringify(healthData.meals)}
+    Exercise data: ${JSON.stringify(healthData.exercise)}
+    Workout data: ${JSON.stringify(healthData.workouts)}
+    Water intake: ${JSON.stringify(healthData.water)}
+    Water Summary: ${waterConsumption}
+    Sleep data: ${JSON.stringify(healthData.sleep)}
+    Weight data: ${JSON.stringify(healthData.weight)}
+    Activity log: ${JSON.stringify(healthData.activityLog)}
+    Daily steps: ${JSON.stringify(healthData.dailySteps)}
+    Heart rate: ${JSON.stringify(healthData.heartRate)}
+    Blood pressure: ${JSON.stringify(healthData.bloodPressure)}
+    Goals: ${JSON.stringify(healthData.goals)}
+    Goals Summary: ${goalsInfo}
     
     Provide a concise, personalized health update that:
     1. Addresses the user by name if available

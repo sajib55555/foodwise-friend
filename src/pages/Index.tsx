@@ -96,7 +96,7 @@ const Index = () => {
               
               <Button
                 onClick={() => navigate('/workout')}
-                variant="purple"
+                variant="blue"
                 className="gap-1 md:gap-2 shadow-md text-xs md:text-sm"
                 size={isMobile ? "sm" : "default"}
               >

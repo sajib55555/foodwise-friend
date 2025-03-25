@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -103,11 +104,15 @@ const AIHealthAssistant = () => {
   const [audioData, setAudioData] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const requestTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+      }
+      if (requestTimeoutRef.current) {
+        clearTimeout(requestTimeoutRef.current);
       }
     };
   }, []);
@@ -116,7 +121,7 @@ const AIHealthAssistant = () => {
     if (loading) {
       const interval = setInterval(() => {
         setLoadingProgress(prev => {
-          return prev < 90 ? prev + 10 : prev;
+          return prev < 90 ? prev + 5 : prev;
         });
         
         if (loadingProgress < 20) {
@@ -192,7 +197,7 @@ const AIHealthAssistant = () => {
         };
       }) : [];
       
-      const groupedByDate = processedMeals.reduce((acc, meal) => {
+      const groupedByDate = processedMeals.reduce((acc: any, meal: any) => {
         if (!acc[meal.date]) {
           acc[meal.date] = [];
         }
@@ -202,7 +207,7 @@ const AIHealthAssistant = () => {
       
       const dailyTotals = Object.keys(groupedByDate).map(date => {
         const meals = groupedByDate[date];
-        const totals = meals.reduce((acc, meal) => {
+        const totals = meals.reduce((acc: any, meal: any) => {
           return {
             calories: acc.calories + Number(meal.calories),
             protein: acc.protein + Number(meal.protein),
@@ -254,7 +259,7 @@ const AIHealthAssistant = () => {
         };
       }) : [];
       
-      const dailyTotals = waterData.reduce((acc, record) => {
+      const dailyTotals = waterData.reduce((acc: any, record: any) => {
         if (!acc[record.date]) {
           acc[record.date] = { total: 0, count: 0 };
         }
@@ -478,17 +483,18 @@ const AIHealthAssistant = () => {
         setOpen(true);
       }
 
-      timeoutRef.current = setTimeout(() => {
+      // Set up request timeout - 25 seconds
+      requestTimeoutRef.current = setTimeout(() => {
         if (loading) {
-          setError("The analysis is taking longer than expected. You may want to try again later.");
+          setError("The analysis request timed out. Please try again later.");
           setLoading(false);
           toast({
-            title: "Analysis timeout",
-            description: "The request is taking too long. Please try again later.",
+            title: "Request timeout",
+            description: "The analysis request is taking too long. Please try again later.",
             variant: "destructive",
           });
         }
-      }, 20000);
+      }, 25000);
 
       const [
         nutritionData,
@@ -522,74 +528,88 @@ const AIHealthAssistant = () => {
         voicePreference: selectedVoice
       };
 
-      console.log("Sending health data to edge function:", JSON.stringify(healthData));
+      console.log("Sending health data to edge function");
       
       setLoadingProgress(70);
       setLoadingMessage("Generating health insights...");
 
-      const { data, error: functionError } = await supabase.functions.invoke('analyze-health-data', {
-        body: { 
-          healthData, 
-          userName: userProfile?.full_name || user.email?.split('@')[0] || 'there'
+      try {
+        const { data, error: functionError } = await supabase.functions.invoke('analyze-health-data', {
+          body: { 
+            healthData, 
+            userName: userProfile?.full_name || user.email?.split('@')[0] || 'there'
+          }
+        });
+
+        // Clear request timeout since we got a response
+        if (requestTimeoutRef.current) {
+          clearTimeout(requestTimeoutRef.current);
+          requestTimeoutRef.current = null;
         }
-      });
 
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
+        if (functionError) {
+          console.error("Edge function error:", functionError);
+          setError(`Failed to analyze health data: ${functionError.message}`);
+          setLoading(false);
+          return;
+        }
 
-      if (functionError) {
-        console.error("Edge function error:", functionError);
-        setError(`Failed to analyze health data: ${functionError.message}`);
-        setLoading(false);
-        return;
-      }
+        if (!data) {
+          setError("No response received from the AI analysis service");
+          setLoading(false);
+          return;
+        }
 
-      if (!data) {
-        setError("No response from server");
-        setLoading(false);
-        return;
-      }
+        console.log("Received response from edge function");
+        setLoadingProgress(90);
+        setLoadingMessage("Processing analysis results...");
 
-      console.log("Received response from edge function:", data);
-      setLoadingProgress(90);
-      setLoadingMessage("Processing analysis results...");
+        if (data.textAnalysis) {
+          setAnalysis(data.textAnalysis);
+          
+          if (isMobile) {
+            setSheetOpen(true);
+          }
+        } else {
+          setError("No analysis was generated");
+          setLoading(false);
+          return;
+        }
 
-      if (data.textAnalysis) {
-        setAnalysis(data.textAnalysis);
+        if (data.error) {
+          console.error("AI analysis error:", data.error);
+          setError(data.error);
+          // Still show text analysis if we have it
+          if (!data.textAnalysis) {
+            toast({
+              title: "Analysis partial failure",
+              description: "Text analysis is available but voice synthesis failed.",
+              variant: "default",
+            });
+          }
+        }
+
+        if (data.audioContent) {
+          console.log("Audio content received, length:", data.audioContent.length);
+          setAudioData(data.audioContent);
+        } else if (!data.error) {
+          toast({
+            title: "Voice synthesis unavailable",
+            description: "Only text analysis is available at this time.",
+            variant: "default",
+          });
+        }
         
-        if (isMobile) {
-          setSheetOpen(true);
-        }
-      } else {
-        setError("No analysis was generated");
-        setLoading(false);
-        return;
-      }
-
-      if (data.error) {
-        console.error("API error:", data.error);
-        setError(data.error);
+        setLoadingProgress(100);
+      } catch (error: any) {
+        console.error("Error with edge function:", error);
+        setError("Failed to get health insights. Please try again later.");
         toast({
-          title: "Voice synthesis unavailable",
-          description: "Only text analysis is available due to a technical issue.",
-          variant: "default",
+          title: "Analysis failed",
+          description: "There was an error analyzing your health data.",
+          variant: "destructive",
         });
       }
-
-      if (data.audioContent) {
-        console.log("Audio content received, length:", data.audioContent.length);
-        setAudioData(data.audioContent);
-      } else if (!data.error) {
-        toast({
-          title: "Voice synthesis unavailable",
-          description: "Only text analysis is available at this time.",
-          variant: "default",
-        });
-      }
-      
-      setLoadingProgress(100);
     } catch (error: any) {
       console.error("Error fetching data or analyzing:", error);
       setError(error.message || "Failed to generate health insights");
@@ -599,9 +619,9 @@ const AIHealthAssistant = () => {
         variant: "destructive",
       });
       
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
+      if (requestTimeoutRef.current) {
+        clearTimeout(requestTimeoutRef.current);
+        requestTimeoutRef.current = null;
       }
     } finally {
       setLoading(false);
@@ -673,7 +693,7 @@ const AIHealthAssistant = () => {
         console.error("Audio play error:", err);
         toast({
           title: "Playback Error",
-          description: "Failed to play audio: " + err.message,
+          description: "Failed to play audio: " + (err as Error).message,
           variant: "destructive",
         });
       }
@@ -699,6 +719,21 @@ const AIHealthAssistant = () => {
     setSheetOpen(false);
     setLoadingProgress(0);
     setLoadingMessage("");
+  };
+
+  const handleCancelRequest = () => {
+    if (requestTimeoutRef.current) {
+      clearTimeout(requestTimeoutRef.current);
+      requestTimeoutRef.current = null;
+    }
+    setLoading(false);
+    setSheetOpen(false);
+    setOpen(false);
+    toast({
+      title: "Request canceled",
+      description: "Your health analysis request has been canceled.",
+      variant: "default",
+    });
   };
 
   const LoadingState = () => (
@@ -835,14 +870,7 @@ const AIHealthAssistant = () => {
                     variant="outline"
                     size="sm" 
                     className="text-xs border-purple-200 dark:border-purple-800/40"
-                    onClick={() => {
-                      setSheetOpen(false);
-                      if (timeoutRef.current) {
-                        clearTimeout(timeoutRef.current);
-                        timeoutRef.current = null;
-                      }
-                      setLoading(false);
-                    }}
+                    onClick={handleCancelRequest}
                   >
                     Cancel
                   </Button>
@@ -938,14 +966,7 @@ const AIHealthAssistant = () => {
                 {loading ? (
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      if (timeoutRef.current) {
-                        clearTimeout(timeoutRef.current);
-                        timeoutRef.current = null;
-                      }
-                      setLoading(false);
-                      setOpen(false);
-                    }}
+                    onClick={handleCancelRequest}
                     className="flex-1 gap-2"
                   >
                     Cancel
@@ -1102,4 +1123,3 @@ const AIHealthAssistant = () => {
 };
 
 export default AIHealthAssistant;
-

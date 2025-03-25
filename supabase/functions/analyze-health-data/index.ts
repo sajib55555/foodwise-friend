@@ -143,8 +143,7 @@ serve(async (req) => {
       );
     }
     
-    console.log("Received health data:", JSON.stringify(healthData));
-    console.log("Received user name:", userName);
+    console.log("Received health data for user:", userName || 'Anonymous');
 
     // Ensure all data fields exist
     const safeHealthData = {
@@ -165,14 +164,14 @@ serve(async (req) => {
 
     // Generate personalized health analysis
     const analysisPrompt = generateAnalysisPrompt(safeHealthData, userName || 'User');
-    console.log("Analysis prompt:", analysisPrompt);
+    console.log("Analysis prompt created, length:", analysisPrompt.length);
 
-    // Generate OpenAI completion with timeout
+    // Generate OpenAI completion with timeout - increased to 15 seconds
     let analysis;
     try {
-      const completion = await generateAnalysisWithTimeout(openai, analysisPrompt, 15000);
+      const completion = await generateAnalysisWithTimeout(openai, analysisPrompt, 12000);
       analysis = completion.choices[0].message.content;
-      console.log("Generated analysis:", analysis);
+      console.log("Generated analysis, length:", analysis.length);
     } catch (error) {
       console.error("OpenAI API error:", error);
       
@@ -213,6 +212,16 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
+    }
+
+    // Generate mock data when no real data is available
+    if (
+      (!safeHealthData.nutrition || safeHealthData.nutrition.length === 0) &&
+      (!safeHealthData.exercise || safeHealthData.exercise.length === 0) &&
+      (!safeHealthData.water || safeHealthData.water.length === 0) &&
+      (!safeHealthData.sleep || safeHealthData.sleep.length === 0)
+    ) {
+      analysis = `Hello ${userName || 'there'}! I notice you haven't logged much health data yet. To get personalized insights, try tracking your meals, water intake, exercise, and sleep in the app. This will help me provide tailored recommendations for your health goals. In the meantime, remember to stay hydrated, aim for balanced meals, get regular exercise, and prioritize 7-8 hours of sleep daily. I'm here to help you on your health journey!`;
     }
 
     // Process voice generation

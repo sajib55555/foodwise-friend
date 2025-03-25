@@ -90,9 +90,12 @@ const WaterTracker: React.FC<WaterTrackerProps> = ({
         let totalWater = 0;
         
         data.forEach(entry => {
-          if (entry.metadata && typeof entry.metadata === 'object') {
-            const amount = entry.metadata.amount || 0;
-            totalWater += Number(amount);
+          // Fixed TypeScript error: Check if metadata is an object and has amount property
+          if (entry.metadata && typeof entry.metadata === 'object' && !Array.isArray(entry.metadata)) {
+            const amount = entry.metadata.amount;
+            if (amount !== undefined && amount !== null) {
+              totalWater += Number(amount);
+            }
           }
         });
         

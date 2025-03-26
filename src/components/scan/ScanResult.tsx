@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { CheckCircle2, Copy, HelpCircle, Loader2, XCircle } from "lucide-react";
@@ -55,6 +56,10 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   const [processingAttempts, setProcessingAttempts] = useState(0);
   const maxAttempts = 2;
   const [compressionLevel, setCompressionLevel] = useState(0);
+  // Add a reference to track if component is mounted to prevent state updates after unmount
+  const isMounted = useRef(true);
+  // Add a reference to prevent multiple retries at once
+  const isRetrying = useRef(false);
 
   // Function to drastically compress the image to reduce its size
   const aggressivelyCompressImage = async (base64Image: string, level: number = 0): Promise<string> => {
@@ -123,6 +128,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
     window.addEventListener('resize', checkMobile);
     
     return () => {
+      isMounted.current = false;
       window.removeEventListener('resize', checkMobile);
     };
   }, []);
@@ -150,7 +156,24 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   };
 
   useEffect(() => {
+    // Reset component state when a new image is received
+    if (imageSrc) {
+      setIsLoading(true);
+      setIsError(false);
+      setScanResult(null);
+      setProcessingAttempts(0);
+      setCompressionLevel(0);
+      isRetrying.current = false;
+    }
+    
     const analyzeImage = async () => {
+      // Guard against multiple simultaneous analyses
+      if (isRetrying.current) return;
+      isRetrying.current = true;
+      
+      // Guard clause to prevent state update after unmount
+      if (!isMounted.current) return;
+      
       setIsLoading(true);
       setIsError(false);
       
@@ -164,6 +187,10 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         // Use the current compression level
         console.log(`Attempting analysis with compression level ${compressionLevel}...`);
         const compressedImage = await aggressivelyCompressImage(base64Image, compressionLevel);
+        
+        // Guard against state updates if component was unmounted
+        if (!isMounted.current) return;
+        
         console.log(`Image compressed: Original length=${base64Image.length}, Compressed length=${compressedImage.length}`);
         
         // Show compression feedback to user
@@ -190,6 +217,9 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         // Race the API call against the timeout
         const result = await Promise.race([apiCallPromise, timeoutPromise]) as any;
         
+        // Guard against state updates if component was unmounted
+        if (!isMounted.current) return;
+        
         const { data, error } = result;
 
         if (error) {
@@ -209,10 +239,15 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
 
         // Set scan result with the product info
         const completeData = ensureCompleteData(data.productInfo);
+        
+        // Guard against state updates if component was unmounted
+        if (!isMounted.current) return;
+        
         setScanResult(completeData);
         setIsLoading(false);
         setProcessingAttempts(0); // Reset attempts on success
         setCompressionLevel(0); // Reset compression level for next use
+        isRetrying.current = false;
         
         toast({
           title: "Analysis Complete",
@@ -241,57 +276,79 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
       } catch (error: any) {
         console.error('Error during scan:', error);
         
+        // Guard against state updates if component was unmounted
+        if (!isMounted.current) return;
+        
         const newAttemptCount = processingAttempts + 1;
-        setProcessingAttempts(newAttemptCount);
         
         // Try with increasing compression levels before giving up
-        if (newAttemptCount <= maxAttempts) {
+        if (newAttemptCount <= maxAttempts && isMounted.current) {
           // Increment compression level (0->1->2) with each retry
           const newCompressionLevel = Math.min(compressionLevel + 1, 2);
-          setCompressionLevel(newCompressionLevel);
           
-          toast({
-            title: "Retrying Analysis",
-            description: `Optimizing further and trying again (${newAttemptCount}/${maxAttempts})...`,
-          });
+          // Prevent UI blinking by not updating state for each retry
+          if (isMounted.current) {
+            setProcessingAttempts(newAttemptCount);
+            setCompressionLevel(newCompressionLevel);
+            
+            toast({
+              title: "Retrying Analysis",
+              description: `Optimizing further and trying again (${newAttemptCount}/${maxAttempts})...`,
+            });
+          }
           
-          // Wait a moment before retrying
+          // Wait a moment before retrying and release lock
+          isRetrying.current = false;
+          
+          // Use setTimeout to delay retry and prevent too many retries at once
           setTimeout(() => {
-            analyzeImage();
-          }, 500);
+            if (isMounted.current) {
+              analyzeImage();
+            }
+          }, 1000);
           return;
         }
         
-        setIsError(true);
-        
-        // If it's a timeout error, show a specific message
-        if (error.message && error.message.includes('timed out')) {
+        if (isMounted.current) {
+          setIsError(true);
+          
+          // If it's a timeout error, show a specific message
+          if (error.message && error.message.includes('timed out')) {
+            toast({
+              title: "Analysis Timeout",
+              description: "The analysis took too long. We'll show approximate data instead.",
+              variant: "destructive"
+            });
+          } else {
+            toast({
+              title: "Analysis Failed",
+              description: error.message || "An unexpected error occurred. Using fallback data.",
+              variant: "destructive"
+            });
+          }
+          
+          // Always provide fallback data after an error for better UX
+          setScanResult(fallbackFoodData);
+          setIsLoading(false);
+          isRetrying.current = false;
+          
           toast({
-            title: "Analysis Timeout",
-            description: "The analysis took too long. We'll show approximate data instead.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Analysis Failed",
-            description: error.message || "An unexpected error occurred. Using fallback data.",
-            variant: "destructive"
+            title: "Using Approximate Data",
+            description: "We're showing example data since the analysis couldn't complete.",
           });
         }
-        
-        // Always provide fallback data after an error for better UX
-        setScanResult(fallbackFoodData);
-        setIsLoading(false);
-        
-        toast({
-          title: "Using Approximate Data",
-          description: "We're showing example data since the analysis couldn't complete.",
-        });
       }
     };
 
-    analyzeImage();
-  }, [imageSrc, toast, logActivity, processingAttempts, compressionLevel]);
+    if (imageSrc) {
+      analyzeImage();
+    }
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted.current = false;
+    };
+  }, [imageSrc]); // Only re-run when imageSrc changes, not for retry attempts
 
   const convertBlobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {

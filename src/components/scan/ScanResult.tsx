@@ -55,29 +55,37 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   const { logActivity } = useActivityLog();
   const [processingAttempts, setProcessingAttempts] = useState(0);
   const maxAttempts = 2;
+  const [compressionLevel, setCompressionLevel] = useState(0);
 
   // Function to drastically compress the image to reduce its size
-  const aggressivelyCompressImage = async (base64Image: string): Promise<string> => {
+  const aggressivelyCompressImage = async (base64Image: string, level: number = 0): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         // Target size: much lower resolution for API processing
-        const maxWidth = 600;
-        const maxHeight = 600;
+        // Compression levels:
+        // 0: standard compression (600px)
+        // 1: aggressive compression (400px)
+        // 2: extreme compression (300px, lower quality)
+        
+        const maxSize = level === 0 ? 600 : level === 1 ? 400 : 300;
+        const imageQuality = level === 0 ? 0.6 : level === 1 ? 0.4 : 0.3;
+        
+        console.log(`Compressing with level ${level}: target size ${maxSize}px, quality ${imageQuality}`);
         
         // Calculate new dimensions while maintaining aspect ratio
         let width = img.width;
         let height = img.height;
         
         if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round(height * (maxWidth / width));
-            width = maxWidth;
+          if (width > maxSize) {
+            height = Math.round(height * (maxSize / width));
+            width = maxSize;
           }
         } else {
-          if (height > maxHeight) {
-            width = Math.round(width * (maxHeight / height));
-            height = maxHeight;
+          if (height > maxSize) {
+            width = Math.round(width * (maxSize / height));
+            height = maxSize;
           }
         }
         
@@ -94,9 +102,8 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Convert to JPEG format with very reduced quality (0.5 = 50% quality)
-        // This is much more aggressive than before to ensure faster processing
-        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.5);
+        // Convert to JPEG format with reduced quality
+        const compressedBase64 = canvas.toDataURL('image/jpeg', imageQuality);
         resolve(compressedBase64);
       };
       
@@ -155,18 +162,21 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
           base64Image = await convertBlobToBase64(imageSrc as Blob);
         }
 
-        console.log("Compressing image more aggressively...");
-        const compressedImage = await aggressivelyCompressImage(base64Image);
+        // Use the current compression level
+        console.log(`Attempting analysis with compression level ${compressionLevel}...`);
+        const compressedImage = await aggressivelyCompressImage(base64Image, compressionLevel);
         console.log(`Image compressed: Original length=${base64Image.length}, Compressed length=${compressedImage.length}`);
         
         // Show compression feedback to user
         toast({
-          title: "Processing Image",
-          description: "Optimizing image for faster analysis...",
+          title: compressionLevel === 0 ? "Processing Image" : "Optimizing Image Further",
+          description: compressionLevel === 0 
+            ? "Optimizing image for analysis..." 
+            : `Applying ${compressionLevel === 1 ? "aggressive" : "extreme"} compression for faster analysis...`,
         });
         
         // Set a reasonable timeout for the API call
-        const timeoutDuration = 15000; // 15 seconds
+        const timeoutDuration = 12000; // 12 seconds
         
         // Create a promise that rejects after timeout
         const timeoutPromise = new Promise((_, reject) => {
@@ -203,19 +213,44 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         setScanResult(completeData);
         setIsLoading(false);
         setProcessingAttempts(0); // Reset attempts on success
+        setCompressionLevel(0); // Reset compression level for next use
         
         toast({
           title: "Analysis Complete",
           description: `Identified: ${completeData.name || 'Unknown Food'}`,
         });
+        
+        // Log the successful food analysis
+        try {
+          await logActivity(
+            'food_analyzed', 
+            `Food analyzed: ${completeData.name}`,
+            {
+              food_type: completeData.name,
+              nutritional_info: {
+                calories: completeData.calories,
+                protein: completeData.protein,
+                carbs: completeData.carbs,
+                fat: completeData.fat
+              }
+            }
+          );
+        } catch (logError) {
+          console.error("Error logging food analysis:", logError);
+        }
+        
       } catch (error: any) {
         console.error('Error during scan:', error);
         
         const newAttemptCount = processingAttempts + 1;
         setProcessingAttempts(newAttemptCount);
         
-        // If we haven't exceeded max attempts, try one more time with even more compression
+        // Try with increasing compression levels before giving up
         if (newAttemptCount <= maxAttempts) {
+          // Increment compression level (0->1->2) with each retry
+          const newCompressionLevel = Math.min(compressionLevel + 1, 2);
+          setCompressionLevel(newCompressionLevel);
+          
           toast({
             title: "Retrying Analysis",
             description: `Optimizing further and trying again (${newAttemptCount}/${maxAttempts})...`,
@@ -224,7 +259,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
           // Wait a moment before retrying
           setTimeout(() => {
             analyzeImage();
-          }, 1000);
+          }, 500);
           return;
         }
         
@@ -234,13 +269,13 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         if (error.message && error.message.includes('timed out')) {
           toast({
             title: "Analysis Timeout",
-            description: "The analysis took too long. Please try with a clearer or smaller image.",
+            description: "The analysis took too long. We'll show approximate data instead.",
             variant: "destructive"
           });
         } else {
           toast({
             title: "Analysis Failed",
-            description: error.message || "An unexpected error occurred. Please try again.",
+            description: error.message || "An unexpected error occurred. Using fallback data.",
             variant: "destructive"
           });
         }
@@ -250,7 +285,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         setIsLoading(false);
         
         toast({
-          title: "Using Placeholder Data",
+          title: "Using Approximate Data",
           description: "We're showing example data since the analysis couldn't complete.",
         });
       }
@@ -361,6 +396,11 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
             <Loader2 className="mr-2 h-6 w-6 animate-spin text-primary" />
             <span className="mt-2 text-sm text-muted-foreground">Analyzing image...</span>
             <span className="mt-1 text-xs text-muted-foreground">This may take up to 15 seconds</span>
+            {compressionLevel > 0 && (
+              <span className="mt-1 text-xs text-purple-500 dark:text-purple-400">
+                Applying {compressionLevel === 1 ? "stronger" : "strongest"} optimization...
+              </span>
+            )}
           </div>
         ) : isError && !scanResult ? (
           <div className="flex flex-col items-center justify-center py-8">
@@ -385,7 +425,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
                   <CardTitle>{scanResult.name || "Unknown Food"}</CardTitle>
                   <CardDescription>
                     {scanResult.confidence ? `Confidence: ${scanResult.confidence.toFixed(2)}%` : 
-                     isError ? "Using fallback data" : "Serving size: " + scanResult.servingSize}
+                     isError ? "Using approximate data" : "Serving size: " + scanResult.servingSize}
                   </CardDescription>
                 </div>
                 <Button

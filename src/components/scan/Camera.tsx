@@ -1,7 +1,7 @@
 
 import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
-import { X } from "lucide-react";
+import { X, Camera as CameraIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 import CameraView from "./camera/CameraView";
@@ -95,11 +95,16 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
       exit={{ opacity: 0 }}
     >
       <div className="relative bg-black rounded-3xl overflow-hidden" style={{ height: "300px" }}>
-        {/* Targeting frame overlay */}
+        {/* Improved targeting frame with instructions */}
         {activeCamera && !cameraLoading && !cameraError && (
           <div className="absolute inset-0 z-10 pointer-events-none">
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="w-64 h-64 border-2 border-white/30 rounded-lg shadow-lg"></div>
+            <div className="w-full h-full flex flex-col items-center justify-center">
+              <div className="w-64 h-64 border-2 border-white/50 rounded-lg shadow-lg flex flex-col items-center justify-center">
+                <CameraIcon className="h-8 w-8 text-white/40 mb-2" />
+                <p className="text-white/70 text-xs text-center px-4">
+                  Center food in frame<br/>for best results
+                </p>
+              </div>
             </div>
           </div>
         )}

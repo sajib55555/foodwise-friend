@@ -72,6 +72,21 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
     console.log("Camera state:", { activeCamera, cameraLoading, cameraError, capturedImage });
   }, [activeCamera, cameraLoading, cameraError, capturedImage]);
 
+  // Add a capture hint when camera is active
+  useEffect(() => {
+    if (activeCamera && !cameraLoading && !cameraError) {
+      const timer = setTimeout(() => {
+        toast({
+          title: "Camera Ready",
+          description: "Position food in frame and tap the capture button",
+          duration: 3000,
+        });
+      }, 1500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [activeCamera, cameraLoading, cameraError, toast]);
+
   return (
     <motion.div 
       className="flex flex-col"
@@ -80,6 +95,15 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
       exit={{ opacity: 0 }}
     >
       <div className="relative bg-black rounded-3xl overflow-hidden" style={{ height: "300px" }}>
+        {/* Targeting frame overlay */}
+        {activeCamera && !cameraLoading && !cameraError && (
+          <div className="absolute inset-0 z-10 pointer-events-none">
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="w-64 h-64 border-2 border-white/30 rounded-lg shadow-lg"></div>
+            </div>
+          </div>
+        )}
+      
         {activeCamera && (
           <CameraView 
             videoRef={videoRef} 

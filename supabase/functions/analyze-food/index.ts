@@ -186,175 +186,214 @@ serve(async (req) => {
       throw new Error('Invalid image data. Please try again with a clearer image.')
     }
 
-    // OPTIMIZATIONS START
-    console.log('Sending request to OpenAI API...')
-    
-    // Create optimized request with faster timeouts and performance settings
-    const controller = new AbortController();
-    const timeout = setTimeout(() => {
-      controller.abort();
-    }, 15000); // 15 second timeout (reduced from previous value)
-    
-    try {
-      // Mock response for debugging
-      if (Deno.env.get('DEMO_MODE') === 'true') {
-        // Wait a bit to simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        clearTimeout(timeout);
-        return new Response(
-          JSON.stringify({
-            productInfo: {
-              name: "Salad with Grilled Chicken",
-              calories: 320,
-              protein: 28,
-              carbs: 15,
-              fat: 14,
-              healthScore: 8.5,
-              ingredients: [
-                { name: "Chicken breast", healthy: true },
-                { name: "Mixed greens", healthy: true },
-                { name: "Tomatoes", healthy: true },
-                { name: "Olive oil", healthy: true },
-                { name: "Balsamic vinegar", healthy: true }
-              ],
-              warnings: ["Moderate fat content"],
-              recommendations: ["Excellent source of protein", "Rich in vitamins"],
-              servingSize: "1 bowl (300g)",
-              confidence: 92,
-              vitamins: [
-                { name: "Vitamin A", amount: "25% DV" },
-                { name: "Vitamin C", amount: "30% DV" }
-              ],
-              minerals: [
-                { name: "Iron", amount: "15% DV" },
-                { name: "Calcium", amount: "8% DV" }
-              ],
-              dietary: {
-                vegan: false,
-                vegetarian: false,
-                glutenFree: true,
-                dairyFree: true
-              }
-            }
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // DEMO_MODE for faster testing and development
+    if (Deno.env.get('DEMO_MODE') === 'true') {
+      // Wait a bit to simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',  // Use the faster, more efficient model
-          messages: [
-            {
-              role: 'system',
-              content: `You are a specialized food analysis AI that quickly identifies food and provides accurate nutritional estimates.
-              
-              Identify the food in the image and provide:
-              - Food name and estimated serving size
-              - Nutritional content (calories, protein, carbs, fat)
-              - Main ingredients with healthy/unhealthy flags
-              - Health score (1-10)
-              - 1-2 key dietary warnings or considerations
-              - 1-2 quick recommendations
-              
-              Be very concise and direct. Focus only on providing the nutritional data.
-              Respond with specific numbers rather than ranges.
-              
-              Format response as JSON with these fields:
-              name, servingSize, calories, protein, carbs, fat, ingredients (array of objects with name, healthy boolean, optional warning), 
-              healthScore (number), warnings (array), recommendations (array),
-              vitamins (array of objects with name and amount), minerals (array of objects with name and amount),
-              dietary (object with vegan, vegetarian, glutenFree, dairyFree as booleans).`
-            },
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: `data:image/jpeg;base64,${base64Data}`
-                  }
-                },
-                {
-                  type: 'text',
-                  text: 'Analyze this food image and provide detailed nutritional information quickly.'
-                }
-              ]
-            }
-          ],
-          max_tokens: 600, // Reduced for faster response
-          temperature: 0.1, // Lower temperature for more consistent responses
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeout);
-      
-      const data = await response.json();
-      console.log('Received response from OpenAI')
-      
-      if (data.error) {
-        console.error('OpenAI API error:', data.error)
-        throw new Error(`OpenAI API error: ${data.error.message || 'Unknown error'}`)
-      }
-      
-      // Verify we have a valid response with content
-      if (!data.choices?.[0]?.message?.content) {
-        console.error('Invalid or empty response from OpenAI')
-        throw new Error('Invalid response from OpenAI')
-      }
-
-      // Parse the response content as JSON and validate it
-      let contentText = data.choices[0].message.content;
-      let analysisResult;
-      
-      try {
-        // Handle markdown code blocks
-        if (contentText.includes('```json')) {
-          contentText = contentText.split('```json')[1].split('```')[0].trim();
-        } else if (contentText.includes('```')) {
-          contentText = contentText.split('```')[1].split('```')[0].trim();
-        }
-        
-        analysisResult = JSON.parse(contentText);
-        
-        // Validate required fields
-        const requiredFields = ['name', 'calories', 'protein', 'carbs', 'fat', 'ingredients', 'healthScore'];
-        for (const field of requiredFields) {
-          if (!analysisResult[field]) {
-            throw new Error(`Missing required field: ${field}`);
-          }
-        }
-        
-      } catch (parseError) {
-        console.error('Error parsing OpenAI response:', parseError);
-        throw new Error('Failed to parse analysis results');
-      }
-
       return new Response(
         JSON.stringify({
-          productInfo: analysisResult
+          productInfo: {
+            name: "Demo Mode: Salad with Grilled Chicken",
+            calories: 320,
+            protein: 28,
+            carbs: 15,
+            fat: 14,
+            healthScore: 8.5,
+            ingredients: [
+              { name: "Chicken breast", healthy: true },
+              { name: "Mixed greens", healthy: true },
+              { name: "Tomatoes", healthy: true },
+              { name: "Olive oil", healthy: true },
+              { name: "Balsamic vinegar", healthy: true }
+            ],
+            warnings: ["Moderate fat content"],
+            recommendations: ["Excellent source of protein", "Rich in vitamins"],
+            servingSize: "1 bowl (300g)",
+            confidence: 92,
+            vitamins: [
+              { name: "Vitamin A", amount: "25% DV" },
+              { name: "Vitamin C", amount: "30% DV" }
+            ],
+            minerals: [
+              { name: "Iron", amount: "15% DV" },
+              { name: "Calcium", amount: "8% DV" }
+            ],
+            dietary: {
+              vegan: false,
+              vegetarian: false,
+              glutenFree: true,
+              dairyFree: true
+            }
+          }
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      );
+    }
       
+    // Create a promise that rejects after timeout
+    const timeoutDuration = 9000; // 9 seconds, giving OpenAI 9 seconds to respond, remaining 1 for network
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('OpenAI API request timed out')), timeoutDuration);
+    });
+    
+    // Create the API call promise with optimized settings
+    const apiCallPromise = fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',  // Use the fastest, most efficient model
+        messages: [
+          {
+            role: 'system',
+            content: `You are a specialized food analysis AI that quickly identifies food and provides accurate nutritional estimates.
+            
+            Identify the food in the image and provide:
+            - Food name and estimated serving size
+            - Nutritional content (calories, protein, carbs, fat)
+            - Main ingredients with healthy/unhealthy flags
+            - Health score (1-10)
+            - 1-2 key dietary warnings or considerations
+            - 1-2 quick recommendations
+            
+            Format response as precise JSON only with these fields:
+            name, servingSize, calories, protein, carbs, fat, ingredients (array of objects with name, healthy boolean), 
+            healthScore (number), warnings (array), recommendations (array),
+            vitamins (array of objects with name and amount), minerals (array of objects with name and amount),
+            dietary (object with vegan, vegetarian, glutenFree, dairyFree as booleans).`
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${base64Data}`
+                }
+              }
+            ]
+          }
+        ],
+        max_tokens: 500, // Reduced for faster response
+        temperature: 0.1, // Lower temperature for more consistent responses
+      })
+    });
+    
+    // Race the two promises
+    console.log('Sending request to OpenAI API...');
+    let response;
+    try {
+      response = await Promise.race([apiCallPromise, timeoutPromise]);
     } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Analysis request timed out');
-      }
-      throw error;
-    } finally {
-      clearTimeout(timeout);
+      console.error('OpenAI API request error:', error.message);
+      // Return a user-friendly response with fallback data
+      return new Response(
+        JSON.stringify({
+          error: error.message,
+          productInfo: {
+            name: "Analysis Timed Out",
+            calories: 0,
+            protein: 0,
+            carbs: 0,
+            fat: 0,
+            healthScore: 5,
+            ingredients: [
+              { name: "Could not analyze ingredients", healthy: false }
+            ],
+            warnings: ["Analysis took too long"],
+            recommendations: ["Try with a smaller, clearer image", "Try again later when the service is less busy"],
+            servingSize: "Unknown",
+            vitamins: [],
+            minerals: [],
+            dietary: {
+              vegan: false,
+              vegetarian: false,
+              glutenFree: false,
+              dairyFree: false
+            }
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     
+    const data = await response.json();
+    console.log('Received response from OpenAI');
+    
+    if (data.error) {
+      console.error('OpenAI API error:', data.error);
+      throw new Error(`OpenAI API error: ${data.error.message || 'Unknown error'}`);
+    }
+    
+    // Verify we have a valid response with content
+    if (!data.choices?.[0]?.message?.content) {
+      console.error('Invalid or empty response from OpenAI');
+      throw new Error('Invalid response from OpenAI');
+    }
+
+    // Parse the response content as JSON and validate it
+    let contentText = data.choices[0].message.content;
+    let analysisResult;
+    
+    try {
+      // Handle markdown code blocks
+      if (contentText.includes('```json')) {
+        contentText = contentText.split('```json')[1].split('```')[0].trim();
+      } else if (contentText.includes('```')) {
+        contentText = contentText.split('```')[1].split('```')[0].trim();
+      }
+      
+      analysisResult = JSON.parse(contentText);
+      
+      // Validate required fields and provide defaults if missing
+      const requiredFields = ['name', 'calories', 'protein', 'carbs', 'fat', 'ingredients', 'healthScore'];
+      for (const field of requiredFields) {
+        if (!analysisResult[field]) {
+          if (field === 'ingredients') {
+            analysisResult[field] = [{ name: "Unknown ingredients", healthy: false }];
+          } else if (field === 'healthScore') {
+            analysisResult[field] = 5;
+          } else if (field === 'name') {
+            analysisResult[field] = "Unknown Food";
+          } else {
+            analysisResult[field] = 0;
+          }
+        }
+      }
+      
+      // Ensure all expected fields exist
+      if (!analysisResult.warnings) analysisResult.warnings = ["Limited data available"];
+      if (!analysisResult.recommendations) analysisResult.recommendations = ["Consume in moderation"];
+      if (!analysisResult.servingSize) analysisResult.servingSize = "1 serving";
+      if (!analysisResult.vitamins) analysisResult.vitamins = [];
+      if (!analysisResult.minerals) analysisResult.minerals = [];
+      if (!analysisResult.dietary) {
+        analysisResult.dietary = {
+          vegan: false,
+          vegetarian: false,
+          glutenFree: false,
+          dairyFree: false
+        };
+      }
+      
+    } catch (parseError) {
+      console.error('Error parsing OpenAI response:', parseError);
+      console.error('Raw content:', contentText);
+      throw new Error('Failed to parse analysis results');
+    }
+
+    return new Response(
+      JSON.stringify({
+        productInfo: analysisResult
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+    
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message || 'An unexpected error occurred',
@@ -364,6 +403,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: error.name === 'AbortError' ? 504 : 500
       }
-    )
+    );
   }
 })

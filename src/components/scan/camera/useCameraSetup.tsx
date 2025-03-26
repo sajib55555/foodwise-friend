@@ -77,6 +77,13 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
    * Captures an image from the current video stream
    */
   const captureImage = () => {
+    // Provide user feedback that we're processing the image
+    toast({
+      title: "Capturing image...",
+      description: "Hold still for best results",
+      duration: 1500,
+    });
+    
     handleCaptureImage(videoRef.current, streamRef, stopAllTracks);
   };
 
@@ -106,9 +113,9 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     const img = new Image();
     
     try {
-      // Set maximum dimensions
-      const MAX_WIDTH = 800;
-      const MAX_HEIGHT = 800;
+      // Set maximum dimensions - now even smaller for better performance
+      const MAX_WIDTH = 640;
+      const MAX_HEIGHT = 640;
       
       // Set image source
       img.src = imageData;
@@ -137,7 +144,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       tempCtx?.drawImage(img, 0, 0, width, height);
       
       // Return optimized image with reduced quality
-      return tempCanvas.toDataURL('image/jpeg', 0.85);
+      return tempCanvas.toDataURL('image/jpeg', 0.7);
     } catch (error) {
       console.error('Error optimizing image:', error);
       return imageData; // Return original if optimization fails
@@ -153,6 +160,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       
       // Optimize image before analysis to improve speed
       const optimizedImage = optimizeImageForProcessing(capturedImage);
+      console.log("Image optimized for processing. Original size:", capturedImage.length, "Optimized size:", optimizedImage.length);
       
       toast({
         title: "Processing Food Image",

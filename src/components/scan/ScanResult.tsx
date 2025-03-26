@@ -1,679 +1,277 @@
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
-import { Check, X, AlertTriangle, Utensils, Activity, Barcode, Loader2, Info } from "lucide-react";
-import { motion } from "framer-motion";
-import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-custom";
+import { CheckCircle2, Copy, HelpCircle, Loader2, XCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import DetailedNutritionAnalysis from "@/components/nutrition/DetailedNutritionAnalysis";
-
-interface Ingredient {
-  name: string;
-  healthy: boolean;
-  warning?: string;
-}
-
-interface FoodAnalysis {
-  name: string;
-  brand?: string;
-  barcode?: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  ingredients: Ingredient[];
-  healthScore: number;
-  warnings: string[];
-  recommendations: string[];
-  servingSize: string;
-  vitamins: { name: string; amount: string }[];
-  minerals: { name: string; amount: string }[];
-  dietary: {
-    vegan: boolean;
-    vegetarian: boolean;
-    glutenFree: boolean;
-    dairyFree: boolean;
-  };
-}
+import { useAuth } from "@/contexts/AuthContext";
+import { useActivityLog } from "@/contexts/ActivityLogContext";
 
 interface ScanResultProps {
-  imageUrl: string;
-  barcode?: string | null;
-  onReset: () => void;
+  imageSrc: string;
+  onClose: () => void;
 }
 
-const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) => {
-  const [analysis, setAnalysis] = useState<FoodAnalysis | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [rawAnalysis, setRawAnalysis] = useState<string | null>(null);
-  const [processingStage, setProcessingStage] = useState<string>("initializing");
+const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customNotes, setCustomNotes] = useState("");
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
-
-  // Function to optimize the image before sending to API
-  const optimizeImage = (imageData: string): string => {
-    if (!imageData || !imageData.includes('base64,')) {
-      return imageData;
-    }
-    
-    // Create a temporary image element
-    const img = new Image();
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Set up a promise to handle the async image loading
-    return new Promise<string>((resolve) => {
-      img.onload = () => {
-        // Target dimensions - smaller for faster processing
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-        
-        // Calculate new dimensions while maintaining aspect ratio
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = Math.round((width * MAX_HEIGHT) / height);
-            height = MAX_HEIGHT;
-          }
-        }
-        
-        // Set canvas dimensions and draw the image
-        canvas.width = width;
-        canvas.height = height;
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        // Get compressed image data - use JPEG with reduced quality
-        const compressedImage = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(compressedImage);
-      };
-      
-      // Handle errors
-      img.onerror = () => {
-        console.error('Failed to load image for optimization');
-        resolve(imageData); // Return original if optimization fails
-      };
-      
-      // Set the source to trigger loading
-      img.src = imageData;
-    }).then(optimizedImage => {
-      console.log('Image optimized for faster analysis');
-      return optimizedImage;
-    }).catch(err => {
-      console.error('Image optimization error:', err);
-      return imageData; // Fallback to original on error
-    });
-  };
+  const { user } = useAuth();
+  const { logActivity } = useActivityLog();
 
   useEffect(() => {
-    const analyzeFoodImage = async () => {
+    const analyzeImage = async () => {
+      setIsLoading(true);
+      setIsError(false);
       try {
-        setIsLoading(true);
-        setError(null);
-        setRawAnalysis(null);
-        setProcessingStage("initializing");
-
-        console.log("Analyzing food image or barcode...");
-        if (barcode) {
-          console.log("Analyzing barcode:", barcode);
-          setProcessingStage("barcode");
-        } else if (imageUrl) {
-          console.log("Analyzing image data of length:", imageUrl.length);
-          setProcessingStage("image-processing");
-          
-          // Optimize image before sending to API
-          const optimizedImage = await optimizeImage(imageUrl);
-          
-          // Update processing stage
-          setProcessingStage("sending-to-api");
+        // Convert image to base64 if it's a Blob
+        let base64Image = imageSrc;
+        if (imageSrc instanceof Blob) {
+          base64Image = await convertBlobToBase64(imageSrc);
         }
 
-        // Set a more aggressive timeout
-        const timeout = setTimeout(() => {
-          if (isLoading) {
-            console.log("Analysis timeout reached");
-            setProcessingStage("timeout");
-            setError("The analysis took too long. Please try again with a clearer photo or a different food item.");
-            setIsLoading(false);
-          }
-        }, 15000); // Reduced from 25s to 15s
-        
-        setTimeoutId(timeout);
+        const response = await fetch('/api/scan', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ image: base64Image }),
+        });
 
-        try {
-          // Optimize the image before sending
-          let imageToSend = imageUrl;
-          if (imageUrl && !barcode) {
-            imageToSend = await optimizeImage(imageUrl);
-          }
-          
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Analysis request timed out')), 12000);
+        if (!response.ok) {
+          setIsError(true);
+          console.error('Scan failed:', response.statusText);
+          toast({
+            title: "Scan Failed",
+            description: "Failed to analyze the image. Please try again.",
+            variant: "destructive"
           });
-
-          setProcessingStage("sending-to-api");
-          
-          const functionPromise = supabase.functions.invoke("analyze-food", {
-            body: {
-              imageData: imageToSend,
-              barcode: barcode
-            }
-          });
-
-          const result = await Promise.race([functionPromise, timeoutPromise]);
-          
-          const { data, error } = result as { data: any, error: any };
-
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-            setTimeoutId(null);
-          }
-
-          if (error) {
-            console.error("Supabase function error:", error);
-            throw new Error(error.message || "Failed to analyze food");
-          }
-
-          if (!data) {
-            console.error("No data returned from analysis");
-            throw new Error("No analysis data returned. Please try again.");
-          }
-
-          console.log("Received analysis data:", data ? "success" : "no data");
-          setProcessingStage("processing-results");
-          
-          if (data.rawAnalysis) {
-            console.log("Raw analysis available");
-            setRawAnalysis(data.rawAnalysis);
-            
-            try {
-              if (data.rawAnalysis.includes('{') && data.rawAnalysis.includes('}')) {
-                let jsonStr = data.rawAnalysis;
-                
-                if (jsonStr.includes('```json')) {
-                  jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
-                } else if (jsonStr.includes('```')) {
-                  jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
-                }
-                
-                jsonStr = jsonStr
-                  .replace(/"healthy"\s*:\s*moderate/g, '"healthy": false')
-                  .replace(/"healthy"\s*:\s*high/g, '"healthy": false')
-                  .replace(/"healthy"\s*:\s*low/g, '"healthy": true');
-                
-                console.log("Attempting to parse cleaned JSON");
-                
-                const parsedData = JSON.parse(jsonStr);
-                if (parsedData && typeof parsedData === 'object') {
-                  console.log("Successfully parsed raw JSON data");
-                  
-                  if (parsedData.ingredients && Array.isArray(parsedData.ingredients)) {
-                    parsedData.ingredients = parsedData.ingredients.map(ingredient => {
-                      if (typeof ingredient.healthy === 'undefined') {
-                        ingredient.healthy = true;
-                      }
-                      if (typeof ingredient.healthy !== 'boolean') {
-                        const originalValue = ingredient.healthy;
-                        ingredient.healthy = false;
-                        if (!ingredient.warning && originalValue) {
-                          ingredient.warning = `Moderate (${originalValue})`;
-                        }
-                      }
-                      return ingredient;
-                    });
-                  }
-                  
-                  setAnalysis(parsedData);
-                  setError(null);
-                  
-                  toast({
-                    title: "Food Analysis Complete",
-                    description: `Analyzed: ${parsedData.name}`,
-                  });
-                  
-                  return;
-                }
-              }
-            } catch (jsonErr) {
-              console.error("Error parsing raw JSON:", jsonErr);
-            }
-          }
-
-          if (data.productInfo) {
-            setAnalysis(data.productInfo);
-            setProcessingStage("complete");
-            
-            if (data.productInfo.name !== "Food Analysis Result") {
-              toast({
-                title: "Food Analysis Complete",
-                description: `Analyzed: ${data.productInfo.name}`,
-              });
-            } else {
-              toast({
-                title: "Analysis Result Limited",
-                description: "Could only get basic information. Try a clearer image.",
-                variant: "default",
-              });
-            }
-          } else {
-            throw new Error('No analysis data returned');
-          }
-        } catch (fetchError: any) {
-          if (fetchError.message?.includes('timed out')) {
-            setProcessingStage("timeout");
-            throw new Error('Analysis request timed out');
-          }
-          throw fetchError;
-        } finally {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
+          return;
         }
-      } catch (err: any) {
-        console.error('Error analyzing food:', err);
-        
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          setTimeoutId(null);
-        }
-        
-        let errorMessage = 'Failed to analyze food image. Please try again with a clearer photo.';
-        
-        if (err.message?.includes('timeout') || err.message?.includes('timed out')) {
-          errorMessage = 'The analysis took too long. Please try again with a clearer photo or a different food item.';
-        } else if (err.message?.includes('network')) {
-          errorMessage = 'Network error occurred. Please check your connection and try again.';
-        }
-        
-        setError(errorMessage);
-        
+
+        const data = await response.json();
+        setScanResult(data);
+        setIsLoading(false);
+      } catch (error) {
+        setIsError(true);
+        console.error('Error during scan:', error);
         toast({
-          title: "Analysis Failed",
-          description: errorMessage,
-          variant: "destructive",
+          title: "Scan Error",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive"
         });
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (imageUrl || barcode) {
-      analyzeFoodImage();
-    }
-    
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [imageUrl, barcode, toast]);
+    analyzeImage();
+  }, [imageSrc, toast]);
 
-  const handleLogFood = () => {
-    if (analysis) {
-      sessionStorage.setItem('scannedFood', JSON.stringify(analysis));
-      
-      navigate('/log-meal');
-      
-      toast({
-        title: "Food Ready to Log",
-        description: `${analysis.name} has been added to your meal form.`,
-      });
-    }
-  };
-
-  const renderLoadingState = () => {
-    const loadingMessages = {
-      "initializing": "Initializing food analysis...",
-      "barcode": "Searching product database for barcode information...",
-      "image-processing": "Processing image for analysis...",
-      "sending-to-api": "Sending to AI for nutritional analysis...",
-      "processing-results": "Processing nutritional information...",
-      "timeout": "Analysis is taking longer than expected..."
-    };
-    
-    return (
-      <div className="flex flex-col items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 text-purple-600 animate-spin mb-2" />
-        <p className="text-purple-700 font-medium">{loadingMessages[processingStage as keyof typeof loadingMessages]}</p>
-        <p className="text-sm text-muted-foreground">This usually takes 5-15 seconds</p>
-        
-        {processingStage === "sending-to-api" && (
-          <div className="mt-4 w-full max-w-xs bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-            <div className="bg-purple-600 h-2.5 rounded-full w-3/4 animate-pulse"></div>
-          </div>
-        )}
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-6"
-          onClick={onReset}
-        >
-          Cancel Analysis
-        </Button>
-      </div>
-    );
-  };
-
-  const handleUseFallbackData = () => {
-    const fallbackBurgerData: FoodAnalysis = {
-      name: "Cheeseburger",
-      calories: 450,
-      protein: 25,
-      carbs: 35,
-      fat: 22,
-      ingredients: [
-        { name: "Beef patty", healthy: true },
-        { name: "Cheese", healthy: false, warning: "High in saturated fat" },
-        { name: "Lettuce", healthy: true },
-        { name: "Tomato", healthy: true },
-        { name: "Onion", healthy: true },
-        { name: "Bun", healthy: false, warning: "Refined carbs" },
-        { name: "Sauce", healthy: false, warning: "May contain added sugars" }
-      ],
-      healthScore: 5.5,
-      warnings: ["Moderate in calories", "Contains saturated fat", "Contains refined carbs"],
-      recommendations: ["Pair with a side salad", "Choose whole grain bun for more fiber", "Limit additional condiments"],
-      servingSize: "1 burger (180g)",
-      vitamins: [
-        { name: "Vitamin A", amount: "5% DV" },
-        { name: "Vitamin C", amount: "8% DV" }
-      ],
-      minerals: [
-        { name: "Calcium", amount: "15% DV" },
-        { name: "Iron", amount: "20% DV" }
-      ],
-      dietary: {
-        vegan: false,
-        vegetarian: false,
-        glutenFree: false,
-        dairyFree: false
-      }
-    };
-    
-    setAnalysis(fallbackBurgerData);
-    setError(null);
-    setRawAnalysis(null);
-    
-    toast({
-      title: "Using Sample Data",
-      description: "Using sample data for demonstration purposes",
+  const convertBlobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
   };
 
-  const fallbackAnalysis: FoodAnalysis = {
-    name: "Unknown Food Item",
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0,
-    ingredients: [],
-    healthScore: 5,
-    warnings: ["Unable to analyze food"],
-    recommendations: ["Try scanning again with better lighting"],
-    servingSize: "100g",
-    vitamins: [],
-    minerals: [],
-    dietary: {
-      vegan: false,
-      vegetarian: false,
-      glutenFree: false,
-      dairyFree: false
+  const handleCopyToClipboard = () => {
+    if (scanResult && scanResult.name) {
+      navigator.clipboard.writeText(scanResult.name)
+        .then(() => {
+          setIsCopied(true);
+          toast({
+            title: "Copied!",
+            description: "Food name copied to clipboard.",
+          });
+          setTimeout(() => setIsCopied(false), 2000);
+        })
+        .catch(err => {
+          console.error("Could not copy text: ", err);
+          toast({
+            title: "Copy Failed",
+            description: "Could not copy to clipboard. Please try again.",
+            variant: "destructive"
+          });
+        });
     }
   };
 
-  const displayData = analysis || fallbackAnalysis;
+  const handleSaveMeal = async () => {
+    if (!user) {
+      toast({
+        title: "Not authenticated",
+        description: "You must be logged in to save meals.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!scanResult) {
+      toast({
+        title: "No scan result",
+        description: "Please wait for the scan to complete before saving.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const mealName = customName || scanResult.name || "Unnamed Meal";
+    const mealNotes = customNotes || "No notes added";
+
+    try {
+      setIsLoading(true);
+
+      // Save the meal data to user_activity_logs table
+      await logActivity('meal_logged', {
+        meal_type: 'scanned',
+        food_items: [mealName],
+        scanned_food: {
+          name: mealName,
+          notes: mealNotes,
+          ...scanResult
+        }
+      });
+
+      toast({
+        title: "Meal Saved",
+        description: `${mealName} has been saved to your meal log.`,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Error saving meal:", error);
+      toast({
+        title: "Save Failed",
+        description: "Failed to save the meal. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="space-y-6"
-    >
-      <div className="relative">
-        {imageUrl ? (
-          <div className="h-48 rounded-2xl overflow-hidden">
-            <img
-              src={imageUrl}
-              alt="Food scan"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ) : barcode ? (
-          <div className="h-48 rounded-2xl flex items-center justify-center bg-purple-50 overflow-hidden">
-            <div className="text-center p-4">
-              <Barcode className="h-16 w-16 mx-auto mb-2 text-purple-600" />
-              <p className="text-lg font-semibold text-purple-700">{barcode}</p>
-              <p className="text-sm text-purple-600">{displayData.brand || "Unknown Product"}</p>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <Card className="max-w-2xl w-full bg-white dark:bg-neutral-950 text-neutral-900 dark:text-neutral-50 shadow-lg rounded-lg overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-xl">Scan Result</CardTitle>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <XCircle className="h-5 w-5" />
+          </Button>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+              <span>Analyzing image...</span>
             </div>
-          </div>
-        ) : null}
-        <Button
-          variant="outline"
-          size="sm"
-          className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm"
-          onClick={onReset}
-        >
-          New Scan
-        </Button>
-      </div>
-
-      {isLoading ? (
-        renderLoadingState()
-      ) : error ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Card variant="glass">
-            <CardContent className="pt-6">
-              <div className="text-center py-4">
-                <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-2" />
-                <p className="text-lg font-medium mb-2">Analysis Failed</p>
-                <p className="text-sm text-muted-foreground">{error}</p>
-                <div className="flex flex-col sm:flex-row gap-2 mt-6 justify-center">
-                  <Button 
-                    variant="purple" 
-                    onClick={onReset}
-                  >
-                    Try Again
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleUseFallbackData}
-                  >
-                    Use Sample Data
-                  </Button>
-                </div>
+          ) : isError ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <XCircle className="h-10 w-10 text-red-500 mb-2" />
+              <span className="text-red-500">Failed to analyze image. Please try again.</span>
+            </div>
+          ) : scanResult ? (
+            <div className="grid gap-4">
+              <div className="border rounded-md overflow-hidden">
+                <AspectRatio ratio={4 / 3}>
+                  <img src={imageSrc} alt="Scanned Food" className="object-cover" />
+                </AspectRatio>
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      ) : (
-        <>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card variant="glass">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  {displayData.name}
-                  {displayData.name === "Food Analysis Result" && (
-                    <Info className="h-4 w-4 ml-2 text-amber-500" />
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Calories</p>
-                    <p className="font-semibold">{displayData.calories}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Protein</p>
-                    <p className="font-semibold">{displayData.protein}g</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Carbs</p>
-                    <p className="font-semibold">{displayData.carbs}g</p>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                      <Utensils className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Health Score</p>
-                      <p className="text-xs text-muted-foreground">Based on nutritional value</p>
-                    </div>
-                  </div>
-                  <div className="text-lg font-semibold text-green-600">{displayData.healthScore}/10</div>
-                </div>
-                
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Ingredients:</p>
-                  {displayData.ingredients.length > 0 ? (
-                    <ul className="space-y-1">
-                      {displayData.ingredients.map((ingredient, index) => (
-                        <li key={index} className="flex items-center text-sm">
-                          {ingredient.healthy ? (
-                            <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                          ) : (
-                            <X className="w-4 h-4 text-red-500 mr-2 flex-shrink-0" />
-                          )}
-                          <span>{ingredient.name}</span>
-                          {ingredient.warning && (
-                            <span className="text-amber-500 text-xs ml-2">({ingredient.warning})</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No ingredient data available</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card variant="glass">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Recommendations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {displayData.warnings.length > 0 && (
-                  <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800/50">
-                    <div className="flex items-start">
-                      <AlertTriangle className="w-5 h-5 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Considerations</p>
-                        <ul className="mt-1 text-xs text-amber-600 dark:text-amber-300 space-y-1">
-                          {displayData.warnings.map((warning, index) => (
-                            <li key={index}>{warning}</li>
-                          ))}
-                        </ul>
-                      </div>
+              <div className="grid gap-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>{scanResult.name || "Unknown Food"}</CardTitle>
+                    <CardDescription>
+                      {scanResult.confidence ? `Confidence: ${scanResult.confidence.toFixed(2)}%` : "No confidence data"}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleCopyToClipboard}
+                    disabled={isCopied}
+                  >
+                    {isCopied ? <CheckCircle2 className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
+                    {isCopied ? "Copied!" : "Copy Name"}
+                  </Button>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="meal-name">Meal Name (Optional)</Label>
+                  <Input
+                    id="meal-name"
+                    placeholder="Custom meal name"
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="meal-notes">Meal Notes (Optional)</Label>
+                  <Textarea
+                    id="meal-notes"
+                    placeholder="Add any notes about this meal"
+                    value={customNotes}
+                    onChange={(e) => setCustomNotes(e.target.value)}
+                  />
+                </div>
+
+                {scanResult.ingredients && scanResult.ingredients.length > 0 && (
+                  <div className="grid gap-2">
+                    <Label>Ingredients</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {scanResult.ingredients.map((ingredient: any, index: number) => (
+                        <Badge key={index} variant={ingredient.healthy ? "secondary" : "destructive"}>
+                          {ingredient.name}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 )}
 
-                <ul className="space-y-2">
-                  {displayData.recommendations.map((recommendation, index) => (
-                    <li key={index} className="flex items-start text-sm">
-                      <Activity className="w-4 h-4 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
-                      <span>{recommendation}</span>
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="mt-4 flex space-x-3">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => {
-                      toast({
-                        title: "Saved to Journal",
-                        description: "Food information has been saved to your journal",
-                      });
-                    }}
-                  >
-                    Save to Journal
-                  </Button>
-                  <Button 
-                    variant="purple" 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={handleLogFood}
-                  >
-                    Log This Meal
+                {scanResult.nutrition && (
+                  <div className="grid gap-2">
+                    <Label>Nutrition Facts (per serving)</Label>
+                    <ul className="list-none pl-0">
+                      <li>Calories: {scanResult.nutrition.calories}</li>
+                      <li>Protein: {scanResult.nutrition.protein}g</li>
+                      <li>Carbs: {scanResult.nutrition.carbs}g</li>
+                      <li>Fat: {scanResult.nutrition.fat}g</li>
+                    </ul>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" onClick={onClose}>Cancel</Button>
+                  <Button onClick={handleSaveMeal} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                    Save Meal
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {displayData.name !== "Food Analysis Result" && displayData.name !== "Unknown Food Item" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <DetailedNutritionAnalysis nutritionData={displayData} />
-            </motion.div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8">
+              <HelpCircle className="h-10 w-10 text-muted-foreground mb-2" />
+              <span className="text-muted-foreground">No result to display.</span>
+            </div>
           )}
-
-          {rawAnalysis && displayData.name === "Food Analysis Result" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Card variant="glass">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center">
-                    <Info className="h-4 w-4 mr-2 text-purple-500" />
-                    We detected your food but had trouble with the analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Our AI recognized your food but had trouble formatting the nutritional data. 
-                    Try taking a clearer photo with good lighting and a single food item centered in the frame.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={onReset}
-                  >
-                    Scan Again
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </>
-      )}
-    </motion.div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
 import PageTransition from "@/components/layout/PageTransition";
-import NutritionSummary from "@/components/home/NutritionSummary";
 import ActionButtons from "@/components/home/ActionButtons";
 import WaterTracker from "@/components/home/WaterTracker";
 import ReminderSystem from "@/components/home/ReminderSystem";
@@ -14,6 +13,7 @@ import AIHealthAssistant from "@/components/home/AIHealthAssistant";
 import { Button } from "@/components/ui/button-custom";
 import { Calendar, Dumbbell } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import NutritionHomeView from "@/components/home/NutritionHomeView";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -103,8 +103,9 @@ const Index = () => {
               </Button>
             </motion.div>
             
+            {/* Nutrition Insights from Nutrition page */}
             <motion.div variants={itemVariants}>
-              <NutritionSummary />
+              <NutritionHomeView />
             </motion.div>
             
             {/* Responsive grid layout with consistent styling - Removed ExerciseTracker */}
@@ -124,8 +125,6 @@ const Index = () => {
                 <SleepTracker />
               </motion.div>
             </div>
-            
-            {/* Removed MealRecommendations component */}
             
             <motion.div 
               variants={itemVariants}

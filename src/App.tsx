@@ -32,7 +32,6 @@ import { Crown } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-// Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
@@ -46,7 +45,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/landing" replace />;
   }
   
-  // Check if subscription is expired and redirect to subscription page
   if (subscription?.status === "expired" || subscription?.status === "canceled") {
     toast({
       title: "Subscription expired",
@@ -70,7 +68,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Premium route component for features that require an active subscription (not trial)
 const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading, subscription } = useAuth();
   const { toast } = useToast();
@@ -84,7 +81,6 @@ const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/landing" replace />;
   }
   
-  // Check if user doesn't have active subscription
   if (subscription?.status !== "active") {
     toast({
       title: "Premium feature",
@@ -113,7 +109,6 @@ const AppRoutes = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Check if trial is ending soon (within 3 days)
   useEffect(() => {
     if (subscription?.status === "trial" && subscription.trial_ends_at) {
       const trialEnd = new Date(subscription.trial_ends_at);
@@ -144,11 +139,9 @@ const AppRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes>
-        {/* Public routes */}
         <Route path="/landing" element={<Landing />} />
         <Route path="/auth" element={<Auth />} />
 
-        {/* Protected routes */}
         <Route path="/" element={
           <ProtectedRoute>
             <Index />
@@ -224,18 +217,21 @@ const AppRoutes = () => {
             <WorkoutSuggestions />
           </ProtectedRoute>
         } />
+        <Route path="/goals-tracker" element={
+          <ProtectedRoute>
+            <GoalsTracker />
+          </ProtectedRoute>
+        } />
         <Route path="/goals" element={
           <ProtectedRoute>
             <GoalsTracker />
           </ProtectedRoute>
         } />
 
-        {/* Redirect home page to landing if not logged in, otherwise to dashboard */}
         <Route path="/" element={
           user ? <Navigate to="/dashboard" replace /> : <Navigate to="/landing" replace />
         } />
 
-        {/* 404 page */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>

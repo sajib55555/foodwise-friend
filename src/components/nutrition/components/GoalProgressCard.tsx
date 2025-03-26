@@ -106,7 +106,7 @@ const GoalProgressCard: React.FC = () => {
   };
 
   const handleViewStatsClick = () => {
-    navigate('/goals');
+    navigate('/goals-tracker');
   };
 
   return (

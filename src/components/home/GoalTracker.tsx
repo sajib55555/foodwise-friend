@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Progress } from "@/components/ui/progress";
@@ -9,6 +8,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface Goal {
   id: number | string;
@@ -23,6 +23,7 @@ const GoalTracker = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchGoals();
@@ -30,7 +31,6 @@ const GoalTracker = () => {
 
   const fetchGoals = async () => {
     if (!user) {
-      // Show default goals for non-authenticated users
       setGoals([
         { 
           id: 1, 
@@ -76,14 +76,11 @@ const GoalTracker = () => {
       }
 
       if (data && data.length > 0) {
-        // Transform API data to component format
         const formattedGoals: Goal[] = data.map(goal => {
-          // Calculate progress percentage
           const progress = goal.target_value > 0 
             ? Math.round((goal.current_value / goal.target_value) * 100) 
             : 0;
           
-          // Format due date if available
           const dueDate = goal.target_date 
             ? new Date(goal.target_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
             : undefined;
@@ -91,14 +88,13 @@ const GoalTracker = () => {
           return {
             id: goal.id,
             title: goal.title,
-            progress: progress > 100 ? 100 : progress, // Cap progress at 100%
+            progress: progress > 100 ? 100 : progress,
             target: `${goal.target_value} ${goal.unit}`,
             dueDate
           };
         });
         setGoals(formattedGoals);
       } else {
-        // Use default goals if no data
         setGoals([
           { 
             id: 1, 
@@ -147,7 +143,12 @@ const GoalTracker = () => {
                 Goals Tracker
               </span>
             </CardTitle>
-            <Button variant="ghost" size="sm" className="h-8 px-2 relative z-10">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-8 px-2 relative z-10"
+              onClick={() => navigate("/goals-tracker")}
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
@@ -198,7 +199,7 @@ const GoalTracker = () => {
             variant="outline" 
             className="w-full mt-6 border-green-300 bg-white/70 text-green-700 hover:bg-green-50 hover:text-green-800 transition-all shadow-sm"
             size="sm"
-            onClick={() => window.location.href = '/goals-tracker'}
+            onClick={() => navigate("/goals-tracker")}
           >
             Add New Goal
           </Button>

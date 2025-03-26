@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { PieChart as PieChartIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface MacroDistributionCardProps {
   protein?: number;
@@ -26,6 +27,7 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
   const [fat, setFat] = useState(propFat || 0);
   const [loading, setLoading] = useState(isLoading);
   const { user } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     // Update component state when props change
@@ -51,6 +53,11 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
           
         if (error) {
           console.error("Error fetching user macros:", error);
+          toast({
+            title: "Error fetching nutritional data",
+            description: "Please try again later",
+            variant: "destructive"
+          });
           return;
         }
         
@@ -58,6 +65,26 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
           setProtein(data[0].protein || 0);
           setCarbs(data[0].carbs || 0);
           setFat(data[0].fat || 0);
+        } else {
+          // Create default user macros if none exist
+          const { error: insertError } = await supabase
+            .from('user_macros')
+            .insert({
+              user_id: user.id,
+              calories: 2000,
+              protein: 80,
+              carbs: 200,
+              fat: 65,
+              calculation_method: 'default'
+            });
+            
+          if (insertError) {
+            console.error("Error creating default user macros:", insertError);
+          } else {
+            setProtein(80);
+            setCarbs(200);
+            setFat(65);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch user macros:", err);
@@ -67,7 +94,7 @@ const MacroDistributionCard: React.FC<MacroDistributionCardProps> = ({
     }
     
     fetchUserMacros();
-  }, [user, propProtein, propCarbs, propFat]);
+  }, [user, propProtein, propCarbs, propFat, toast]);
   
   // Calculate total
   const total = protein + carbs + fat;

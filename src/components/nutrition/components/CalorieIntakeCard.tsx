@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Flame, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface CalorieIntakeCardProps {
   actualCalories?: number;
@@ -25,6 +26,7 @@ const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({
   const [userMealBreakdown, setUserMealBreakdown] = useState(mealBreakdown || []);
   const [loading, setLoading] = useState(isLoading);
   const { user } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     // Update component state when props change
@@ -50,11 +52,32 @@ const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({
           
         if (error) {
           console.error("Error fetching user macros:", error);
+          toast({
+            title: "Error fetching nutritional data",
+            description: "Please try again later",
+            variant: "destructive"
+          });
           return;
         }
         
         if (data && data.length > 0) {
           setUserTargetCalories(data[0].calories || 2000);
+        } else {
+          // Create default user macros if none exist
+          const { error: insertError } = await supabase
+            .from('user_macros')
+            .insert({
+              user_id: user.id,
+              calories: 2000,
+              protein: 80,
+              carbs: 200,
+              fat: 65,
+              calculation_method: 'default'
+            });
+            
+          if (insertError) {
+            console.error("Error creating default user macros:", insertError);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch user macros:", err);
@@ -64,7 +87,7 @@ const CalorieIntakeCard: React.FC<CalorieIntakeCardProps> = ({
     }
     
     fetchUserMacros();
-  }, [user, targetCalories]);
+  }, [user, targetCalories, toast]);
   
   // Calculate percentage
   const percentage = userTargetCalories > 0 

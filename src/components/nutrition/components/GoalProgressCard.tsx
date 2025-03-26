@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button-custom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface GoalItem {
   name: string;
@@ -23,6 +24,7 @@ const GoalProgressCard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchUserGoals() {
@@ -30,6 +32,7 @@ const GoalProgressCard: React.FC = () => {
 
       try {
         setLoading(true);
+        // First try to get real goals from user_goals table
         const { data, error } = await supabase
           .from('user_goals')
           .select('*')
@@ -40,6 +43,11 @@ const GoalProgressCard: React.FC = () => {
 
         if (error) {
           console.error("Error fetching user goals:", error);
+          toast({
+            title: "Error fetching goals",
+            description: "Please try again later",
+            variant: "destructive"
+          });
           return;
         }
 
@@ -60,22 +68,111 @@ const GoalProgressCard: React.FC = () => {
 
           setGoals(formattedGoals);
         } else {
-          setGoals([
-            {
-              name: "Daily Calorie Limit",
-              current: 0,
-              goal: 2000,
-              unit: "kcal",
-              color: "#f59e0b"
-            },
-            {
-              name: "Protein Target",
-              current: 0,
-              goal: 80,
-              unit: "g",
-              color: "#3b82f6"
+          // If no real goals exist, try to get macros
+          const { data: macroData, error: macroError } = await supabase
+            .from('user_macros')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (macroError) {
+            console.error("Error fetching user macros:", macroError);
+          }
+          
+          if (macroData && macroData.length > 0) {
+            // We have macros, so create goals based on those
+            const macros = macroData[0];
+            
+            // Create default goals based on macros
+            const defaultGoals: GoalItem[] = [
+              {
+                name: "Daily Calorie Limit",
+                current: 0, // Will be updated with meal data
+                goal: macros.calories || 2000,
+                unit: "kcal",
+                color: "#f59e0b"
+              },
+              {
+                name: "Protein Target",
+                current: 0, // Will be updated with meal data
+                goal: macros.protein || 80,
+                unit: "g",
+                color: "#3b82f6"
+              }
+            ];
+            
+            // Now fetch today's meal data to populate current values
+            const today = new Date();
+            const start = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+            const end = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+            
+            const { data: mealData, error: mealError } = await supabase
+              .from('user_activity_logs')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('activity_type', 'meal_logged')
+              .gte('created_at', start)
+              .lte('created_at', end);
+              
+            if (mealError) {
+              console.error("Error fetching meal data:", mealError);
             }
-          ]);
+            
+            if (mealData && mealData.length > 0) {
+              // Calculate nutritional totals from meal data
+              let totalCalories = 0;
+              let totalProtein = 0;
+              
+              mealData.forEach(meal => {
+                const metadata = meal.metadata || {};
+                const scannedFood = metadata.scanned_food || {};
+                
+                totalCalories += Number(scannedFood.calories) || 0;
+                totalProtein += Number(scannedFood.protein) || 0;
+              });
+              
+              // Update the goals with actual values
+              defaultGoals[0].current = totalCalories;
+              defaultGoals[1].current = totalProtein;
+            }
+            
+            setGoals(defaultGoals);
+          } else {
+            // Create default goals if no goals or macros exist
+            setGoals([
+              {
+                name: "Daily Calorie Limit",
+                current: 0,
+                goal: 2000,
+                unit: "kcal",
+                color: "#f59e0b"
+              },
+              {
+                name: "Protein Target",
+                current: 0,
+                goal: 80,
+                unit: "g",
+                color: "#3b82f6"
+              }
+            ]);
+            
+            // Create default user macros if none exist
+            const { error: insertError } = await supabase
+              .from('user_macros')
+              .insert({
+                user_id: user.id,
+                calories: 2000,
+                protein: 80,
+                carbs: 200,
+                fat: 65,
+                calculation_method: 'default'
+              });
+              
+            if (insertError) {
+              console.error("Error creating default user macros:", insertError);
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to fetch user goals:", err);
@@ -85,7 +182,7 @@ const GoalProgressCard: React.FC = () => {
     }
 
     fetchUserGoals();
-  }, [user]);
+  }, [user, toast]);
 
   const getGoalColor = (category: string): string => {
     switch (category?.toLowerCase()) {

@@ -53,6 +53,67 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
   const navigate = useNavigate();
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
+  // Function to optimize the image before sending to API
+  const optimizeImage = (imageData: string): string => {
+    if (!imageData || !imageData.includes('base64,')) {
+      return imageData;
+    }
+    
+    // Create a temporary image element
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set up a promise to handle the async image loading
+    return new Promise<string>((resolve) => {
+      img.onload = () => {
+        // Target dimensions - smaller for faster processing
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        
+        // Calculate new dimensions while maintaining aspect ratio
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height = Math.round((height * MAX_WIDTH) / width);
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width = Math.round((width * MAX_HEIGHT) / height);
+            height = MAX_HEIGHT;
+          }
+        }
+        
+        // Set canvas dimensions and draw the image
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Get compressed image data - use JPEG with reduced quality
+        const compressedImage = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(compressedImage);
+      };
+      
+      // Handle errors
+      img.onerror = () => {
+        console.error('Failed to load image for optimization');
+        resolve(imageData); // Return original if optimization fails
+      };
+      
+      // Set the source to trigger loading
+      img.src = imageData;
+    }).then(optimizedImage => {
+      console.log('Image optimized for faster analysis');
+      return optimizedImage;
+    }).catch(err => {
+      console.error('Image optimization error:', err);
+      return imageData; // Fallback to original on error
+    });
+  };
+
   useEffect(() => {
     const analyzeFoodImage = async () => {
       try {
@@ -68,28 +129,42 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         } else if (imageUrl) {
           console.log("Analyzing image data of length:", imageUrl.length);
           setProcessingStage("image-processing");
+          
+          // Optimize image before sending to API
+          const optimizedImage = await optimizeImage(imageUrl);
+          
+          // Update processing stage
+          setProcessingStage("sending-to-api");
         }
 
+        // Set a more aggressive timeout
         const timeout = setTimeout(() => {
           if (isLoading) {
             console.log("Analysis timeout reached");
             setProcessingStage("timeout");
-            throw new Error("Analysis took too long. Please try again with a clearer image.");
+            setError("The analysis took too long. Please try again with a clearer photo or a different food item.");
+            setIsLoading(false);
           }
-        }, 25000); // Reduced from 30s to 25s
+        }, 15000); // Reduced from 25s to 15s
         
         setTimeoutId(timeout);
 
         try {
+          // Optimize the image before sending
+          let imageToSend = imageUrl;
+          if (imageUrl && !barcode) {
+            imageToSend = await optimizeImage(imageUrl);
+          }
+          
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Analysis request timed out')), 20000);
+            setTimeout(() => reject(new Error('Analysis request timed out')), 12000);
           });
 
           setProcessingStage("sending-to-api");
           
           const functionPromise = supabase.functions.invoke("analyze-food", {
             body: {
-              imageData: imageUrl,
+              imageData: imageToSend,
               barcode: barcode
             }
           });
@@ -603,4 +678,3 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
 };
 
 export default ScanResult;
-

@@ -186,14 +186,14 @@ serve(async (req) => {
       throw new Error('Invalid image data. Please try again with a clearer image.')
     }
 
+    // OPTIMIZATIONS START
     console.log('Sending request to OpenAI API...')
     
-    // Optimize image size before sending to OpenAI - use smaller JPEG quality
     // Create optimized request with faster timeouts and performance settings
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort();
-    }, 15000); // 15 second timeout (reduced from 20s)
+    }, 10000); // 10 second timeout (reduced from 20s)
     
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -203,7 +203,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',  // Using gpt-4o-mini for faster response
+          model: 'gpt-4o-mini',  // Switch to the faster, more efficient model
           messages: [
             {
               role: 'system',
@@ -217,8 +217,8 @@ serve(async (req) => {
               - 1-2 key dietary warnings or considerations
               - 1-2 quick recommendations
               
-              Be concise and direct, focusing on accuracy of identification over elaboration.
-              Provide specific nutritional numbers rather than ranges when possible.
+              Be very concise and direct. Focus only on providing the nutritional data.
+              Respond with specific numbers rather than ranges.
               
               Format response as JSON with these fields:
               name, servingSize, calories, protein, carbs, fat, ingredients (array of objects with name, healthy boolean, optional warning), 
@@ -242,8 +242,8 @@ serve(async (req) => {
               ]
             }
           ],
-          max_tokens: 1000, // Reduced from 1500 for faster response
-          temperature: 0.2, // Lower temperature for more consistent, focused responses
+          max_tokens: 800, // Reduced from 1500 for faster response
+          temperature: 0.1, // Lower temperature for more consistent, focused responses
         }),
         signal: controller.signal
       });

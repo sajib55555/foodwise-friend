@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card-custom";
 import { Button } from "@/components/ui/button-custom";
@@ -817,7 +816,7 @@ const AIHealthAssistant = () => {
       variant="glass" 
       className="overflow-hidden bg-gradient-to-br from-purple-500/10 to-blue-500/5 border-purple-300/30 dark:border-purple-800/20"
     >
-      <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-purple-100/40 to-transparent dark:from-purple-900/20">
+      <CardHeader className="flex flex-row items-center justify-between pb-2 bg-gradient-to-r from-purple-100/40 to-transparent dark:from-purple-900 dark:to-purple-950/20">
         <CardTitle className="text-lg font-medium">
           <div className="flex items-center gap-2">
             <div className="relative">

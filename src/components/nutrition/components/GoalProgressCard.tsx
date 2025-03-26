@@ -131,10 +131,16 @@ const GoalProgressCard: React.FC = () => {
                 if (typeof metadata === 'object' && metadata !== null && 'scanned_food' in metadata) {
                   const scannedFood = metadata.scanned_food;
                   
-                  // Only access properties if scannedFood is an object
+                  // Only access properties if scannedFood is an object and has the needed properties
                   if (typeof scannedFood === 'object' && scannedFood !== null) {
-                    totalCalories += Number(scannedFood.calories) || 0;
-                    totalProtein += Number(scannedFood.protein) || 0;
+                    // Additional type check for calories and protein properties
+                    if ('calories' in scannedFood && scannedFood.calories !== null) {
+                      totalCalories += Number(scannedFood.calories) || 0;
+                    }
+                    
+                    if ('protein' in scannedFood && scannedFood.protein !== null) {
+                      totalProtein += Number(scannedFood.protein) || 0;
+                    }
                   }
                 }
               });

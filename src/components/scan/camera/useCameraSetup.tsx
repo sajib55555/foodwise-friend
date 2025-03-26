@@ -114,11 +114,17 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     
     try {
       // Set maximum dimensions - now even smaller for better performance
-      const MAX_WIDTH = 640;
-      const MAX_HEIGHT = 640;
+      const MAX_WIDTH = 500; // Reduced from 640
+      const MAX_HEIGHT = 500; // Reduced from 640
       
-      // Set image source
+      // Set image source and ensure it's loaded
       img.src = imageData;
+      
+      if (!img.complete) {
+        // If image is not loaded yet, we need to wait
+        console.log("Image not loaded yet, using original");
+        return imageData;
+      }
       
       // Calculate new dimensions while preserving aspect ratio
       let width = img.width;
@@ -144,7 +150,7 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       tempCtx?.drawImage(img, 0, 0, width, height);
       
       // Return optimized image with reduced quality
-      return tempCanvas.toDataURL('image/jpeg', 0.7);
+      return tempCanvas.toDataURL('image/jpeg', 0.6);
     } catch (error) {
       console.error('Error optimizing image:', error);
       return imageData; // Return original if optimization fails
@@ -168,7 +174,10 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
         variant: "default",
       });
       
-      onCapture(optimizedImage);
+      // Add a small delay to ensure UI updates
+      setTimeout(() => {
+        onCapture(optimizedImage);
+      }, 300);
     } else {
       toast({
         title: "No Image",

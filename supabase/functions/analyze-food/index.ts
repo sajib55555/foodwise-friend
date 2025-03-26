@@ -330,9 +330,7 @@ serve(async (req) => {
       // Select a random food option
       const randomFood = foodOptions[Math.floor(Math.random() * foodOptions.length)];
       
-      // Add a short delay to simulate processing (500-1500ms)
-      await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
-      
+      // Remove delay to prevent long waits
       return new Response(
         JSON.stringify({
           productInfo: randomFood

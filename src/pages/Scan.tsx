@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,9 +39,7 @@ const Scan = () => {
     setScanComplete(true);
     setShowCamera(false);
     
-    logActivity('scan_food', {
-      description: 'Captured food image for analysis'
-    });
+    logActivity('scan_food', 'Captured food image for analysis');
     
     toast({
       title: "Photo captured",

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-custom";
@@ -134,9 +133,10 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
       setIsLoading(true);
 
       // Save the meal data to user_activity_logs table
-      await logActivity('meal_logged', {
-        description: `${mealName} has been logged`,
-        metadata: {
+      await logActivity(
+        'meal_logged', 
+        `${mealName} has been logged`,
+        {
           meal_type: 'scanned',
           food_items: [mealName],
           scanned_food: {
@@ -145,7 +145,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
             ...scanResult
           }
         }
-      });
+      );
 
       toast({
         title: "Meal Saved",
@@ -278,3 +278,4 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
 };
 
 export default ScanResult;
+

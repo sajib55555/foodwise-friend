@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
 
-// Define the form schema
 const formSchema = z.object({
   mealType: z.string().min(1, { message: "Please select a meal type" }),
   foodItems: z.string().optional(),
@@ -37,7 +36,6 @@ const LogMeal = () => {
   const { user } = useAuth();
   const { logActivity } = useActivityLog();
 
-  // Initialize form with default values
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,20 +49,17 @@ const LogMeal = () => {
   });
 
   useEffect(() => {
-    // Check if there's scanned food data in session storage
     const storedFood = sessionStorage.getItem("scannedFood");
     if (storedFood) {
       try {
         const parsedFood = JSON.parse(storedFood);
         setScannedFood(parsedFood);
         
-        // Pre-fill the form with the scanned food data
         form.setValue("calories", parsedFood.calories || 0);
         form.setValue("protein", parsedFood.protein || 0);
         form.setValue("carbs", parsedFood.carbs || 0);
         form.setValue("fat", parsedFood.fat || 0);
         
-        // If the food has ingredients, set them in the foodItems field
         if (parsedFood.ingredients && Array.isArray(parsedFood.ingredients)) {
           const ingredientNames = parsedFood.ingredients
             .map((ing: any) => ing.name || ing)
@@ -76,7 +71,6 @@ const LogMeal = () => {
           }
         }
         
-        // Clear the session storage to prevent the data from being used again
         sessionStorage.removeItem("scannedFood");
       } catch (error) {
         console.error("Error parsing scanned food data:", error);
@@ -95,18 +89,15 @@ const LogMeal = () => {
       const formattedDate = format(now, "yyyy-MM-dd");
       const mealDescription = `Logged ${values.mealType} meal`;
       
-      // Create the metadata object
       const metadata: any = {
         meal_type: values.mealType,
         date: formattedDate,
         food_items: values.foodItems ? values.foodItems.split(",").map(item => item.trim()) : []
       };
       
-      // Include the complete scanned food data if available
       if (scannedFood) {
         metadata.scanned_food = scannedFood;
       } else if (values.calories || values.protein || values.carbs || values.fat) {
-        // If no scanned food but user entered nutritional values
         metadata.scanned_food = {
           name: values.mealType.charAt(0).toUpperCase() + values.mealType.slice(1),
           calories: values.calories || 0,
@@ -116,11 +107,11 @@ const LogMeal = () => {
         };
       }
       
-      // Log the meal using the ActivityLogContext
-      await logActivity('meal_logged', {
-        description: mealDescription,
+      await logActivity(
+        'meal_logged',
+        mealDescription,
         metadata
-      });
+      );
       
       toast({
         title: "Meal logged successfully",

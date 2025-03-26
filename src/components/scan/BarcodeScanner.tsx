@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent } from "@/components/ui/card-custom";
@@ -19,7 +18,6 @@ const BarcodeScanner: React.FC<{
   const { toast } = useToast();
   const { logActivity } = useActivityLog();
   
-  // Cleanup function for Quagga
   const stopScanner = () => {
     if (Quagga) {
       try {
@@ -31,19 +29,15 @@ const BarcodeScanner: React.FC<{
     }
   };
 
-  // Result filtering function - helps reduce false positives
   const filterResults = (code: string) => {
-    // Add the new result to our array
     const newResults = [...lastResults, code].slice(-5);
     setLastResults(newResults);
     
-    // Check if we have enough consistent results to consider it valid
     const resultCounts: Record<string, number> = {};
     newResults.forEach(result => {
       resultCounts[result] = (resultCounts[result] || 0) + 1;
     });
     
-    // Find the most frequent code
     let maxCount = 0;
     let dominantCode = '';
     
@@ -54,7 +48,6 @@ const BarcodeScanner: React.FC<{
       }
     }
     
-    // Only consider it valid if it appears in at least 3 out of 5 scans
     return maxCount >= 3 ? dominantCode : null;
   };
 
@@ -72,12 +65,12 @@ const BarcodeScanner: React.FC<{
             type: "LiveStream",
             target: target,
             constraints: {
-              facingMode: "environment", // Use back camera on mobile
+              facingMode: "environment",
               width: { min: 640 },
               height: { min: 480 },
               aspectRatio: { min: 1, max: 2 }
             },
-            area: { // Only scan the middle area of the camera feed
+            area: {
               top: "20%",
               right: "20%",
               left: "20%",
@@ -89,7 +82,7 @@ const BarcodeScanner: React.FC<{
             halfSample: true,
           },
           numOfWorkers: navigator.hardwareConcurrency ? Math.max(navigator.hardwareConcurrency - 1, 1) : 2,
-          frequency: 10, // Increase scan frequency
+          frequency: 10,
           decoder: {
             readers: [
               "ean_reader",
@@ -117,7 +110,6 @@ const BarcodeScanner: React.FC<{
   };
 
   useEffect(() => {
-    // Start barcode scanner
     const startScanner = async () => {
       try {
         setError(null);
@@ -130,39 +122,29 @@ const BarcodeScanner: React.FC<{
           return;
         }
         
-        // Initialize Quagga with enhanced settings
         await initQuagga(scannerRef.current);
         Quagga.start();
         
-        // Set up barcode detection handlers with improved filtering
         Quagga.onDetected((result) => {
           if (result && result.codeResult && result.codeResult.code) {
             const code = result.codeResult.code;
             console.log("Barcode candidate detected:", code);
             
-            // Use our filter to verify consistent results
             const validCode = filterResults(code);
             
             if (validCode) {
               console.log("Valid barcode confirmed:", validCode);
               
-              // Stop scanner after detection
               stopScanner();
               setScanning(false);
               
-              // Log activity
-              logActivity('scan_food', {
-                description: `Scanned barcode: ${validCode}`,
-                metadata: { barcode: validCode }
-              });
+              logActivity('scan_food', `Scanned barcode: ${validCode}`, { barcode: validCode });
               
-              // Notify success
               toast({
                 title: "Barcode Detected",
                 description: `Found barcode: ${validCode}`,
               });
               
-              // Pass code to parent component
               onDetected(validCode);
             }
           }
@@ -174,10 +156,8 @@ const BarcodeScanner: React.FC<{
       }
     };
     
-    // Start scanner
     startScanner();
     
-    // Clean up when component unmounts
     return () => {
       stopScanner();
     };
@@ -188,7 +168,6 @@ const BarcodeScanner: React.FC<{
     setError(null);
     setLastResults([]);
     onReset();
-    // After a slight delay, restart the scanner
     setTimeout(() => {
       if (scannerRef.current) {
         setScanning(true);
@@ -264,3 +243,4 @@ const BarcodeScanner: React.FC<{
 };
 
 export default BarcodeScanner;
+

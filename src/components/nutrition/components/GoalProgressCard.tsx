@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
@@ -44,7 +43,6 @@ const GoalProgressCard: React.FC = () => {
         }
 
         if (data && data.length > 0) {
-          // Transform the data into the format needed for display
           const formattedGoals: GoalItem[] = data.map(goal => {
             const isWarning = goal.target_date ? new Date(goal.target_date) < new Date() : false;
             const color = getGoalColor(goal.category);
@@ -61,7 +59,6 @@ const GoalProgressCard: React.FC = () => {
 
           setGoals(formattedGoals);
         } else {
-          // Provide empty state with placeholder goals
           setGoals([
             {
               name: "Daily Calorie Limit",
@@ -89,7 +86,6 @@ const GoalProgressCard: React.FC = () => {
     fetchUserGoals();
   }, [user]);
 
-  // Helper function to get color based on goal category
   const getGoalColor = (category: string): string => {
     switch (category?.toLowerCase()) {
       case 'nutrition':
@@ -110,7 +106,7 @@ const GoalProgressCard: React.FC = () => {
   };
 
   const handleViewStatsClick = () => {
-    navigate('/goals-tracker');
+    navigate('/goals');
   };
 
   return (

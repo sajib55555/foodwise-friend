@@ -17,7 +17,7 @@ export const useCameraCapture = ({
   const { toast } = useToast();
 
   /**
-   * Captures an image from the current video stream
+   * Captures an image from the current video stream with optimized performance
    */
   const handleCaptureImage = (videoElement: HTMLVideoElement | null, streamRef: React.MutableRefObject<MediaStream | null>, stopAllTracks: () => void) => {
     console.log("Attempting to capture image");
@@ -40,56 +40,47 @@ export const useCameraCapture = ({
       return;
     }
     
-    // Check if video element is ready and has dimensions
-    if (videoElement.videoWidth === 0 || videoElement.videoHeight === 0) {
-      console.error("Video not ready for capture. Dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
-      
-      // Try to get video dimensions and retry
-      setTimeout(() => {
-        if (videoElement && videoElement.videoWidth > 0) {
-          console.log("Retrying capture after delay, dimensions now:", videoElement.videoWidth, "x", videoElement.videoHeight);
-          const imageUrl = captureImage(videoElement);
-          if (imageUrl) {
-            console.log("Successfully captured image after retry, stopping camera");
-            stopAllTracks();
-            setActiveCamera(false);
-          }
+    // Speed optimization: Check if video element is ready without waiting
+    if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
+      const imageUrl = captureImage(videoElement);
+      if (imageUrl) {
+        console.log("Successfully captured image immediately, stopping camera");
+        stopAllTracks();
+        setActiveCamera(false);
+        captureAttemptedRef.current = false;
+        return;
+      }
+    }
+    
+    // If immediate capture failed, try with a minimal delay
+    setTimeout(() => {
+      if (videoElement && videoElement.videoWidth > 0) {
+        console.log("Retrying capture after minimal delay, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
+        const imageUrl = captureImage(videoElement);
+        if (imageUrl) {
+          console.log("Successfully captured image after retry, stopping camera");
+          stopAllTracks();
+          setActiveCamera(false);
         } else {
           toast({
-            title: "Camera Not Ready",
-            description: "Camera is still initializing. Please wait a moment and try again.",
+            title: "Capture Failed",
+            description: "Failed to capture image. Please try again with better lighting.",
             variant: "destructive",
           });
         }
-        captureAttemptedRef.current = false;
-      }, 500);
-      
-      return;
-    }
-    
-    // Try to capture the image
-    const imageUrl = captureImage(videoElement);
-    if (imageUrl) {
-      console.log("Successfully captured image, stopping camera");
-      stopAllTracks();
-      setActiveCamera(false);
-    } else {
-      console.error("Failed to capture image");
-      toast({
-        title: "Capture Failed",
-        description: "Failed to capture image. Please try again.",
-        variant: "destructive",
-      });
-    }
-    
-    // Reset the capture attempt flag after a delay
-    setTimeout(() => {
+      } else {
+        toast({
+          title: "Camera Not Ready",
+          description: "Camera is still initializing. Please wait a moment and try again.",
+          variant: "destructive",
+        });
+      }
       captureAttemptedRef.current = false;
-    }, 1000);
+    }, 200); // Reduced from 500ms to 200ms for faster capture
   };
 
   /**
-   * Captures an image from the video element
+   * Captures an image from the video element with optimized quality settings
    */
   const captureImage = (videoElement: HTMLVideoElement): string | null => {
     if (!videoElement || !canvasRef.current) {
@@ -128,16 +119,34 @@ export const useCameraCapture = ({
     try {
       console.log("Capturing image...");
       
-      // Set canvas dimensions to match video
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
+      // Set canvas dimensions to a reasonable size for analysis
+      // Using a slightly smaller size than the video for faster processing
+      const MAX_WIDTH = 1024;
+      const MAX_HEIGHT = 1024;
       
-      // Draw video frame to canvas
-      context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+      let width = videoElement.videoWidth;
+      let height = videoElement.videoHeight;
       
-      // Convert canvas to data URL - use JPEG format for better compatibility
+      // Resize if necessary (maintain aspect ratio)
+      if (width > MAX_WIDTH) {
+        height = (height * MAX_WIDTH) / width;
+        width = MAX_WIDTH;
+      }
+      
+      if (height > MAX_HEIGHT) {
+        width = (width * MAX_HEIGHT) / height;
+        height = MAX_HEIGHT;
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      // Draw video frame to canvas with the new dimensions
+      context.drawImage(videoElement, 0, 0, width, height);
+      
+      // Convert canvas to data URL - use JPEG format with slightly reduced quality for faster analysis
       const imageDataUrl = canvas.toDataURL("image/jpeg", 0.9);
-      console.log("Image captured with dimensions", canvas.width, "x", canvas.height);
+      console.log("Image captured with optimized dimensions", width, "x", height);
       
       // Save to state
       setCapturedImage(imageDataUrl);
@@ -145,7 +154,7 @@ export const useCameraCapture = ({
       // Notify success
       toast({
         title: "Image Captured",
-        description: "Food image captured successfully.",
+        description: "Food image captured successfully. Ready for analysis.",
       });
       
       // Call the callback with the image

@@ -188,11 +188,12 @@ serve(async (req) => {
 
     console.log('Sending request to OpenAI API...')
     
-    // Create an AbortController for the fetch request
+    // Optimize image size before sending to OpenAI - use smaller JPEG quality
+    // Create optimized request with faster timeouts and performance settings
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort();
-    }, 20000); // 20 second timeout
+    }, 15000); // 15 second timeout (reduced from 20s)
     
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -202,31 +203,28 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o',  // Using gpt-4o
+          model: 'gpt-4o-mini',  // Using gpt-4o-mini for faster response
           messages: [
             {
               role: 'system',
-              content: `You are a nutrition expert analyzing food images. 
+              content: `You are a specialized food analysis AI that quickly identifies food and provides accurate nutritional estimates.
               
-              Identify the food, estimate nutritional content (calories, protein, carbs, fat), 
-              list ingredients, provide a health score from 1-10, and give diet recommendations. 
+              Identify the food in the image and provide:
+              - Food name and estimated serving size
+              - Nutritional content (calories, protein, carbs, fat)
+              - Main ingredients with healthy/unhealthy flags
+              - Health score (1-10)
+              - 1-2 key dietary warnings or considerations
+              - 1-2 quick recommendations
               
-              Be precise with your nutritional estimates if possible, based on standard serving sizes.
-              For each ingredient, determine if it's healthy or not, and provide warnings for unhealthy ingredients.
+              Be concise and direct, focusing on accuracy of identification over elaboration.
+              Provide specific nutritional numbers rather than ranges when possible.
               
-              When calculating the health score, consider balanced macronutrients, presence of whole foods vs processed foods,
-              nutrient density, and overall dietary value.
-              
-              Also analyze for vitamins, minerals, and dietary properties (vegan, vegetarian, gluten-free, dairy-free).
-              
-              Format the response as a JSON object with these fields:
-              name, servingSize, calories, protein, carbs, fat, ingredients (array of objects with name, healthy, and optional warning), 
-              healthScore, warnings (array of strings), recommendations (array of strings),
+              Format response as JSON with these fields:
+              name, servingSize, calories, protein, carbs, fat, ingredients (array of objects with name, healthy boolean, optional warning), 
+              healthScore (number), warnings (array), recommendations (array),
               vitamins (array of objects with name and amount), minerals (array of objects with name and amount),
-              and dietary (object with vegan, vegetarian, glutenFree, dairyFree as booleans).
-              
-              IMPORTANT: Always use true/false as boolean values, never use strings like "moderate" or "high" as boolean values. 
-              If something is in-between, either mark it as false with a note, or use a separate property.`
+              dietary (object with vegan, vegetarian, glutenFree, dairyFree as booleans).`
             },
             {
               role: 'user',
@@ -239,12 +237,13 @@ serve(async (req) => {
                 },
                 {
                   type: 'text',
-                  text: 'Analyze this food image and provide detailed nutritional information.'
+                  text: 'Analyze this food image and provide detailed nutritional information quickly.'
                 }
               ]
             }
           ],
-          max_tokens: 1500,
+          max_tokens: 1000, // Reduced from 1500 for faster response
+          temperature: 0.2, // Lower temperature for more consistent, focused responses
         }),
         signal: controller.signal
       });

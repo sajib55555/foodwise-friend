@@ -92,12 +92,75 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
   };
 
   /**
+   * Optimizes the image for faster processing
+   * Reduces image size and quality for quicker analysis while maintaining content visibility
+   */
+  const optimizeImageForProcessing = (imageData: string): string => {
+    if (!imageData || !imageData.startsWith('data:image')) {
+      return imageData;
+    }
+    
+    // Create a temporary canvas to resize the image
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    const img = new Image();
+    
+    try {
+      // Set maximum dimensions
+      const MAX_WIDTH = 800;
+      const MAX_HEIGHT = 800;
+      
+      // Set image source
+      img.src = imageData;
+      
+      // Calculate new dimensions while preserving aspect ratio
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
+      
+      // Set canvas dimensions
+      tempCanvas.width = width;
+      tempCanvas.height = height;
+      
+      // Draw resized image
+      tempCtx?.drawImage(img, 0, 0, width, height);
+      
+      // Return optimized image with reduced quality
+      return tempCanvas.toDataURL('image/jpeg', 0.85);
+    } catch (error) {
+      console.error('Error optimizing image:', error);
+      return imageData; // Return original if optimization fails
+    }
+  };
+
+  /**
    * Submits the captured image for processing
    */
   const handleSubmit = () => {
     if (capturedImage) {
       console.log("Submitting captured image for analysis");
-      onCapture(capturedImage);
+      
+      // Optimize image before analysis to improve speed
+      const optimizedImage = optimizeImageForProcessing(capturedImage);
+      
+      toast({
+        title: "Processing Food Image",
+        description: "Using optimized processing for faster results...",
+        variant: "default",
+      });
+      
+      onCapture(optimizedImage);
     } else {
       toast({
         title: "No Image",

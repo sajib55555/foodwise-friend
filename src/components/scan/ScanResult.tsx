@@ -48,6 +48,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rawAnalysis, setRawAnalysis] = useState<string | null>(null);
+  const [processingStage, setProcessingStage] = useState<string>("initializing");
   const { toast } = useToast();
   const navigate = useNavigate();
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
@@ -58,28 +59,34 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         setIsLoading(true);
         setError(null);
         setRawAnalysis(null);
+        setProcessingStage("initializing");
 
         console.log("Analyzing food image or barcode...");
         if (barcode) {
           console.log("Analyzing barcode:", barcode);
+          setProcessingStage("barcode");
         } else if (imageUrl) {
           console.log("Analyzing image data of length:", imageUrl.length);
+          setProcessingStage("image-processing");
         }
 
         const timeout = setTimeout(() => {
           if (isLoading) {
             console.log("Analysis timeout reached");
-            throw new Error("Analysis took too long. Please try again.");
+            setProcessingStage("timeout");
+            throw new Error("Analysis took too long. Please try again with a clearer image.");
           }
-        }, 30000); // 30 second timeout
+        }, 25000); // Reduced from 30s to 25s
         
         setTimeoutId(timeout);
 
         try {
           const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Analysis request timed out')), 25000);
+            setTimeout(() => reject(new Error('Analysis request timed out')), 20000);
           });
 
+          setProcessingStage("sending-to-api");
+          
           const functionPromise = supabase.functions.invoke("analyze-food", {
             body: {
               imageData: imageUrl,
@@ -107,6 +114,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
           }
 
           console.log("Received analysis data:", data ? "success" : "no data");
+          setProcessingStage("processing-results");
           
           if (data.rawAnalysis) {
             console.log("Raw analysis available");
@@ -167,6 +175,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
 
           if (data.productInfo) {
             setAnalysis(data.productInfo);
+            setProcessingStage("complete");
             
             if (data.productInfo.name !== "Food Analysis Result") {
               toast({
@@ -185,6 +194,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
           }
         } catch (fetchError: any) {
           if (fetchError.message?.includes('timed out')) {
+            setProcessingStage("timeout");
             throw new Error('Analysis request timed out');
           }
           throw fetchError;
@@ -243,6 +253,40 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
         description: `${analysis.name} has been added to your meal form.`,
       });
     }
+  };
+
+  const renderLoadingState = () => {
+    const loadingMessages = {
+      "initializing": "Initializing food analysis...",
+      "barcode": "Searching product database for barcode information...",
+      "image-processing": "Processing image for analysis...",
+      "sending-to-api": "Sending to AI for nutritional analysis...",
+      "processing-results": "Processing nutritional information...",
+      "timeout": "Analysis is taking longer than expected..."
+    };
+    
+    return (
+      <div className="flex flex-col items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 text-purple-600 animate-spin mb-2" />
+        <p className="text-purple-700 font-medium">{loadingMessages[processingStage as keyof typeof loadingMessages]}</p>
+        <p className="text-sm text-muted-foreground">This usually takes 5-15 seconds</p>
+        
+        {processingStage === "sending-to-api" && (
+          <div className="mt-4 w-full max-w-xs bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+            <div className="bg-purple-600 h-2.5 rounded-full w-3/4 animate-pulse"></div>
+          </div>
+        )}
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mt-6"
+          onClick={onReset}
+        >
+          Cancel Analysis
+        </Button>
+      </div>
+    );
   };
 
   const handleUseFallbackData = () => {
@@ -350,19 +394,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
       </div>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 text-purple-600 animate-spin mb-2" />
-          <p className="text-purple-700 font-medium">Analyzing your food...</p>
-          <p className="text-sm text-muted-foreground">This may take a moment</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-6"
-            onClick={onReset}
-          >
-            Cancel Analysis
-          </Button>
-        </div>
+        renderLoadingState()
       ) : error ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -571,3 +603,4 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageUrl, barcode, onReset }) =
 };
 
 export default ScanResult;
+

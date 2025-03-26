@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-custom";
@@ -10,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ScanResultProps {
   imageSrc: string;
@@ -38,17 +40,14 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
           base64Image = await convertBlobToBase64(imageSrc as Blob);
         }
 
-        const response = await fetch('/api/scan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ image: base64Image }),
+        // Use Supabase Edge Function instead of direct API call
+        const { data, error } = await supabase.functions.invoke('analyze-food', {
+          body: { imageData: base64Image },
         });
 
-        if (!response.ok) {
+        if (error) {
+          console.error('Supabase function error:', error);
           setIsError(true);
-          console.error('Scan failed:', response.statusText);
           toast({
             title: "Scan Failed",
             description: "Failed to analyze the image. Please try again.",
@@ -57,9 +56,25 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
           return;
         }
 
-        const data = await response.json();
-        setScanResult(data);
+        if (!data || !data.productInfo) {
+          setIsError(true);
+          console.error('Invalid response format:', data);
+          toast({
+            title: "Scan Failed",
+            description: "Invalid response from food analysis service.",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Set scan result with the product info
+        setScanResult(data.productInfo);
         setIsLoading(false);
+        
+        toast({
+          title: "Analysis Complete",
+          description: `Identified: ${data.productInfo.name || 'Unknown Food'}`,
+        });
       } catch (error) {
         setIsError(true);
         console.error('Error during scan:', error);
@@ -248,10 +263,10 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
                   <div className="grid gap-2">
                     <Label>Nutrition Facts (per serving)</Label>
                     <ul className="list-none pl-0">
-                      <li>Calories: {scanResult.nutrition.calories}</li>
-                      <li>Protein: {scanResult.nutrition.protein}g</li>
-                      <li>Carbs: {scanResult.nutrition.carbs}g</li>
-                      <li>Fat: {scanResult.nutrition.fat}g</li>
+                      <li>Calories: {scanResult.calories || scanResult.nutrition?.calories || 0}</li>
+                      <li>Protein: {scanResult.protein || scanResult.nutrition?.protein || 0}g</li>
+                      <li>Carbs: {scanResult.carbs || scanResult.nutrition?.carbs || 0}g</li>
+                      <li>Fat: {scanResult.fat || scanResult.nutrition?.fat || 0}g</li>
                     </ul>
                   </div>
                 )}
@@ -278,4 +293,3 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
 };
 
 export default ScanResult;
-

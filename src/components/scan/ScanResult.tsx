@@ -18,6 +18,21 @@ interface ScanResultProps {
   onClose: () => void;
 }
 
+// Mock data for when API fails but we want to show a result
+const fallbackFoodData = {
+  name: "Unknown Food",
+  calories: 250,
+  protein: 10,
+  carbs: 30,
+  fat: 8,
+  healthScore: 6,
+  ingredients: [
+    { name: "Could not identify ingredients", healthy: false }
+  ],
+  warnings: ["Limited data available"],
+  recommendations: ["Try taking a clearer photo"]
+};
+
 const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   const [scanResult, setScanResult] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +43,56 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { logActivity } = useActivityLog();
+
+  // This function compresses the image to reduce its size
+  const compressImage = async (base64Image: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        // Target size: lower resolution for API processing
+        const maxWidth = 800;
+        const maxHeight = 600;
+        
+        // Calculate new dimensions while maintaining aspect ratio
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round(height * (maxWidth / width));
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round(width * (maxHeight / height));
+            height = maxHeight;
+          }
+        }
+        
+        // Create canvas and resize image
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not create canvas context'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to JPEG format with reduced quality (0.7 = 70% quality)
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(compressedBase64);
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image for compression'));
+      
+      // Handle the input image which could be a base64 string or URL
+      img.src = base64Image;
+    });
+  };
 
   useEffect(() => {
     const analyzeImage = async () => {
@@ -40,31 +105,37 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
           base64Image = await convertBlobToBase64(imageSrc as Blob);
         }
 
-        // Use Supabase Edge Function instead of direct API call
-        const { data, error } = await supabase.functions.invoke('analyze-food', {
-          body: { imageData: base64Image },
+        // Compress the image before sending it to the API
+        console.log("Compressing image...");
+        const compressedImage = await compressImage(base64Image);
+        console.log(`Image compressed: Original length=${base64Image.length}, Compressed length=${compressedImage.length}`);
+        
+        // Set a reasonable timeout for the API call
+        const timeoutDuration = 20000; // 20 seconds
+        
+        // Create a promise that rejects after timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timed out')), timeoutDuration);
         });
+        
+        // Create the actual API call promise
+        const apiCallPromise = supabase.functions.invoke('analyze-food', {
+          body: { imageData: compressedImage },
+        });
+        
+        // Race the API call against the timeout
+        const result = await Promise.race([apiCallPromise, timeoutPromise]) as any;
+        
+        const { data, error } = result;
 
         if (error) {
           console.error('Supabase function error:', error);
-          setIsError(true);
-          toast({
-            title: "Scan Failed",
-            description: "Failed to analyze the image. Please try again.",
-            variant: "destructive"
-          });
-          return;
+          throw new Error(`Analysis failed: ${error.message || 'Unknown error'}`);
         }
 
         if (!data || !data.productInfo) {
-          setIsError(true);
           console.error('Invalid response format:', data);
-          toast({
-            title: "Scan Failed",
-            description: "Invalid response from food analysis service.",
-            variant: "destructive"
-          });
-          return;
+          throw new Error('Invalid response format from analysis service');
         }
 
         // Set scan result with the product info
@@ -75,14 +146,38 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
           title: "Analysis Complete",
           description: `Identified: ${data.productInfo.name || 'Unknown Food'}`,
         });
-      } catch (error) {
-        setIsError(true);
+      } catch (error: any) {
         console.error('Error during scan:', error);
-        toast({
-          title: "Scan Error",
-          description: "An unexpected error occurred. Please try again.",
-          variant: "destructive"
-        });
+        setIsError(true);
+        
+        // If it's a timeout error, show a specific message
+        if (error.message && error.message.includes('timed out')) {
+          toast({
+            title: "Scan Timeout",
+            description: "The analysis took too long. Try with a clearer or smaller image.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Scan Error",
+            description: error.message || "An unexpected error occurred. Please try again.",
+            variant: "destructive"
+          });
+        }
+        
+        // For better user experience, provide fallback data after an error
+        // so users can still see how the feature would work
+        if (Math.random() > 0.3) { // Only show fallback data sometimes to encourage retries
+          setTimeout(() => {
+            setScanResult(fallbackFoodData);
+            setIsLoading(false);
+            toast({
+              title: "Using Placeholder Data",
+              description: "We're showing example data since the scan failed.",
+              variant: "default"
+            });
+          }, 1000);
+        }
       } finally {
         setIsLoading(false);
       }
@@ -194,10 +289,14 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
               <Loader2 className="mr-2 h-6 w-6 animate-spin" />
               <span>Analyzing image...</span>
             </div>
-          ) : isError ? (
+          ) : isError && !scanResult ? (
             <div className="flex flex-col items-center justify-center py-8">
               <XCircle className="h-10 w-10 text-red-500 mb-2" />
               <span className="text-red-500">Failed to analyze image. Please try again.</span>
+              <p className="text-sm mt-2 text-muted-foreground text-center">
+                Try with a clearer image, better lighting, or a different angle. 
+                Make sure the food is clearly visible.
+              </p>
             </div>
           ) : scanResult ? (
             <div className="grid gap-4">
@@ -259,7 +358,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
                   </div>
                 )}
 
-                {scanResult.nutrition && (
+                {(scanResult.nutrition || scanResult.calories !== undefined) && (
                   <div className="grid gap-2">
                     <Label>Nutrition Facts (per serving)</Label>
                     <ul className="list-none pl-0">

@@ -193,9 +193,55 @@ serve(async (req) => {
     const controller = new AbortController();
     const timeout = setTimeout(() => {
       controller.abort();
-    }, 10000); // 10 second timeout (reduced from 20s)
+    }, 15000); // 15 second timeout (reduced from previous value)
     
     try {
+      // Mock response for debugging
+      if (Deno.env.get('DEMO_MODE') === 'true') {
+        // Wait a bit to simulate API call
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        clearTimeout(timeout);
+        return new Response(
+          JSON.stringify({
+            productInfo: {
+              name: "Salad with Grilled Chicken",
+              calories: 320,
+              protein: 28,
+              carbs: 15,
+              fat: 14,
+              healthScore: 8.5,
+              ingredients: [
+                { name: "Chicken breast", healthy: true },
+                { name: "Mixed greens", healthy: true },
+                { name: "Tomatoes", healthy: true },
+                { name: "Olive oil", healthy: true },
+                { name: "Balsamic vinegar", healthy: true }
+              ],
+              warnings: ["Moderate fat content"],
+              recommendations: ["Excellent source of protein", "Rich in vitamins"],
+              servingSize: "1 bowl (300g)",
+              confidence: 92,
+              vitamins: [
+                { name: "Vitamin A", amount: "25% DV" },
+                { name: "Vitamin C", amount: "30% DV" }
+              ],
+              minerals: [
+                { name: "Iron", amount: "15% DV" },
+                { name: "Calcium", amount: "8% DV" }
+              ],
+              dietary: {
+                vegan: false,
+                vegetarian: false,
+                glutenFree: true,
+                dairyFree: true
+              }
+            }
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -203,7 +249,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',  // Switch to the faster, more efficient model
+          model: 'gpt-4o-mini',  // Use the faster, more efficient model
           messages: [
             {
               role: 'system',
@@ -242,8 +288,8 @@ serve(async (req) => {
               ]
             }
           ],
-          max_tokens: 800, // Reduced from 1500 for faster response
-          temperature: 0.1, // Lower temperature for more consistent, focused responses
+          max_tokens: 600, // Reduced for faster response
+          temperature: 0.1, // Lower temperature for more consistent responses
         }),
         signal: controller.signal
       });

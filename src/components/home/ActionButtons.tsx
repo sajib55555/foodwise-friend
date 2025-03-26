@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card-custom";
@@ -118,7 +117,7 @@ const ActionButtons = () => {
     { 
       icon: <Utensils className={iconSize} />, 
       label: "Meal Recommendations", 
-      onClick: () => document.getElementById('meal-recommendations')?.scrollIntoView({ behavior: 'smooth' }),
+      onClick: () => navigate("/weekly-meal-planner"),
       textColor: "text-white",
       shadow: "shadow-sm"
     },

@@ -8,9 +8,7 @@ import PageTransition from "@/components/layout/PageTransition";
 import NutritionSummary from "@/components/home/NutritionSummary";
 import ActionButtons from "@/components/home/ActionButtons";
 import WaterTracker from "@/components/home/WaterTracker";
-import ExerciseTracker from "@/components/home/ExerciseTracker";
 import ReminderSystem from "@/components/home/ReminderSystem";
-import MealRecommendations from "@/components/home/MealRecommendations";
 import SleepTracker from "@/components/home/SleepTracker";
 import AIHealthAssistant from "@/components/home/AIHealthAssistant";
 import { Button } from "@/components/ui/button-custom";
@@ -109,7 +107,7 @@ const Index = () => {
               <NutritionSummary />
             </motion.div>
             
-            {/* Responsive grid layout with consistent styling */}
+            {/* Responsive grid layout with consistent styling - Removed ExerciseTracker */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               <motion.div 
                 variants={itemVariants}
@@ -120,15 +118,6 @@ const Index = () => {
               </motion.div>
               <motion.div 
                 variants={itemVariants}
-                className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-              >
-                <ExerciseTracker />
-              </motion.div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-              <motion.div 
-                variants={itemVariants}
                 id="sleep-tracker"
                 className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
               >
@@ -136,12 +125,7 @@ const Index = () => {
               </motion.div>
             </div>
             
-            <motion.div 
-              variants={itemVariants}
-              className={`rounded-2xl p-3 md:p-6 ${featureCardGradient} ${featureCardBorder}`}
-            >
-              <MealRecommendations />
-            </motion.div>
+            {/* Removed MealRecommendations component */}
             
             <motion.div 
               variants={itemVariants}

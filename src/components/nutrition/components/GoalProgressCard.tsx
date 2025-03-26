@@ -126,10 +126,17 @@ const GoalProgressCard: React.FC = () => {
               
               mealData.forEach(meal => {
                 const metadata = meal.metadata || {};
-                const scannedFood = metadata.scanned_food || {};
                 
-                totalCalories += Number(scannedFood.calories) || 0;
-                totalProtein += Number(scannedFood.protein) || 0;
+                // Check if metadata is an object and has scanned_food
+                if (typeof metadata === 'object' && metadata !== null && 'scanned_food' in metadata) {
+                  const scannedFood = metadata.scanned_food;
+                  
+                  // Only access properties if scannedFood is an object
+                  if (typeof scannedFood === 'object' && scannedFood !== null) {
+                    totalCalories += Number(scannedFood.calories) || 0;
+                    totalProtein += Number(scannedFood.protein) || 0;
+                  }
+                }
               });
               
               // Update the goals with actual values

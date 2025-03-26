@@ -59,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({
           )}
           {(!title && !showBackButton && (isHomePage || isLandingPage)) && (
             <div className="flex items-center">
-              <span className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-blue-600 to-purple-600">
+              <span className="text-2xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 via-blue-600 to-purple-600">
                 NutriTrack
               </span>
             </div>

@@ -58,7 +58,7 @@ const Index = () => {
               variants={itemVariants}
               className="text-center my-1 md:my-2"
             >
-              <h1 className="text-xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-indigo-600 to-blue-600">
+              <h1 className="text-2xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-500 via-indigo-600 to-blue-600">
                 NutriTrack
               </h1>
               <p className="text-muted-foreground text-xs md:text-sm">Your personal health companion</p>

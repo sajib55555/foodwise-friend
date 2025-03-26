@@ -19,7 +19,6 @@ interface ScanResultProps {
   onClose: () => void;
 }
 
-// Reliable fallback data with visual indicator showing it's a fallback
 const fallbackFoodData = {
   name: "Analysis Unavailable",
   calories: 250,
@@ -58,6 +57,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   const isMounted = useRef(true);
   const isRetrying = useRef(false);
   const analysisCompleted = useRef(false);
+  const analysisRequestSent = useRef(false);
 
   const aggressivelyCompressImage = async (base64Image: string, level: number = 0): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -138,14 +138,20 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   };
 
   useEffect(() => {
-    if (imageSrc && !analysisCompleted.current) {
+    if (imageSrc && !analysisCompleted.current && !analysisRequestSent.current) {
       setIsLoading(true);
       setIsError(false);
       setScanResult(null);
       setProcessingAttempts(0);
       setCompressionLevel(0);
       isRetrying.current = false;
-      analyzeImage();
+      analysisRequestSent.current = true;
+      
+      setTimeout(() => {
+        if (isMounted.current) {
+          analyzeImage();
+        }
+      }, 100);
     }
     
     return () => {
@@ -154,11 +160,9 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
   }, [imageSrc]);
 
   const analyzeImage = async () => {
-    if (isRetrying.current || analysisCompleted.current) return;
+    if (isRetrying.current || analysisCompleted.current || !isMounted.current) return;
+    
     isRetrying.current = true;
-    
-    if (!isMounted.current) return;
-    
     setIsLoading(true);
     setIsError(false);
     
@@ -178,11 +182,12 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
       toast({
         title: compressionLevel === 0 ? "Processing Image" : "Optimizing Image Further",
         description: compressionLevel === 0 
-          ? "Optimizing image for analysis..." 
-          : `Applying ${compressionLevel === 1 ? "aggressive" : "extreme"} compression for faster analysis...`,
+          ? "Analyzing your food image..." 
+          : `Applying ${compressionLevel === 1 ? "advanced" : "maximum"} optimization for better analysis...`,
       });
       
-      const timeoutDuration = 8000;
+      const timeoutDuration = 15000; // 15 seconds
+      
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Analysis request timed out')), timeoutDuration);
       });
@@ -229,7 +234,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
       
       try {
         await logActivity(
-          'meal_logged', 
+          'food_analyzed', 
           `Food analyzed: ${completeData.name}`,
           {
             food_type: completeData.name,
@@ -279,6 +284,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         setIsError(true);
         
         const fallbackData = { ...fallbackFoodData };
+        fallbackData.warnings = ["Analysis failed. Using fallback data."];
         
         setScanResult(fallbackData);
         setIsLoading(false);
@@ -286,8 +292,9 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
         analysisCompleted.current = true;
         
         toast({
-          title: "Using Sample Data",
-          description: "Showing example food data since analysis couldn't complete.",
+          title: "Analysis Failed",
+          description: "Using fallback data. Try with a clearer image or different food item.",
+          variant: "destructive"
         });
       }
     }

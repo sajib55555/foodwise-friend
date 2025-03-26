@@ -99,8 +99,8 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
   };
 
   /**
-   * Optimizes the image for faster processing
-   * Reduces image size and quality for quicker analysis while maintaining content visibility
+   * Optimizes the image for more accurate processing and analysis
+   * Adjusts image size and quality for optimal AI model analysis
    */
   const optimizeImageForProcessing = (imageData: string): string => {
     if (!imageData || !imageData.startsWith('data:image')) {
@@ -113,9 +113,9 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     const img = new Image();
     
     try {
-      // Set maximum dimensions - now even smaller for better performance
-      const MAX_WIDTH = 500; // Reduced from 640
-      const MAX_HEIGHT = 500; // Reduced from 640
+      // Set maximum dimensions - moderate size for better quality analysis
+      const MAX_WIDTH = 800; // Increased from 500 for more details
+      const MAX_HEIGHT = 800; // Increased from 500 for more details
       
       // Set image source and ensure it's loaded
       img.src = imageData;
@@ -149,8 +149,8 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
       // Draw resized image
       tempCtx?.drawImage(img, 0, 0, width, height);
       
-      // Return optimized image with reduced quality
-      return tempCanvas.toDataURL('image/jpeg', 0.6);
+      // Return optimized image with moderate quality for better analysis
+      return tempCanvas.toDataURL('image/jpeg', 0.85); // Increased quality from 0.6
     } catch (error) {
       console.error('Error optimizing image:', error);
       return imageData; // Return original if optimization fails
@@ -164,13 +164,13 @@ const useCameraSetup = ({ onCapture }: UseCameraSetupOptions) => {
     if (capturedImage) {
       console.log("Submitting captured image for analysis");
       
-      // Optimize image before analysis to improve speed
+      // Optimize image before analysis to improve accuracy
       const optimizedImage = optimizeImageForProcessing(capturedImage);
       console.log("Image optimized for processing. Original size:", capturedImage.length, "Optimized size:", optimizedImage.length);
       
       toast({
         title: "Processing Food Image",
-        description: "Using optimized processing for faster results...",
+        description: "Analyzing food items for nutritional data...",
         variant: "default",
       });
       

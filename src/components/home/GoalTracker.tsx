@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Progress } from "@/components/ui/progress";
@@ -124,6 +125,11 @@ const GoalTracker = () => {
     }
   };
 
+  const handleAddGoalClick = () => {
+    // Navigate to goals-tracker page and trigger the add goal form
+    navigate("/goals-tracker", { state: { showAddGoal: true } });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -199,7 +205,7 @@ const GoalTracker = () => {
             variant="outline" 
             className="w-full mt-6 border-green-300 bg-white/70 text-green-700 hover:bg-green-50 hover:text-green-800 transition-all shadow-sm"
             size="sm"
-            onClick={() => navigate("/goals-tracker")}
+            onClick={handleAddGoalClick}
           >
             Add New Goal
           </Button>

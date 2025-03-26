@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
 import MobileNavbar from "@/components/layout/MobileNavbar";
@@ -11,6 +10,7 @@ import { Target, Plus, CheckCircle, CircleX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useLocation } from "react-router-dom";
 
 interface Goal {
   id: number;
@@ -21,6 +21,7 @@ interface Goal {
 }
 
 const GoalsTracker = () => {
+  const location = useLocation();
   const [goals, setGoals] = useState<Goal[]>([
     { 
       id: 1, 
@@ -61,6 +62,13 @@ const GoalsTracker = () => {
     target: "",
     dueDate: ""
   });
+  
+  useEffect(() => {
+    if (location.state && location.state.showAddGoal) {
+      setShowAddGoal(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
   
   const handleAddGoal = () => {
     if (newGoal.title && newGoal.target) {

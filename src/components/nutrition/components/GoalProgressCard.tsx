@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
@@ -106,6 +107,7 @@ const GoalProgressCard: React.FC = () => {
   };
 
   const handleViewStatsClick = () => {
+    // Navigate to goals-tracker and set state to show detailed stats view
     navigate('/goals-tracker');
   };
 

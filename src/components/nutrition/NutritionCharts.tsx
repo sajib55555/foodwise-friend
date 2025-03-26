@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,20 +35,10 @@ const NutritionCharts: React.FC = () => {
     fat: { color: "#f59e0b" }
   };
   
-  // Function to handle view detailed analytics click
+  // Function to handle view detailed analytics click - FIXED to use navigation
   const handleViewDetailedAnalytics = () => {
-    // Navigate to the current page with analysis tab active
-    const nutritionPageElement = document.querySelector('div[value="analysis"]');
-    if (nutritionPageElement) {
-      // If we're already on the nutrition page, just switch the tab
-      const tabsTrigger = document.querySelector('button[value="analysis"]') as HTMLButtonElement;
-      if (tabsTrigger) {
-        tabsTrigger.click();
-      }
-    } else {
-      // Navigate to the nutrition page with a query parameter to indicate which tab to show
-      navigate('/nutrition?tab=analysis');
-    }
+    // Simply navigate to the goals-tracker page
+    navigate('/goals-tracker');
   };
 
   return (

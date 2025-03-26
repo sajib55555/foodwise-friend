@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +23,8 @@ export type ActivityType =
   | 'subscription_checkout_started'
   | 'subscription_management'
   | 'subscription_activated'
-  | 'subscription_canceled';
+  | 'subscription_canceled'
+  | 'food_analyzed'; // Added the missing activity type
 
 interface ActivityLogContextType {
   logActivity: (activityType: ActivityType, description: string, metadata?: Record<string, any>) => Promise<void>;

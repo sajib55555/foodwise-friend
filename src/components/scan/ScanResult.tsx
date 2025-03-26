@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-custom";
@@ -292,7 +291,7 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
     };
 
     analyzeImage();
-  }, [imageSrc, toast]);
+  }, [imageSrc, toast, logActivity, processingAttempts, compressionLevel]);
 
   const convertBlobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {

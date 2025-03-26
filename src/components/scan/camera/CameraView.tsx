@@ -77,7 +77,7 @@ const CameraView: React.FC<CameraViewProps> = ({
         muted
         style={{
           width: '100%',
-          height: '400px', // Fixed height to match barcode scanner
+          height: '300px', // Reduced from 400px to 300px (25% shorter)
           objectFit: 'cover',
           display: 'block',
           visibility: 'visible',

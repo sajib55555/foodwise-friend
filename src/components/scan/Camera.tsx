@@ -79,7 +79,7 @@ const CameraComponent: React.FC<CameraComponentProps> = ({ onCapture, onClose })
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="relative bg-black rounded-3xl overflow-hidden" style={{ height: "400px" }}>
+      <div className="relative bg-black rounded-3xl overflow-hidden" style={{ height: "300px" }}>
         {activeCamera && (
           <CameraView 
             videoRef={videoRef} 

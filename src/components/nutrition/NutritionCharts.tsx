@@ -5,8 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Calendar, TrendingUp } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const NutritionCharts: React.FC = () => {
+  // Add navigation hook
+  const navigate = useNavigate();
+  
   // Sample data for weekly nutrition trends
   const weeklyData = [
     { day: "Mon", calories: 1850, protein: 85, carbs: 220, fat: 65 },
@@ -30,6 +34,22 @@ const NutritionCharts: React.FC = () => {
     protein: { color: "#3b82f6" },
     carbs: { color: "#22c55e" },
     fat: { color: "#f59e0b" }
+  };
+  
+  // Function to handle view detailed analytics click
+  const handleViewDetailedAnalytics = () => {
+    // Navigate to the current page with analysis tab active
+    const nutritionPageElement = document.querySelector('div[value="analysis"]');
+    if (nutritionPageElement) {
+      // If we're already on the nutrition page, just switch the tab
+      const tabsTrigger = document.querySelector('button[value="analysis"]') as HTMLButtonElement;
+      if (tabsTrigger) {
+        tabsTrigger.click();
+      }
+    } else {
+      // Navigate to the nutrition page with a query parameter to indicate which tab to show
+      navigate('/nutrition?tab=analysis');
+    }
   };
 
   return (
@@ -111,7 +131,12 @@ const NutritionCharts: React.FC = () => {
             <Calendar className="h-3 w-3 mr-1" />
             Last 7 days
           </span>
-          <span className="text-purple-500 cursor-pointer">View detailed analytics →</span>
+          <span 
+            onClick={handleViewDetailedAnalytics}
+            className="text-purple-500 cursor-pointer hover:text-purple-700 transition-colors flex items-center"
+          >
+            View detailed analytics →
+          </span>
         </div>
       </CardContent>
     </Card>

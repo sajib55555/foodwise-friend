@@ -13,8 +13,8 @@ import { Heart, Leaf, Utensils, ArrowUpCircle, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
 
-// Define interface for the meal data
 interface MealData {
   name: string;
   servingSize?: string;
@@ -43,7 +43,6 @@ interface MealLogMetadata {
   scanned_food?: any;
 }
 
-// Define interface for the nutrition analysis
 interface NutritionAnalysisData {
   name: string;
   servingSize: string;
@@ -70,12 +69,20 @@ const Nutrition = () => {
   const [latestMeal, setLatestMeal] = useState<MealData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const location = useLocation();
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['dashboard', 'insights', 'analysis'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location]);
 
   useEffect(() => {
     async function fetchLatestMeal() {
       setIsLoading(true);
       try {
-        // Query activity logs for meal_logged activities, get the latest one
         const { data, error } = await supabase
           .from('user_activity_logs')
           .select('*')
@@ -89,18 +96,13 @@ const Nutrition = () => {
         }
         
         if (data && data.length > 0) {
-          // Process the meal data
           const latestMealLog = data[0];
           const metadata = latestMealLog.metadata as MealLogMetadata || {};
           
-          // Check if we have scanned food data with complete nutrition info
           if (metadata.scanned_food && typeof metadata.scanned_food === 'object') {
-            // Extract the complete scanned food data if available
             const scannedFood = metadata.scanned_food;
             
-            // Check if the scanned food has detailed nutrition data
             if (scannedFood && scannedFood.ingredients) {
-              // This is a complete nutrition analysis from the scan
               const processedMeal: MealData = {
                 name: scannedFood.name || "Unknown Food",
                 servingSize: scannedFood.servingSize || "1 serving",
@@ -129,10 +131,8 @@ const Nutrition = () => {
             }
           }
           
-          // If we don't have detailed scanned food data, use basic metadata
           const mealType = (metadata.meal_type || 'snack').toLowerCase();
           
-          // Get nutritional values
           let calories = 0;
           let protein = 0;
           let carbs = 0;
@@ -149,7 +149,6 @@ const Nutrition = () => {
             fat = Number(sf.fat) || 0;
           } else {
             mealName = mealType.charAt(0).toUpperCase() + mealType.slice(1) + " Meal";
-            // Estimate nutritional values if not provided
             switch(mealType) {
               case 'breakfast':
                 calories = 350;
@@ -177,7 +176,6 @@ const Nutrition = () => {
             }
           }
           
-          // Get food items
           if (metadata.food_items && metadata.food_items.length > 0) {
             mealIngredients = metadata.food_items.map(item => ({
               name: item,
@@ -190,11 +188,9 @@ const Nutrition = () => {
             }));
           }
           
-          // Format the time
           const createdAt = new Date(latestMealLog.created_at);
           const formattedTime = format(createdAt, 'h:mm a');
           
-          // Create processed meal data
           const processedMeal: MealData = {
             name: mealName,
             servingSize: "1 serving",
@@ -224,7 +220,6 @@ const Nutrition = () => {
           
           setLatestMeal(processedMeal);
         } else {
-          // If no data, use fallback
           setLatestMeal(null);
         }
       } catch (error) {
@@ -242,9 +237,7 @@ const Nutrition = () => {
     fetchLatestMeal();
   }, [toast]);
 
-  // Helper functions for generating meal analysis
   function calculateHealthScore(protein: number, carbs: number, fat: number): number {
-    // Simple algorithm: higher protein ratio, moderate carbs, lower fat = better score
     const total = protein + carbs + fat;
     if (total === 0) return 5.0;
     
@@ -252,8 +245,6 @@ const Nutrition = () => {
     const carbsRatio = carbs / total;
     const fatRatio = fat / total;
     
-    // Ideal macros might be around 30% protein, 50% carbs, 20% fat
-    // Calculate deviation from ideal and convert to a score
     const score = 8.5 - (
       Math.abs(proteinRatio - 0.3) * 5 +
       Math.abs(carbsRatio - 0.5) * 3 +
@@ -323,7 +314,6 @@ const Nutrition = () => {
     <PageTransition>
       <Header title="Nutrition" />
       <main className="flex-1 container mx-auto px-4 pb-24 pt-6 relative">
-        {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-green-400/5 rounded-full filter blur-3xl -z-10"></div>
         <div className="absolute bottom-20 left-20 w-80 h-80 bg-blue-400/5 rounded-full filter blur-3xl -z-10"></div>
         

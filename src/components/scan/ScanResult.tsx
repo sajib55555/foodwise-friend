@@ -1,15 +1,14 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button-custom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-custom";
 import { CheckCircle2, Copy, HelpCircle, Loader2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
 
@@ -36,8 +35,8 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
       try {
         // Convert image to base64 if it's a Blob
         let base64Image = imageSrc;
-        if (imageSrc instanceof Blob) {
-          base64Image = await convertBlobToBase64(imageSrc);
+        if (typeof imageSrc === 'object' && imageSrc !== null) {
+          base64Image = await convertBlobToBase64(imageSrc as Blob);
         }
 
         const response = await fetch('/api/scan', {
@@ -136,12 +135,15 @@ const ScanResult: React.FC<ScanResultProps> = ({ imageSrc, onClose }) => {
 
       // Save the meal data to user_activity_logs table
       await logActivity('meal_logged', {
-        meal_type: 'scanned',
-        food_items: [mealName],
-        scanned_food: {
-          name: mealName,
-          notes: mealNotes,
-          ...scanResult
+        description: `${mealName} has been logged`,
+        metadata: {
+          meal_type: 'scanned',
+          food_items: [mealName],
+          scanned_food: {
+            name: mealName,
+            notes: mealNotes,
+            ...scanResult
+          }
         }
       });
 

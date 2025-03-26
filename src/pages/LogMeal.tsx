@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button-custom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card-custom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
 
@@ -94,6 +93,7 @@ const LogMeal = () => {
       
       const now = new Date();
       const formattedDate = format(now, "yyyy-MM-dd");
+      const mealDescription = `Logged ${values.mealType} meal`;
       
       // Create the metadata object
       const metadata: any = {
@@ -117,8 +117,10 @@ const LogMeal = () => {
       }
       
       // Log the meal using the ActivityLogContext
-      const mealDescription = `Logged ${values.mealType} meal`;
-      await logActivity('meal_logged', mealDescription, metadata);
+      await logActivity('meal_logged', {
+        description: mealDescription,
+        metadata
+      });
       
       toast({
         title: "Meal logged successfully",
@@ -313,3 +315,4 @@ const LogMeal = () => {
 };
 
 export default LogMeal;
+

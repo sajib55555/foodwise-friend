@@ -40,7 +40,9 @@ const Scan = () => {
     setScanComplete(true);
     setShowCamera(false);
     
-    logActivity('scan_food', 'Captured food image for analysis');
+    logActivity('scan_food', {
+      description: 'Captured food image for analysis'
+    });
     
     toast({
       title: "Photo captured",
@@ -255,11 +257,12 @@ const Scan = () => {
             </Card>
           </motion.div>
         ) : (
-          <ScanResult 
-            imageUrl={capturedImage || ""}
-            barcode={detectedBarcode}
-            onReset={handleReset} 
-          />
+          capturedImage && (
+            <ScanResult 
+              imageSrc={capturedImage}
+              onClose={handleReset} 
+            />
+          )
         )}
       </main>
       <MobileNavbar />

@@ -151,7 +151,10 @@ const BarcodeScanner: React.FC<{
               setScanning(false);
               
               // Log activity
-              logActivity('scan_food', `Scanned barcode: ${validCode}`, { barcode: validCode });
+              logActivity('scan_food', {
+                description: `Scanned barcode: ${validCode}`,
+                metadata: { barcode: validCode }
+              });
               
               // Notify success
               toast({

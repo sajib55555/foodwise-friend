@@ -24,17 +24,49 @@ export const useSubscription = () => {
         return;
       }
 
-      console.log("Subscription data retrieved:", data);
-      setSubscription(data);
+      // Process subscription data and check trial status
+      let subscriptionData = data;
       
-      if (data && data.status === 'active' && data.stripe_subscription_id) {
+      if (subscriptionData) {
+        // If it's a trial and the end date has passed, mark it as expired
+        if (subscriptionData.status === 'trial' && 
+            subscriptionData.trial_ends_at && 
+            new Date(subscriptionData.trial_ends_at) < new Date()) {
+          
+          console.log("Trial has expired, updating status");
+          
+          // Update the subscription status in the database
+          const { error: updateError } = await supabase
+            .from('subscriptions')
+            .update({ 
+              status: 'expired',
+              updated_at: new Date().toISOString() 
+            })
+            .eq('user_id', user.id);
+            
+          if (updateError) {
+            console.error('Error updating expired trial status', updateError);
+          } else {
+            // Update local subscription object with expired status
+            subscriptionData = {
+              ...subscriptionData,
+              status: 'expired'
+            };
+          }
+        }
+      }
+      
+      console.log("Subscription data retrieved:", subscriptionData);
+      setSubscription(subscriptionData);
+      
+      if (subscriptionData && subscriptionData.status === 'active' && subscriptionData.stripe_subscription_id) {
         try {
-          console.log("Fetching Stripe subscription details for:", data.stripe_subscription_id);
+          console.log("Fetching Stripe subscription details for:", subscriptionData.stripe_subscription_id);
           
           const { data: stripeData, error: stripeError } = await supabase.functions.invoke('stripe-subscription', {
             body: {
               action: 'get-subscription-details',
-              data: { subscriptionId: data.stripe_subscription_id }
+              data: { subscriptionId: subscriptionData.stripe_subscription_id }
             }
           });
           

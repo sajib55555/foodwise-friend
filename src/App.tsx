@@ -45,46 +45,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/landing" replace />;
   }
   
-  if (subscription?.status === "expired" || subscription?.status === "canceled") {
+  if (subscription?.status === "expired" || 
+      subscription?.status === "canceled" || 
+      (subscription?.status === "trial" && 
+       subscription?.trial_ends_at && 
+       new Date(subscription.trial_ends_at) < new Date())) {
+    
     toast({
-      title: "Subscription expired",
-      description: "Your trial or subscription has ended. Please upgrade to continue using premium features.",
-      variant: "destructive",
-      action: (
-        <div className="flex justify-center w-full mt-2">
-          <Button 
-            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-            onClick={() => navigate("/profile/subscription")}
-          >
-            <Crown className="h-4 w-4 mr-2" />
-            Upgrade Now
-          </Button>
-        </div>
-      ),
-    });
-    return <Navigate to="/profile/subscription" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const PremiumRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading, subscription } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/landing" replace />;
-  }
-  
-  if (subscription?.status !== "active") {
-    toast({
-      title: "Premium feature",
-      description: "This feature requires an active premium subscription.",
+      title: "Subscription Required",
+      description: "Your trial or subscription has ended. Please upgrade to continue using the app features.",
       variant: "destructive",
       action: (
         <div className="flex justify-center w-full mt-2">

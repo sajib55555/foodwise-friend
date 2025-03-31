@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import Header from "@/components/layout/Header";
@@ -27,6 +26,8 @@ const Subscription = () => {
   const isSubscribed = subscription?.status === "active";
   const isTrial = subscription?.status === "trial";
   const isExpired = subscription?.status === "expired" || subscription?.status === "canceled";
+  
+  const isTrialExpired = isTrial && subscription?.trial_ends_at && new Date(subscription.trial_ends_at) < new Date();
 
   const getExpiryDate = () => {
     if (!subscription) return null;
@@ -196,9 +197,11 @@ const Subscription = () => {
         variant: "default"
       });
       window.history.replaceState({}, document.title, window.location.pathname);
-      getSubscription();
       
-      // Log successful subscription
+      getSubscription().then(() => {
+        navigate("/");
+      });
+      
       if (user) {
         try {
           logActivity(
@@ -220,7 +223,6 @@ const Subscription = () => {
       });
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      // Log canceled subscription
       if (user) {
         try {
           logActivity(
@@ -233,7 +235,7 @@ const Subscription = () => {
         }
       }
     }
-  }, [toast, getSubscription, logActivity, user]);
+  }, [toast, getSubscription, logActivity, user, navigate]);
 
   return (
     <>
@@ -255,12 +257,12 @@ const Subscription = () => {
                       Active
                     </Badge>
                   )}
-                  {isTrial && (
+                  {isTrial && !isTrialExpired && (
                     <Badge variant="outline" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800/30">
                       Trial
                     </Badge>
                   )}
-                  {isExpired && (
+                  {(isExpired || isTrialExpired) && (
                     <Badge variant="outline" className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800/30">
                       Expired
                     </Badge>
@@ -268,8 +270,8 @@ const Subscription = () => {
                 </div>
                 <CardDescription>
                   {isSubscribed && "You are currently on the Premium plan"}
-                  {isTrial && "You are currently on the Trial plan"}
-                  {isExpired && "Your subscription has expired"}
+                  {isTrial && !isTrialExpired && "You are currently on the Trial plan"}
+                  {(isExpired || isTrialExpired) && "Your subscription has expired"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -280,12 +282,17 @@ const Subscription = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold text-lg">
-                        {isSubscribed ? "Premium Plan" : isTrial ? "Trial Plan" : "Free Plan"}
+                        {isSubscribed ? "Premium Plan" : isTrial && !isTrialExpired ? "Trial Plan" : "Free Plan"}
                       </h3>
-                      {getExpiryDate() && (
+                      {getExpiryDate() && !isTrialExpired && (
                         <p className="text-sm text-muted-foreground">
                           {isTrial ? "Trial ends on " : isExpired ? "Expired on " : "Next billing on "} 
                           {getExpiryDate()}
+                        </p>
+                      )}
+                      {isTrialExpired && (
+                        <p className="text-sm text-red-500 font-medium">
+                          Trial ended on {getExpiryDate()}
                         </p>
                       )}
                       {isSubscribed && getNextBillingDate() && (
@@ -297,12 +304,26 @@ const Subscription = () => {
                   </div>
                 </div>
                 
+                {(isExpired || isTrialExpired) && (
+                  <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800/30">
+                    <div className="flex items-start">
+                      <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-red-700 dark:text-red-400">Your access has expired</h4>
+                        <p className="text-sm text-red-600 dark:text-red-300">
+                          You need to subscribe to the Premium Plan to continue using all features of the app.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="space-y-3">
                   <h3 className="font-medium">Plan Features</h3>
                   
                   <div className="space-y-2">
                     <div className="flex items-center">
-                      {(isSubscribed || isTrial) ? (
+                      {(isSubscribed || (isTrial && !isTrialExpired)) ? (
                         <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
                       ) : (
                         <XCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
@@ -311,7 +332,7 @@ const Subscription = () => {
                     </div>
                     
                     <div className="flex items-center">
-                      {(isSubscribed || isTrial) ? (
+                      {(isSubscribed || (isTrial && !isTrialExpired)) ? (
                         <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
                       ) : (
                         <XCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
@@ -346,7 +367,7 @@ const Subscription = () => {
                     </div>
                   )}
                   
-                  {isTrial && (
+                  {isTrial && !isTrialExpired && (
                     <div className="mt-2 text-sm">
                       <p className="text-center text-muted-foreground">
                         Your trial ends on {getExpiryDate()}. Subscribe to continue enjoying premium features.
@@ -369,7 +390,7 @@ const Subscription = () => {
                     ) : (
                       <>
                         <Crown className="mr-2 h-4 w-4" />
-                        {isExpired ? "Renew Subscription" : "Upgrade to Premium"}
+                        {isExpired || isTrialExpired ? "Upgrade to Premium" : "Upgrade to Premium"}
                       </>
                     )}
                   </Button>
@@ -393,14 +414,27 @@ const Subscription = () => {
                   </Button>
                 )}
                 
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={() => navigate("/profile")}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Profile
-                </Button>
+                {isSubscribed && (
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => navigate("/profile")}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Profile
+                  </Button>
+                )}
+                
+                {!isSubscribed && (
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => navigate("/landing")}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Landing Page
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </motion.div>

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,7 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Log activity function (simplified, will be replaced by ActivityLogContext)
   const logAuthActivity = async (
     activityType: string, 
     description: string, 
@@ -65,7 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.session?.user ?? null);
       setIsLoading(false);
 
-      // Listen for auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
         async (event, session) => {
           setSession(session);
@@ -76,7 +73,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await getProfile();
             await getSubscription();
             
-            // Log login event if applicable
             if (event === 'SIGNED_IN') {
               await supabase
                 .from('user_activity_logs')
@@ -91,7 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       );
 
-      // Clean up on unmount
       return () => {
         subscription.unsubscribe();
       };
@@ -141,7 +136,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Subscription data retrieved:", data);
       setSubscription(data);
       
-      // If subscription is active, check for next billing date from Stripe
       if (data && data.status === 'active' && data.stripe_subscription_id) {
         try {
           console.log("Fetching Stripe subscription details for:", data.stripe_subscription_id);
@@ -250,7 +244,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Log logout before actually signing out
       if (user) {
         await supabase
           .from('user_activity_logs')

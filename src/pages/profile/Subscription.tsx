@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityLog } from "@/contexts/ActivityLogContext";
 
-const PREMIUM_MONTHLY_PRICE_ID = "price_1R4hCCFk4w8hjVcV3CEX2gA5"; 
+const PREMIUM_MONTHLY_PRICE_ID = "price_1R8oc2Fk4w8hjVcVNXtH2BjR"; 
 
 const Subscription = () => {
   const navigate = useNavigate();

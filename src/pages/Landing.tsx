@@ -467,7 +467,7 @@ const Landing = () => {
               className="text-center mb-12"
             >
               <h2 className="text-3xl font-bold">Simple, Transparent Pricing</h2>
-              <p className="text-muted-foreground mt-2">Start with a 14-day free trial, then just £9.95/month</p>
+              <p className="text-muted-foreground mt-2">Start with a 14-day free trial, then just £4.95/month</p>
             </motion.div>
 
             <motion.div 
@@ -483,7 +483,7 @@ const Landing = () => {
                 </div>
                 <CardContent className="p-6 pt-8">
                   <div className="text-center mb-6">
-                    <span className="text-4xl font-bold">£9.95</span>
+                    <span className="text-4xl font-bold">£4.95</span>
                     <span className="text-muted-foreground">/month</span>
                     <p className="text-sm text-muted-foreground mt-1">after 14-day free trial</p>
                   </div>

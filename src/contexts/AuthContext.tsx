@@ -1,60 +1,23 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-interface Subscription {
-  status: string;
-  trial_ends_at: string | null;
-  stripe_customer_id?: string | null;
-  stripe_subscription_id?: string | null;
-  stripe_price_id?: string | null;
-  next_billing_date?: string | null;
-}
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: any | null;
-  subscription: Subscription | null;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  getProfile: () => Promise<void>;
-  getSubscription: () => Promise<void>;
-}
+import { AuthContextType } from '@/types/auth';
+import { useAuthActivity } from '@/hooks/use-auth-activity';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import { useSubscription } from '@/hooks/use-subscription';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-
-  const logAuthActivity = async (
-    activityType: string, 
-    description: string, 
-    metadata: Record<string, any> = {}
-  ) => {
-    try {
-      if (!user) return;
-      
-      await supabase
-        .from('user_activity_logs')
-        .insert({
-          user_id: user.id,
-          activity_type: activityType,
-          description,
-          metadata
-        });
-    } catch (error: any) {
-      console.error('Error logging auth activity:', error.message);
-    }
-  };
+  const { logAuthActivity } = useAuthActivity();
+  const { profile, setProfile, getProfile: fetchProfile } = useUserProfile();
+  const { subscription, setSubscription, getSubscription: fetchSubscription } = useSubscription();
 
   useEffect(() => {
     const setupAuth = async () => {
@@ -96,77 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const getProfile = async () => {
-    try {
-      if (!user) return;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile', error);
-        return;
-      }
-
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
+    await fetchProfile(user);
   };
 
   const getSubscription = async () => {
-    try {
-      if (!user) return;
-      
-      console.log("Fetching subscription data for user:", user.id);
-      
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching subscription', error);
-        return;
-      }
-
-      console.log("Subscription data retrieved:", data);
-      setSubscription(data);
-      
-      if (data && data.status === 'active' && data.stripe_subscription_id) {
-        try {
-          console.log("Fetching Stripe subscription details for:", data.stripe_subscription_id);
-          
-          const { data: stripeData, error: stripeError } = await supabase.functions.invoke('stripe-subscription', {
-            body: {
-              action: 'get-subscription-details',
-              data: { subscriptionId: data.stripe_subscription_id }
-            }
-          });
-          
-          if (stripeError) {
-            console.error('Error fetching Stripe subscription details:', stripeError);
-            return;
-          }
-          
-          if (stripeData && stripeData.next_billing_date) {
-            console.log("Updated subscription with next billing date:", stripeData.next_billing_date);
-            
-            setSubscription(prev => ({
-              ...prev,
-              next_billing_date: stripeData.next_billing_date
-            }));
-          }
-        } catch (stripeError) {
-          console.error('Error fetching Stripe subscription details:', stripeError);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching subscription:', error);
-    }
+    await fetchSubscription(user);
   };
 
   const signIn = async (email: string, password: string) => {
@@ -226,8 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Account created",
         description: "Welcome to FoodWise! Your 14-day trial has started.",
       });
-      
-      // We don't need to log signup here as it will be captured by the onAuthStateChange
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -245,13 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       if (user) {
-        await supabase
-          .from('user_activity_logs')
-          .insert({
-            user_id: user.id,
-            activity_type: 'logout',
-            description: 'User signed out'
-          });
+        await logAuthActivity(user, 'logout', 'User signed out');
       }
       
       await supabase.auth.signOut();
